@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { apiFetch } from "@/lib/api";
 
 export default function MediaAdminPage() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [media, setMedia] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -14,7 +14,9 @@ export default function MediaAdminPage() {
     const fetchMedia = async () => {
       try {
         setLoading(true);
-        const data = await apiFetch("/admin/media", {}, token);
+        // Use role-specific endpoint
+        const endpoint = user?.role === "admin" ? "/admin/media" : "/editor/media";
+        const data = await apiFetch(endpoint, {}, token);
         setMedia(data || []);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load media");
@@ -26,7 +28,7 @@ export default function MediaAdminPage() {
     if (token) {
       fetchMedia();
     }
-  }, [token]);
+  }, [token, user?.role]);
 
   if (loading) return <div>Loading media...</div>;
 

@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { apiFetch } from "@/lib/api";
 
 export default function EventsAdminPage() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -14,7 +14,9 @@ export default function EventsAdminPage() {
     const fetchEvents = async () => {
       try {
         setLoading(true);
-        const data = await apiFetch("/admin/events", {}, token);
+        // Use role-specific endpoint
+        const endpoint = user?.role === "admin" ? "/admin/events" : "/editor/events";
+        const data = await apiFetch(endpoint, {}, token);
         setEvents(data || []);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load events");
@@ -26,7 +28,7 @@ export default function EventsAdminPage() {
     if (token) {
       fetchEvents();
     }
-  }, [token]);
+  }, [token, user?.role]);
 
   if (loading) return <div>Loading events...</div>;
 

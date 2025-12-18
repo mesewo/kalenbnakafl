@@ -20,10 +20,10 @@ func SetupRoutes(r *gin.Engine) {
 		api.GET("/media", handlers.GetMedia)
 	}
 
-	// Admin routes
+	// Admin routes (admin only)
 	admin := api.Group("/admin")
 	admin.Use(middleware.AuthMiddleware())
-	admin.Use(middleware.RequireRole("admin", "editor"))
+	admin.Use(middleware.RequireRole("admin"))
 	{
 		admin.POST("/posts", handlers.CreatePost)
 		admin.GET("/posts", handlers.GetPosts)
@@ -31,6 +31,18 @@ func SetupRoutes(r *gin.Engine) {
 		admin.GET("/events", handlers.GetEvents)
 		admin.GET("/media", handlers.GetMedia)
 		admin.GET("/users", handlers.GetUsers)
+	}
+
+	// Editor routes (editor only)
+	editor := api.Group("/editor")
+	editor.Use(middleware.AuthMiddleware())
+	editor.Use(middleware.RequireRole("editor"))
+	{
+		editor.POST("/posts", handlers.CreatePost)
+		editor.GET("/posts", handlers.GetPosts)
+		editor.POST("/events", handlers.CreateEvent)
+		editor.GET("/events", handlers.GetEvents)
+		editor.GET("/media", handlers.GetMedia)
 	}
 
 	protected := api.Group("/")
