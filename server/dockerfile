@@ -1,0 +1,24 @@
+# 1️⃣ Build stage
+# Match the exact version from your go.mod (1.25.4)
+FROM golang:1.25.4-alpine AS builder
+
+# Install build essentials for potential dependency needs
+RUN apk add --no-cache git
+
+WORKDIR /app
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+# Ensure CGO is disabled for the Alpine runtime stage
+RUN CGO_ENABLED=0 GOOS=linux go build -o app ./cmd/main.go
+
+# 2️⃣ Runtime stage
+FROM alpine:latest
+WORKDIR /app
+COPY --from=builder /app/app .
+
+EXPOSE 8080
+CMD ["./app"]
