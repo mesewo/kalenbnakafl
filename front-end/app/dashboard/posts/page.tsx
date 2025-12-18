@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { apiFetch } from "@/lib/api";
 
 export default function PostsAdminPage() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -14,7 +14,9 @@ export default function PostsAdminPage() {
     const fetchPosts = async () => {
       try {
         setLoading(true);
-        const data = await apiFetch("/admin/posts", {}, token);
+        // Use role-specific endpoint
+        const endpoint = user?.role === "admin" ? "/admin/posts" : "/editor/posts";
+        const data = await apiFetch(endpoint, {}, token);
         setPosts(data || []);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load posts");
@@ -26,7 +28,7 @@ export default function PostsAdminPage() {
     if (token) {
       fetchPosts();
     }
-  }, [token]);
+  }, [token, user?.role]);
 
   if (loading) return <div>Loading posts...</div>;
 
