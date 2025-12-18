@@ -10,7 +10,7 @@ import (
 )
 
 func GetMedia(c *gin.Context) {
-	rows, err := database.DB.Query(`SELECT id, title, file_url FROM media`)
+	rows, err := database.DB.Query(`SELECT id, title, file_path FROM media`)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch media"})
 		return

@@ -26,7 +26,9 @@ func SetupRoutes(r *gin.Engine) {
 	admin.Use(middleware.RequireRole("admin", "editor"))
 	{
 		admin.POST("/posts", handlers.CreatePost)
+		admin.GET("/posts", handlers.GetPosts)
 		admin.POST("/events", handlers.CreateEvent)
+		admin.GET("/events", handlers.GetEvents)
 		admin.GET("/media", handlers.GetMedia)
 		admin.GET("/users", handlers.GetUsers)
 	}
