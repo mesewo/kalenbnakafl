@@ -15,6 +15,7 @@ type AuthContextType = {
   token: string | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  isLoading: boolean;
 };
 
 const AuthContext = createContext<AuthContextType>(null!);
@@ -22,12 +23,25 @@ const AuthContext = createContext<AuthContextType>(null!);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
+  // Restore auth state from localStorage on mount
   useEffect(() => {
     const t = localStorage.getItem("token");
-    if (t) {
-      setToken(t);
+    const u = localStorage.getItem("user");
+    
+    if (t && u) {
+      try {
+        setToken(t);
+        setUser(JSON.parse(u));
+      } catch (err) {
+        // Invalid stored data, clear it
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+      }
     }
+    
+    setIsLoading(false);
   }, []);
 
   async function login(email: string, password: string) {
@@ -38,17 +52,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     setToken(data.token);
     setUser(data.user);
+    
+    // Persist to localStorage (7-day expiry in real app)
     localStorage.setItem("token", data.token);
+    localStorage.setItem("user", JSON.stringify(data.user));
   }
 
   function logout() {
     setUser(null);
     setToken(null);
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout }}>
+    <AuthContext.Provider value={{ user, token, login, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

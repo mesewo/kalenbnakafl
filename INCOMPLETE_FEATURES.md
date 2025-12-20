@@ -4,10 +4,17 @@
 - Register button added to Navbar (alongside Login button)
 - Login functionality working
 - Basic authentication context set up
+- **[NEW]** Separate /api/admin/* and /api/editor/* routes with role-based middleware
+- **[NEW]** Dashboard stats endpoints (/api/admin/posts, /api/admin/events, /api/admin/media now exist)
+- **[NEW]** Role-aware dashboard sidebar navigation
+- **[NEW]** Clickable dashboard cards for admin and editor users (navigate to management pages)
+- **[NEW]** Events page using correct field name (event.event_date)
+- **[NEW]** Role-specific endpoint selection in posts, events, media pages
+- **[NEW]** Database schema with proper constraints and foreign keys
 
 ---
 
-## 🔴 CRITICAL ISSUES TO FIX BEFORE DOCKER FRONTEND
+## 🔴 HIGH PRIORITY - CORE FUNCTIONALITY
 
 ### 1. **Contact Form - No Backend Implementation**
 - **File**: [front-end/app/contact/page.tsx](front-end/app/contact/page.tsx)
@@ -15,85 +22,134 @@
 - **Fix Needed**: 
   - Create POST endpoint in backend: `/api/contact`
   - Add form submission handler in frontend
-  - Store contact messages in database
+  - Create contact messages table in database
+  - Return success/error feedback to user
 
-### 2. **Events Page - Field Name Mismatch**
-- **File**: [front-end/app/events/page.tsx](front-end/app/events/page.tsx)
-- **Issue**: Code uses `event.date` but API returns `event_date`
-- **Fix**: Change line to `{event.event_date}` instead of `{event.date}`
-
-### 3. **Dashboard Stats - No /admin/posts, /admin/events, /admin/media Endpoints**
-- **Files**: 
-  - [front-end/app/dashboard/page.tsx](front-end/app/dashboard/page.tsx)
-  - [server/routes/routes.go](server/routes/routes.go)
-- **Issue**: Dashboard tries to fetch from `/admin/posts`, `/admin/events`, `/admin/media` but only generic endpoints exist
-- **Fix Options**:
-  - Create dedicated admin endpoints that return all records
-  - OR modify dashboard to use existing `/posts`, `/events`, `/media` endpoints instead
-
-### 4. **Dashboard Posts Page - "Add Post" Button Non-Functional**
+### 2. **Dashboard Posts Page - "Add Post" Button Non-Functional**
 - **File**: [front-end/app/dashboard/posts/page.tsx](front-end/app/dashboard/posts/page.tsx)
-- **Issue**: Button exists but has no click handler
+- **Issue**: Button exists but has no click handler; no modal/form for creating posts
+- **Backend**: CreatePost handler exists and working
 - **Fix Needed**: 
-  - Add modal or form for creating posts
-  - Implement POST to `/api/admin/posts` endpoint
-  - Refresh posts list after creation
+  - Create modal or inline form for post creation
+  - Implement form submission with POST to `/api/admin/posts` or `/api/editor/posts`
+  - Add form validation (title, content required)
+  - Refresh posts list after successful creation
+  - Show success/error messages
 
-### 5. **No Media Management Endpoints**
-- **File**: [server/handlers/media.go](server/handlers/media.go)
-- **Issue**: Endpoint exists but handler likely incomplete
-- **Frontend**: [front-end/app/dashboard/media/page.tsx](front-end/app/dashboard/media/page.tsx) likely also incomplete
-- **Fix Needed**: Implement media upload/delete functionality
+### 3. **Dashboard Events Page - "Add Event" Button Non-Functional**
+- **File**: [front-end/app/dashboard/events/page.tsx](front-end/app/dashboard/events/page.tsx)
+- **Issue**: Page displays events but button has no click handler
+- **Backend**: CreateEvent handler exists and working
+- **Fix Needed**:
+  - Create modal or inline form for event creation
+  - Implement form submission with POST to `/api/admin/events` or `/api/editor/events`
+  - Add form validation (title, description, event_date required)
+  - Add date picker for event_date field
+  - Refresh events list after successful creation
+  - Show success/error messages
 
-### 6. **No Volunteer Management Features**
-- **Frontend Page**: [front-end/app/dashboard/volunteers/page.tsx](front-end/app/dashboard/volunteers/page.tsx)
-- **Backend**: No specific handlers for volunteer operations
-- **Fix Needed**: Create volunteer handlers and endpoints
-
-### 7. **No Events Management in Dashboard**
-- **Frontend Page**: [front-end/app/dashboard/events/page.tsx](front-end/app/dashboard/events/page.tsx)
-- **Issue**: Page likely exists but no "Add Event" functionality
-- **Fix Needed**: Implement event creation and management
-
-### 8. **Missing API Method in useAuth Context**
-- **File**: [front-end/context/AuthContext.tsx](front-end/context/AuthContext.tsx)
-- **Issue**: No `register` function exported (registration only works via direct API call in register page)
-- **Improvement**: Add `register` function to context for consistency
-
-### 9. **No User Profile Update Endpoint**
-- **Backend**: Profile endpoint exists ([server/handlers/profile.go](server/handlers/profile.go)) but likely only GET
-- **Frontend**: No profile edit page visible
-- **Fix Needed**: Implement user profile editing functionality
-
-### 10. **Database - No Constraints or Validations**
-- **File**: [server/database/db.go](server/database/db.go)
-- **Issues**:
-  - Email uniqueness not enforced at DB level
-  - No NOT NULL constraints
-  - No foreign key relationships visible
-- **Fix Needed**: Review and enhance database schema before production
+### 4. **Dashboard Events Page - Date Field Mismatch**
+- **File**: [front-end/app/dashboard/events/page.tsx](front-end/app/dashboard/events/page.tsx)
+- **Issue**: Line shows `{event.date}` but API returns `event.event_date`
+- **Fix**: Change to `{event.event_date}`
 
 ---
 
-## 📋 RECOMMENDED FIX PRIORITY
+## 🟡 MEDIUM PRIORITY - SECONDARY FEATURES
 
-1. **HIGH** - Contact form backend (users expect this to work)
-2. **HIGH** - Fix events page field name (`event.date` → `event.event_date`)
-3. **HIGH** - Fix dashboard stats endpoints
-4. **MEDIUM** - Add post/event creation functionality
-5. **MEDIUM** - Implement media management
-6. **MEDIUM** - Add profile editing
-7. **LOW** - Volunteer management (if required)
+### 5. **Dashboard Media Page - File Upload & Delete Non-Functional**
+- **Files**: 
+  - [front-end/app/dashboard/media/page.tsx](front-end/app/dashboard/media/page.tsx)
+  - [server/handlers/media.go](server/handlers/media.go)
+- **Issue**: Button exists but no upload form or functionality
+- **Fix Needed**: 
+  - Create file upload form (multipart/form-data)
+  - Implement file storage strategy (local disk or S3)
+  - Create DELETE endpoint for media items
+  - Add delete buttons to media items
+  - Handle file validation (size, type)
+  - Show upload progress feedback
+
+### 6. **Dashboard Users Page - User Management Incomplete**
+- **File**: [front-end/app/dashboard/users/page.tsx](front-end/app/dashboard/users/page.tsx)
+- **Issue**: Page exists but no edit/delete/create user functionality
+- **Fix Needed**:
+  - Add modal for creating users
+  - Implement edit user functionality
+  - Add delete buttons with confirmation
+  - Show user role selector (admin/editor/user/volunteer)
+  - Handle role changes and password resets
+
+### 7. **Dashboard Volunteers Page - Volunteer Management**
+- **File**: [front-end/app/dashboard/volunteers/page.tsx](front-end/app/dashboard/volunteers/page.tsx)
+- **Issue**: Page likely empty or not fetching volunteer data
+- **Fix Needed**:
+  - Fetch users with role='volunteer' from backend
+  - Add ability to assign/remove volunteers
+  - Track volunteer hours or contributions
+  - Create volunteer-specific handlers in backend if needed
+
+---
+
+## 🟢 LOW PRIORITY - ENHANCEMENTS
+
+### 8. **Missing API Methods in useAuth Context**
+- **File**: [front-end/context/AuthContext.tsx](front-end/context/AuthContext.tsx)
+- **Issue**: No `register` function exported (registration only works via direct API call)
+- **Improvement**: Add `register` and `logout` methods to context for consistency
+
+### 9. **No User Profile Update Endpoint**
+- **Backend**: [server/handlers/profile.go](server/handlers/profile.go) likely only has GET
+- **Frontend**: No profile edit page visible
+- **Fix Needed**: 
+  - Implement PUT endpoint to update user profile
+  - Create profile edit page with name/email/password change
+  - Add password confirmation and validation
+
+### 10. **Media Field Name Inconsistency**
+- **File**: [front-end/app/dashboard/media/page.tsx](front-end/app/dashboard/media/page.tsx)
+- **Issue**: References `item.file_url` but API returns `file_path`
+- **Fix**: Change to `{item.file_path}` or render file as downloadable link
+
+---
+
+## 📋 RECOMMENDED WORK PRIORITY
+
+### BEFORE DOCKERIZING FRONTEND:
+1. **Fix Contact Form Backend** (users expect this to work)
+2. **Fix Events Dashboard Date Field** (event.date → event.event_date)
+3. **Implement Post Creation Modal** (high-value feature, backend ready)
+4. **Implement Event Creation Modal** (high-value feature, backend ready)
+5. **Test all endpoints thoroughly**
+
+### AFTER FRONTEND DOCKERIZATION:
+6. Implement Media Upload functionality
+7. Complete User Management features
+8. Complete Volunteer Management features
+9. Add User Profile editing
+10. Refactor auth context methods
 
 ---
 
 ## 🐳 DOCKER READINESS CHECKLIST
 
-Before dockerizing frontend, ensure:
-- [ ] All API endpoints are properly defined in backend
-- [ ] All frontend API calls match actual backend endpoints
-- [ ] Environment variables configured correctly (.env.local should point to docker service name)
-- [ ] Error handling comprehensive (show proper error messages)
+**Current Status:**
+- [x] All API endpoints properly defined in backend
+- [x] Frontend API calls match actual backend endpoints
+- [x] Role-based access control working
+- [x] Database schema with proper constraints
+- [ ] Contact form backend implemented
+- [ ] Post/Event creation modals implemented
+- [ ] Media upload functionality working
+- [ ] Environment variables configured for Docker (need to verify .env.local)
+- [ ] Error handling comprehensive
 - [ ] Forms have proper validation
-- [ ] Missing endpoints implemented or removed from UI
+
+**Ready to Dockerize?** 
+✅ **YES**, the backend and core infrastructure is solid. We can dockerize after quick fixes for:
+- Contact form backend (5 min)
+- Add post/event modals (15 min each)
+- Verify environment variables
+
+Then dockerize and continue with media/users features in containers.
 

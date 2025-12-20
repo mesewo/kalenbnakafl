@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 
 export default function Navbar() {
-  const { token, user, logout } = useAuth();
+  const { token, user, logout, isLoading } = useAuth();
   const router = useRouter();
 
   const handleLogout = () => {
@@ -13,23 +13,35 @@ export default function Navbar() {
     router.push("/");
   };
 
+  if (isLoading) {
+    return (
+      <nav className="bg-primary text-black shadow">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <h1 className="text-xl font-bold">Kalen Benakafil</h1>
+        </div>
+      </nav>
+    );
+  }
+
   return (
     <nav className="bg-primary text-black shadow">
       <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-        <h1 className="text-xl font-bold">Kalen Benakafil</h1>
+        <Link href="/" className="text-xl font-bold hover:opacity-80">
+          Kalen Benakafil
+        </Link>
 
         <div className="space-x-6 font-medium flex items-center">
-          <Link href="/">Home</Link>
-          <Link href="/about">About</Link>
-          <Link href="/events">Events</Link>
-          <Link href="/blog">News</Link>
-          <Link href="/volunteer">Volunteer</Link>
-          <Link href="/contact">Contact</Link>
+          <Link href="/" className="hover:text-yellow-700">Home</Link>
+          <Link href="/about" className="hover:text-yellow-700">About</Link>
+          <Link href="/events" className="hover:text-yellow-700">Events</Link>
+          <Link href="/blog" className="hover:text-yellow-700">News</Link>
+          <Link href="/volunteer" className="hover:text-yellow-700">Volunteer</Link>
+          <Link href="/contact" className="hover:text-yellow-700">Contact</Link>
 
           {token ? (
             <div className="flex items-center space-x-4 border-l pl-6">
-              <span className="text-sm">{user?.name || "User"}</span>
-              <Link href="/dashboard" className="bg-yellow-600 text-white px-3 py-1 rounded">
+              <span className="text-sm font-semibold">{user?.name || "User"}</span>
+              <Link href="/dashboard" className="bg-yellow-600 text-white px-3 py-1 rounded hover:bg-yellow-700">
                 Dashboard
               </Link>
               <button

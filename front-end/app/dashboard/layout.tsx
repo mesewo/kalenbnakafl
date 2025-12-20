@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 
 export default function DashboardLayout({
@@ -10,13 +10,31 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { token, user, logout } = useAuth();
+  const { token, user, logout, isLoading } = useAuth();
   const router = useRouter();
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    if (!token) router.push("/auth/login");
-  }, [token, router]);
+    setIsClient(true);
+  }, []);
 
+  useEffect(() => {
+    // Only redirect if we've finished loading auth state
+    if (!isLoading && !token && isClient) {
+      router.push("/auth/login");
+    }
+  }, [token, isLoading, router, isClient]);
+
+  // Show loading state while checking auth
+  if (isLoading || !isClient) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  // Don't render if no token (prevents flashing wrong content)
   if (!token) return null;
 
   const handleLogout = () => {
@@ -39,6 +57,12 @@ export default function DashboardLayout({
         </div>
 
         <nav className="space-y-3">
+          <Link href="/" className="block hover:bg-yellow-700 p-2 rounded text-sm font-medium">
+            ← Back to Home
+          </Link>
+          
+          <hr className="border-yellow-500" />
+          
           <Link href="/dashboard" className="block hover:bg-yellow-700 p-2 rounded">
             Overview
           </Link>

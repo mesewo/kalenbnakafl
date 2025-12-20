@@ -25,5 +25,17 @@ services:
     depends_on:
       - db
 
+  frontend:
+    build:
+      context: ./front-end
+    container_name: kalen_frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://api:8080/api
+    depends_on:
+      - api
+
 volumes:
   pgdata:
