@@ -48,7 +48,7 @@ export default function MediaAdminPage() {
               <div key={item.id} className="border-b pb-4 mb-4">
                 <h3 className="font-bold">{item.title}</h3>
                 <p className="text-sm text-gray-600">
-                  <a href={item.file_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                  <a href={item.file_path} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
                     View File
                   </a>
                 </p>

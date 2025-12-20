@@ -38,6 +38,15 @@ CREATE TABLE IF NOT EXISTS media (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Create contacts table
+CREATE TABLE IF NOT EXISTS contacts (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create seed data
 INSERT INTO users (name, email, password, role) VALUES 
 ('Admin User', 'admin@kalenbenakafil.org', '$2a$10$QeKhl6pH2J5QU.QVW.cB6ebvVM0FlpeDaw4f4czPqjQAXRianxjsm', 'admin'),

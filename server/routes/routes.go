@@ -13,6 +13,7 @@ func SetupRoutes(r *gin.Engine) {
 		// Public routes
 		api.POST("/register", handlers.Register)
 		api.POST("/login", handlers.Login)
+		api.POST("/contact", handlers.CreateContact)
 
 		// Public GET routes
 		api.GET("/posts", handlers.GetPosts)
