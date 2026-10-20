@@ -1,25 +1,28 @@
 package routes
 
 import (
+	"database/sql"
 	"github.com/gin-gonic/gin"
+	"kalenbnakafl/dbgen"
 	"kalenbnakafl/handlers"
 	"kalenbnakafl/middleware"
 	"time"
 )
 
-func SetupRoutes(r *gin.Engine) {
+func SetupRoutes(r *gin.Engine, q *dbgen.Queries, db *sql.DB) {
+	apiHandlers := handlers.NewAPI(q, db)
 	api := r.Group("/api")
 	publicLimit := middleware.LimitRequests(30, time.Minute)
 	authLimit := middleware.LimitRequests(10, time.Minute)
-	api.POST("/register", authLimit, handlers.Register)
-	api.POST("/login", authLimit, handlers.Login)
-	api.POST("/refresh", authLimit, handlers.Refresh)
-	api.POST("/logout", handlers.Logout)
+	api.POST("/register", authLimit, apiHandlers.Register)
+	api.POST("/login", authLimit, apiHandlers.Login)
+	api.POST("/refresh", authLimit, apiHandlers.Refresh)
+	api.POST("/logout", apiHandlers.Logout)
 	api.POST("/contact", publicLimit, handlers.CreateContact)
 	api.GET("/posts", handlers.GetPosts)
 	api.GET("/events", handlers.GetEvents)
 	admin := api.Group("/admin")
-	admin.Use(middleware.AuthMiddleware(), middleware.RequireRole("admin"))
+	admin.Use(middleware.AuthMiddleware(q), middleware.RequireRole("admin"))
 	admin.GET("/posts", handlers.GetPosts)
 	admin.POST("/posts", handlers.CreatePost)
 	admin.PATCH("/posts/:id", handlers.UpdatePost)
@@ -32,14 +35,14 @@ func SetupRoutes(r *gin.Engine) {
 	admin.GET("/media", handlers.GetMedia)
 	admin.POST("/media", handlers.UploadMedia)
 	admin.DELETE("/media/:id", handlers.DeleteMedia)
-	admin.GET("/users", handlers.GetUsers)
-	admin.POST("/users", handlers.CreateUser)
-	admin.PATCH("/users/:id", handlers.UpdateUser)
-	admin.DELETE("/users/:id", handlers.DeleteUser)
+	admin.GET("/users", apiHandlers.GetUsers)
+	admin.POST("/users", apiHandlers.CreateUser)
+	admin.PATCH("/users/:id", apiHandlers.UpdateUser)
+	admin.DELETE("/users/:id", apiHandlers.DeleteUser)
 	admin.GET("/volunteers", handlers.GetVolunteers)
 	admin.POST("/volunteers/:id/contributions", handlers.AddContribution)
 	editor := api.Group("/editor")
-	editor.Use(middleware.AuthMiddleware(), middleware.RequireRole("admin", "editor"))
+	editor.Use(middleware.AuthMiddleware(q), middleware.RequireRole("admin", "editor"))
 	editor.GET("/posts", handlers.GetPosts)
 	editor.POST("/posts", handlers.CreatePost)
 	editor.PATCH("/posts/:id", handlers.UpdatePost)
@@ -53,8 +56,8 @@ func SetupRoutes(r *gin.Engine) {
 	editor.POST("/media", handlers.UploadMedia)
 	editor.DELETE("/media/:id", handlers.DeleteMedia)
 	protected := api.Group("/")
-	protected.Use(middleware.AuthMiddleware())
-	protected.GET("/me", handlers.Me)
-	protected.GET("/profile", handlers.Profile)
-	protected.PUT("/profile", handlers.UpdateProfile)
+	protected.Use(middleware.AuthMiddleware(q))
+	protected.GET("/me", apiHandlers.Me)
+	protected.GET("/profile", apiHandlers.Profile)
+	protected.PUT("/profile", apiHandlers.UpdateProfile)
 }

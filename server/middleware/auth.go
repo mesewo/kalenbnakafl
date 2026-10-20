@@ -2,14 +2,15 @@ package middleware
 
 import (
 	"database/sql"
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"kalenbnakafl/database"
+	"kalenbnakafl/dbgen"
 	"kalenbnakafl/utils"
 )
 
-func AuthMiddleware() gin.HandlerFunc {
+func AuthMiddleware(q *dbgen.Queries) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token, err := c.Cookie("access_token")
 		if err != nil || token == "" {
@@ -23,9 +24,9 @@ func AuthMiddleware() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		var role string
-		if err := database.DB.QueryRow(`SELECT role FROM users WHERE id=$1`, userID).Scan(&role); err != nil {
-			if err == sql.ErrNoRows {
+		role, err := q.GetRoleByUserID(c.Request.Context(), int32(userID))
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "Account not found"})
 			} else {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not verify session"})

@@ -63,7 +63,7 @@ func main() {
 	}
 	_ = os.MkdirAll(uploadDir, 0755)
 	r.Static("/uploads", uploadDir)
-	routes.SetupRoutes(r)
+	routes.SetupRoutes(r, database.Queries, database.DB)
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"

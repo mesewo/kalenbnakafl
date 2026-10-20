@@ -1,18 +1,22 @@
 package handlers
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
-	"kalenbnakafl/database"
+	"kalenbnakafl/dbgen"
 	"kalenbnakafl/models"
 	"kalenbnakafl/utils"
 )
@@ -58,8 +62,16 @@ func clearSessionCookies(c *gin.Context) {
 func publicUser(user models.User) gin.H {
 	return gin.H{"id": user.ID, "name": user.Name, "email": user.Email, "role": user.Role}
 }
+func userModel(id int32, name, email, role string, created time.Time) models.User {
+	return models.User{ID: int(id), Name: name, Email: email, Role: role, CreatedAt: created}
+}
+func isUniqueViolation(err error) bool {
+	var pqErr *pq.Error
+	return errors.As(err, &pqErr) && pqErr.Code == "23505"
+}
+func requestContext(c *gin.Context) context.Context { return c.Request.Context() }
 
-func Register(c *gin.Context) {
+func (a *API) Register(c *gin.Context) {
 	var input models.UserInput
 	if err := c.ShouldBindJSON(&input); err != nil || !validateText(input.Name, 120) || !validEmail(input.Email) || len(input.Password) < 12 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Name, valid email, and password of at least 12 characters are required"})
@@ -70,14 +82,19 @@ func Register(c *gin.Context) {
 		c.JSON(500, gin.H{"error": "Password hashing failed"})
 		return
 	}
-	if _, err = database.DB.Exec(`INSERT INTO users(name,email,password,role,updated_at) VALUES($1,$2,$3,'user',NOW())`, clean(input.Name), strings.ToLower(clean(input.Email)), hash); err != nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "An account with that email already exists"})
+	err = a.q.RegisterUser(requestContext(c), dbgen.RegisterUserParams{Name: clean(input.Name), Email: strings.ToLower(clean(input.Email)), Password: string(hash)})
+	if err != nil {
+		if isUniqueViolation(err) {
+			c.JSON(http.StatusConflict, gin.H{"error": "An account with that email already exists"})
+			return
+		}
+		c.JSON(500, gin.H{"error": "Could not create account"})
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"message": "Account created successfully"})
 }
 
-func Login(c *gin.Context) {
+func (a *API) Login(c *gin.Context) {
 	var input struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
@@ -86,10 +103,14 @@ func Login(c *gin.Context) {
 		c.JSON(400, gin.H{"error": "Invalid input"})
 		return
 	}
-	var user models.User
-	err := database.DB.QueryRow(`SELECT id,name,email,password,role FROM users WHERE lower(email)=lower($1)`, clean(input.Email)).Scan(&user.ID, &user.Name, &user.Email, &user.Password, &user.Role)
-	if err != nil || bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)) != nil {
+	ctx := requestContext(c)
+	row, err := a.q.GetUserByEmail(ctx, clean(input.Email))
+	if errors.Is(err, sql.ErrNoRows) || (err == nil && bcrypt.CompareHashAndPassword([]byte(row.Password), []byte(input.Password)) != nil) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
+		return
+	}
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not log in"})
 		return
 	}
 	refresh, err := newRefreshToken()
@@ -97,96 +118,129 @@ func Login(c *gin.Context) {
 		c.JSON(500, gin.H{"error": "Could not create session"})
 		return
 	}
-	if _, err = database.DB.Exec(`INSERT INTO refresh_tokens(user_id,token_hash,expires_at) VALUES($1,$2,$3)`, user.ID, tokenHash(refresh), time.Now().Add(7*24*time.Hour)); err != nil || setSessionCookies(c, user.ID, user.Role, refresh) != nil {
+	tx, err := a.db.BeginTx(ctx, nil)
+	if err != nil {
 		c.JSON(500, gin.H{"error": "Could not create session"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"user": publicUser(user)})
+	qtx := a.q.WithTx(tx)
+	err = qtx.CreateRefreshToken(ctx, dbgen.CreateRefreshTokenParams{UserID: row.ID, TokenHash: tokenHash(refresh), ExpiresAt: time.Now().Add(7 * 24 * time.Hour)})
+	if err != nil {
+		_ = tx.Rollback()
+		c.JSON(500, gin.H{"error": "Could not create session"})
+		return
+	}
+	if err = tx.Commit(); err != nil {
+		c.JSON(500, gin.H{"error": "Could not create session"})
+		return
+	}
+	if err = setSessionCookies(c, int(row.ID), row.Role, refresh); err != nil {
+		c.JSON(500, gin.H{"error": "Could not create session"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"user": publicUser(userModel(row.ID, row.Name, row.Email, row.Role, row.CreatedAt))})
 }
 
-func Refresh(c *gin.Context) {
+func (a *API) Refresh(c *gin.Context) {
 	old, err := c.Cookie(refreshCookie)
 	if err != nil || old == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Refresh session missing"})
 		return
 	}
-	tx, err := database.DB.Begin()
+	ctx := requestContext(c)
+	tx, err := a.db.BeginTx(ctx, nil)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "Could not refresh session"})
 		return
 	}
-	var userID int
-	if err = tx.QueryRow(`SELECT user_id FROM refresh_tokens WHERE token_hash=$1 AND revoked_at IS NULL AND expires_at>NOW()`, tokenHash(old)).Scan(&userID); err != nil {
-		_ = tx.Rollback()
-		clearSessionCookies(c)
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Refresh session expired"})
+	defer tx.Rollback()
+	qtx := a.q.WithTx(tx)
+	userID, err := qtx.LockActiveRefreshToken(ctx, tokenHash(old))
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			clearSessionCookies(c)
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Refresh session expired"})
+			return
+		}
+		c.JSON(500, gin.H{"error": "Could not refresh session"})
 		return
 	}
-	if _, err = tx.Exec(`UPDATE refresh_tokens SET revoked_at=NOW() WHERE token_hash=$1`, tokenHash(old)); err != nil {
-		_ = tx.Rollback()
+	if err = qtx.RevokeRefreshToken(ctx, tokenHash(old)); err != nil {
 		c.JSON(500, gin.H{"error": "Could not rotate session"})
 		return
 	}
-	var user models.User
-	if err = tx.QueryRow(`SELECT id,name,email,role FROM users WHERE id=$1`, userID).Scan(&user.ID, &user.Name, &user.Email, &user.Role); err != nil {
-		_ = tx.Rollback()
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Account not found"})
+	row, err := qtx.GetUserByID(ctx, userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Account not found"})
+			return
+		}
+		c.JSON(500, gin.H{"error": "Could not refresh session"})
 		return
 	}
 	refresh, err := newRefreshToken()
 	if err != nil {
-		_ = tx.Rollback()
 		c.JSON(500, gin.H{"error": "Could not create session"})
 		return
 	}
-	if _, err = tx.Exec(`INSERT INTO refresh_tokens(user_id,token_hash,expires_at) VALUES($1,$2,$3)`, user.ID, tokenHash(refresh), time.Now().Add(7*24*time.Hour)); err != nil || tx.Commit() != nil {
-		_ = tx.Rollback()
+	if err = qtx.CreateRefreshToken(ctx, dbgen.CreateRefreshTokenParams{UserID: row.ID, TokenHash: tokenHash(refresh), ExpiresAt: time.Now().Add(7 * 24 * time.Hour)}); err != nil {
 		c.JSON(500, gin.H{"error": "Could not rotate session"})
 		return
 	}
-	if err = setSessionCookies(c, user.ID, user.Role, refresh); err != nil {
+	if err = tx.Commit(); err != nil {
+		c.JSON(500, gin.H{"error": "Could not rotate session"})
+		return
+	}
+	if err = setSessionCookies(c, int(row.ID), row.Role, refresh); err != nil {
 		c.JSON(500, gin.H{"error": "Could not create session"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"user": publicUser(user)})
+	c.JSON(http.StatusOK, gin.H{"user": publicUser(userModel(row.ID, row.Name, row.Email, row.Role, row.CreatedAt))})
 }
 
-func Logout(c *gin.Context) {
+func (a *API) Logout(c *gin.Context) {
 	if refresh, err := c.Cookie(refreshCookie); err == nil && refresh != "" {
-		_, _ = database.DB.Exec(`UPDATE refresh_tokens SET revoked_at=NOW() WHERE token_hash=$1`, tokenHash(refresh))
+		if err := a.q.RevokeRefreshTokenByHash(requestContext(c), tokenHash(refresh)); err != nil {
+			c.JSON(500, gin.H{"error": "Could not sign out"})
+			return
+		}
 	}
 	clearSessionCookies(c)
 	c.JSON(http.StatusOK, gin.H{"message": "Signed out"})
 }
-func Me(c *gin.Context) {
-	id, _ := c.Get("user_id")
-	var user models.User
-	if err := database.DB.QueryRow(`SELECT id,name,email,role,created_at FROM users WHERE id=$1`, id).Scan(&user.ID, &user.Name, &user.Email, &user.Role, &user.CreatedAt); err != nil {
+
+func (a *API) Me(c *gin.Context) {
+	id, ok := c.Get("user_id")
+	if !ok {
+		c.JSON(401, gin.H{"error": "Account not found"})
+		return
+	}
+	row, err := a.q.GetUserByID(requestContext(c), int32(id.(int)))
+	if errors.Is(err, sql.ErrNoRows) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Account not found"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"user": publicUser(user)})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not load account"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"user": publicUser(userModel(row.ID, row.Name, row.Email, row.Role, row.CreatedAt))})
 }
 
-func GetUsers(c *gin.Context) {
-	rows, err := database.DB.Query(`SELECT id,name,email,role,created_at FROM users ORDER BY created_at DESC`)
+func (a *API) GetUsers(c *gin.Context) {
+	rows, err := a.q.ListUsers(requestContext(c))
 	if err != nil {
 		c.JSON(500, gin.H{"error": "Failed to fetch users"})
 		return
 	}
-	defer rows.Close()
-	users := []models.User{}
-	for rows.Next() {
-		var u models.User
-		if err := rows.Scan(&u.ID, &u.Name, &u.Email, &u.Role, &u.CreatedAt); err != nil {
-			c.JSON(500, gin.H{"error": "Failed to read users"})
-			return
-		}
-		users = append(users, u)
+	users := make([]models.User, 0, len(rows))
+	for _, row := range rows {
+		users = append(users, userModel(row.ID, row.Name, row.Email, row.Role, row.CreatedAt))
 	}
 	c.JSON(200, users)
 }
-func CreateUser(c *gin.Context) {
+
+func (a *API) CreateUser(c *gin.Context) {
 	var input models.UserInput
 	if err := c.ShouldBindJSON(&input); err != nil || !validateText(input.Name, 120) || !validEmail(input.Email) || len(input.Password) < 12 || !allowedRoles[input.Role] {
 		c.JSON(400, gin.H{"error": "Name, email, password, and a valid role are required"})
@@ -197,13 +251,19 @@ func CreateUser(c *gin.Context) {
 		c.JSON(500, gin.H{"error": "Password hashing failed"})
 		return
 	}
-	if _, err = database.DB.Exec(`INSERT INTO users(name,email,password,role,updated_at) VALUES($1,$2,$3,$4,NOW())`, clean(input.Name), strings.ToLower(clean(input.Email)), hash, input.Role); err != nil {
-		c.JSON(400, gin.H{"error": "Could not create user; email may already exist"})
+	err = a.q.CreateUser(requestContext(c), dbgen.CreateUserParams{Name: clean(input.Name), Email: strings.ToLower(clean(input.Email)), Password: string(hash), Role: input.Role})
+	if err != nil {
+		if isUniqueViolation(err) {
+			c.JSON(409, gin.H{"error": "Could not create user; email may already exist"})
+			return
+		}
+		c.JSON(500, gin.H{"error": "Could not create user; email may already exist"})
 		return
 	}
 	c.JSON(201, gin.H{"message": "User created"})
 }
-func UpdateUser(c *gin.Context) {
+
+func (a *API) UpdateUser(c *gin.Context) {
 	id, ok := parseID(c)
 	if !ok {
 		return
@@ -218,7 +278,28 @@ func UpdateUser(c *gin.Context) {
 		c.JSON(400, gin.H{"error": "You cannot remove your own admin access"})
 		return
 	}
-	var err error
+	ctx := requestContext(c)
+	target, err := a.q.GetUserByID(ctx, int32(id))
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			c.JSON(404, gin.H{"error": "Could not update user"})
+			return
+		}
+		c.JSON(500, gin.H{"error": "Could not update user"})
+		return
+	}
+	if target.Role == "admin" && input.Role != "admin" {
+		count, e := a.q.CountAdmins(ctx)
+		if e != nil {
+			c.JSON(500, gin.H{"error": "Could not update user"})
+			return
+		}
+		if count <= 1 {
+			c.JSON(409, gin.H{"error": "You cannot remove the last admin"})
+			return
+		}
+	}
+	var password sql.NullString
 	if strings.TrimSpace(input.Password) != "" {
 		if len(input.Password) < 12 {
 			c.JSON(400, gin.H{"error": "Password must be at least 12 characters"})
@@ -229,17 +310,25 @@ func UpdateUser(c *gin.Context) {
 			c.JSON(500, gin.H{"error": "Password hashing failed"})
 			return
 		}
-		_, err = database.DB.Exec(`UPDATE users SET name=$1,email=$2,role=$3,password=$4,updated_at=NOW() WHERE id=$5`, clean(input.Name), strings.ToLower(clean(input.Email)), input.Role, hash, id)
-	} else {
-		_, err = database.DB.Exec(`UPDATE users SET name=$1,email=$2,role=$3,updated_at=NOW() WHERE id=$4`, clean(input.Name), strings.ToLower(clean(input.Email)), input.Role, id)
+		password = sql.NullString{String: string(hash), Valid: true}
 	}
+	affected, err := a.q.UpdateManagedUser(ctx, dbgen.UpdateManagedUserParams{Name: clean(input.Name), Email: strings.ToLower(clean(input.Email)), Role: input.Role, Password: password, ID: int32(id)})
 	if err != nil {
-		c.JSON(400, gin.H{"error": "Could not update user"})
+		if isUniqueViolation(err) {
+			c.JSON(409, gin.H{"error": "Could not update user"})
+			return
+		}
+		c.JSON(500, gin.H{"error": "Could not update user"})
+		return
+	}
+	if affected == 0 {
+		c.JSON(404, gin.H{"error": "Could not update user"})
 		return
 	}
 	c.JSON(200, gin.H{"message": "User updated"})
 }
-func DeleteUser(c *gin.Context) {
+
+func (a *API) DeleteUser(c *gin.Context) {
 	id, ok := parseID(c)
 	if !ok {
 		return
@@ -249,8 +338,34 @@ func DeleteUser(c *gin.Context) {
 		c.JSON(400, gin.H{"error": "You cannot delete your own account"})
 		return
 	}
-	if _, err := database.DB.Exec(`DELETE FROM users WHERE id=$1`, id); err != nil {
+	ctx := requestContext(c)
+	target, err := a.q.GetUserByID(ctx, int32(id))
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			c.JSON(404, gin.H{"error": "Could not delete user"})
+			return
+		}
 		c.JSON(500, gin.H{"error": "Could not delete user"})
+		return
+	}
+	if target.Role == "admin" {
+		count, e := a.q.CountAdmins(ctx)
+		if e != nil {
+			c.JSON(500, gin.H{"error": "Could not delete user"})
+			return
+		}
+		if count <= 1 {
+			c.JSON(409, gin.H{"error": "You cannot delete the last admin"})
+			return
+		}
+	}
+	n, err := a.q.DeleteUser(ctx, int32(id))
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Could not delete user"})
+		return
+	}
+	if n == 0 {
+		c.JSON(404, gin.H{"error": "Could not delete user"})
 		return
 	}
 	c.JSON(200, gin.H{"message": "User deleted"})
