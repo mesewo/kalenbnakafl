@@ -1,24 +1,19 @@
-# 1️⃣ Build stage
-# Match the exact version from your go.mod (1.25.4)
 FROM golang:1.25.4-alpine AS builder
-
-# Install build essentials for potential dependency needs
-RUN apk add --no-cache git
-
 WORKDIR /app
-
-COPY go.mod go.sum ./
+COPY server/go.mod server/go.sum ./
 RUN go mod download
+COPY server/ ./
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o app ./cmd/main.go
 
-COPY . .
-
-# Ensure CGO is disabled for the Alpine runtime stage
-RUN CGO_ENABLED=0 GOOS=linux go build -o app ./cmd/main.go
-
-# 2️⃣ Runtime stage
-FROM alpine:latest
+FROM alpine:3.22.1
+RUN apk add --no-cache ca-certificates \
+    && addgroup -S -g 10001 app \
+    && adduser -S -D -H -u 10001 -G app app \
+    && mkdir -p /data/uploads \
+    && chown -R app:app /data/uploads
 WORKDIR /app
-COPY --from=builder /app/app .
-
+COPY --from=builder --chown=app:app /app/app /app/app
 EXPOSE 8080
-CMD ["./app"]
+USER 10001:10001
+HEALTHCHECK --interval=10s --timeout=5s --start-period=20s --retries=5 CMD wget -q -O /dev/null http://127.0.0.1:8080/healthz || exit 1
+ENTRYPOINT ["/app/app"]

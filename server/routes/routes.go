@@ -1,72 +1,60 @@
 package routes
 
 import (
-	"kalenbenakafl-api/handlers"
-	"kalenbenakafl-api/middleware"
-
 	"github.com/gin-gonic/gin"
+	"kalenbnakafl/handlers"
+	"kalenbnakafl/middleware"
+	"time"
 )
 
 func SetupRoutes(r *gin.Engine) {
 	api := r.Group("/api")
-	{
-		// Public routes
-		api.POST("/register", handlers.Register)
-		api.POST("/login", handlers.Login)
-		api.POST("/contact", handlers.CreateContact)
-
-		// Public GET routes
-		api.GET("/posts", handlers.GetPosts)
-		api.GET("/events", handlers.GetEvents)
-		api.GET("/media", handlers.GetMedia)
-	}
-
-	// Admin routes (admin only)
+	publicLimit := middleware.LimitRequests(30, time.Minute)
+	authLimit := middleware.LimitRequests(10, time.Minute)
+	api.POST("/register", authLimit, handlers.Register)
+	api.POST("/login", authLimit, handlers.Login)
+	api.POST("/refresh", authLimit, handlers.Refresh)
+	api.POST("/logout", handlers.Logout)
+	api.POST("/contact", publicLimit, handlers.CreateContact)
+	api.GET("/posts", handlers.GetPosts)
+	api.GET("/events", handlers.GetEvents)
 	admin := api.Group("/admin")
-	admin.Use(middleware.AuthMiddleware())
-	admin.Use(middleware.RequireRole("admin"))
-	{
-		admin.POST("/posts", handlers.CreatePost)
-		admin.GET("/posts", handlers.GetPosts)
-		admin.POST("/events", handlers.CreateEvent)
-		admin.GET("/events", handlers.GetEvents)
-		admin.GET("/media", handlers.GetMedia)
-		admin.GET("/users", handlers.GetUsers)
-	}
-
-	// Editor routes (editor only)
+	admin.Use(middleware.AuthMiddleware(), middleware.RequireRole("admin"))
+	admin.GET("/posts", handlers.GetPosts)
+	admin.POST("/posts", handlers.CreatePost)
+	admin.PATCH("/posts/:id", handlers.UpdatePost)
+	admin.DELETE("/posts/:id", handlers.DeletePost)
+	admin.PATCH("/posts/:id/publish", handlers.PublishPost)
+	admin.GET("/events", handlers.GetEvents)
+	admin.POST("/events", handlers.CreateEvent)
+	admin.PATCH("/events/:id", handlers.UpdateEvent)
+	admin.DELETE("/events/:id", handlers.DeleteEvent)
+	admin.GET("/media", handlers.GetMedia)
+	admin.POST("/media", handlers.UploadMedia)
+	admin.DELETE("/media/:id", handlers.DeleteMedia)
+	admin.GET("/users", handlers.GetUsers)
+	admin.POST("/users", handlers.CreateUser)
+	admin.PATCH("/users/:id", handlers.UpdateUser)
+	admin.DELETE("/users/:id", handlers.DeleteUser)
+	admin.GET("/volunteers", handlers.GetVolunteers)
+	admin.POST("/volunteers/:id/contributions", handlers.AddContribution)
 	editor := api.Group("/editor")
-	editor.Use(middleware.AuthMiddleware())
-	editor.Use(middleware.RequireRole("editor"))
-	{
-		editor.POST("/posts", handlers.CreatePost)
-		editor.GET("/posts", handlers.GetPosts)
-		editor.POST("/events", handlers.CreateEvent)
-		editor.GET("/events", handlers.GetEvents)
-		editor.GET("/media", handlers.GetMedia)
-	}
-
+	editor.Use(middleware.AuthMiddleware(), middleware.RequireRole("admin", "editor"))
+	editor.GET("/posts", handlers.GetPosts)
+	editor.POST("/posts", handlers.CreatePost)
+	editor.PATCH("/posts/:id", handlers.UpdatePost)
+	editor.DELETE("/posts/:id", handlers.DeletePost)
+	editor.PATCH("/posts/:id/publish", handlers.PublishPost)
+	editor.GET("/events", handlers.GetEvents)
+	editor.POST("/events", handlers.CreateEvent)
+	editor.PATCH("/events/:id", handlers.UpdateEvent)
+	editor.DELETE("/events/:id", handlers.DeleteEvent)
+	editor.GET("/media", handlers.GetMedia)
+	editor.POST("/media", handlers.UploadMedia)
+	editor.DELETE("/media/:id", handlers.DeleteMedia)
 	protected := api.Group("/")
 	protected.Use(middleware.AuthMiddleware())
-	{
-		protected.GET("/profile", handlers.Profile)
-
-		// Admin only
-		protected.GET(
-			"/admin/dashboard",
-			middleware.RequireRole("admin"),
-			func(c *gin.Context) {
-				c.JSON(200, gin.H{"message": "Welcome Admin"})
-			},
-		)
-
-		// Admin or Editor
-		protected.POST(
-			"/content",
-			middleware.RequireRole("admin", "editor"),
-			func(c *gin.Context) {
-				c.JSON(200, gin.H{"message": "Content created"})
-			},
-		)
-	}
+	protected.GET("/me", handlers.Me)
+	protected.GET("/profile", handlers.Profile)
+	protected.PUT("/profile", handlers.UpdateProfile)
 }

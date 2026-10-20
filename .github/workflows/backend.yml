@@ -1,0 +1,60 @@
+name: backend
+
+on:
+  push:
+    paths:
+      - "server/**"
+      - "sqlc.yaml"
+      - "Makefile"
+      - ".github/workflows/backend.yml"
+  pull_request:
+    paths:
+      - "server/**"
+      - "sqlc.yaml"
+      - "Makefile"
+      - ".github/workflows/backend.yml"
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app
+          POSTGRES_DB: app_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U app -d app_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://app:app@localhost:5432/app_test?sslmode=disable
+      DATABASE_URL_TEST: postgres://app:app@localhost:5432/app_test?sslmode=disable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+      - name: Check migration round trip
+        working-directory: server
+        run: |
+          go tool goose -dir db/migrations postgres "$DATABASE_URL" up
+          go tool goose -dir db/migrations postgres "$DATABASE_URL" down-to 0
+          go tool goose -dir db/migrations postgres "$DATABASE_URL" up
+      - name: Check generated sqlc code
+        working-directory: server
+        run: go tool sqlc diff -f ../sqlc.yaml
+      - name: Build
+        working-directory: server
+        run: go build ./...
+      - name: Vet
+        working-directory: server
+        run: go vet ./...
+      - name: Test
+        working-directory: server
+        run: go test ./...

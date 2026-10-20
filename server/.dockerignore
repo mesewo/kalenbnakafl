@@ -1,0 +1,6 @@
+.git
+.env*
+*.exe
+*.test
+uploads
+.DS_Store

@@ -1,20 +1,2 @@
-import React from "react";
-
-export default function AuthCard({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="w-full max-w-md bg-white shadow-lg rounded-lg p-8">
-        <h1 className="text-2xl font-bold text-center mb-6 text-gray-800">
-          {title}
-        </h1>
-        {children}
-      </div>
-    </div>
-  );
-}
+import Link from "next/link";
+export default function AuthCard({ title, eyebrow, children }: { title: string; eyebrow?: string; children: React.ReactNode }) { return <div className="auth-wrap"><div className="auth-card form-card"><span className="eyebrow">{eyebrow || "Community access"}</span><h1 className="display" style={{ fontSize: "clamp(2.4rem, 7vw, 4rem)" }}>{title}</h1>{children}<p className="meta" style={{ marginTop: "1.5rem" }}><Link href="/">← Back to the community</Link></p></div></div>; }

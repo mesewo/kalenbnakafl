@@ -1,41 +1,78 @@
-# version: "3.9"
-
 services:
   db:
     image: postgres:15
     container_name: kalen_postgres
-    restart: always
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: kalenbenakafil
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
   api:
     build:
-      context: ./server
+      context: .
+      dockerfile: server/dockerfile
     container_name: kalen_api
-    restart: always
+    restart: unless-stopped
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      DATABASE_URL: postgres://${POSTGRES_USER:?Set POSTGRES_USER in .env}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:?Set POSTGRES_DB in .env}?sslmode=disable
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      CORS_ORIGINS: ${CORS_ORIGINS:?Set CORS_ORIGINS in .env}
+      UPLOAD_DIR: /data/uploads
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      MIGRATE_ON_START: ${MIGRATE_ON_START:-true}
+    volumes:
+      - uploads:/data/uploads
     ports:
       - "8080:8080"
     depends_on:
-      - db
-
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
   frontend:
     build:
       context: ./front-end
+      dockerfile: Dockerfile
+      args:
+        API_INTERNAL_URL: http://api:8080
     container_name: kalen_frontend
-    restart: always
+    restart: unless-stopped
+    environment:
+      API_INTERNAL_URL: http://api:8080
+      NEXT_PUBLIC_API_URL: /api
     ports:
       - "3000:3000"
-    environment:
-      - NEXT_PUBLIC_API_URL=http://api:8080/api
     depends_on:
-      - api
-
+      api:
+        condition: service_healthy
+  seed:
+    image: postgres:15
+    container_name: kalen_seed
+    profiles: ["seed"]
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - ./server/db/seed/dev.sql:/seed/dev.sql:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ["sh", "-c", "psql -v ON_ERROR_STOP=1 -h db -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\" -f /seed/dev.sql"]
 volumes:
   pgdata:
+  uploads:
