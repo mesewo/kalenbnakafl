@@ -11,12 +11,19 @@ import (
 type Querier interface {
 	CountAdmins(ctx context.Context) (int64, error)
 	CreateAdminIfMissing(ctx context.Context, arg CreateAdminIfMissingParams) error
-	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
-	DeleteUser(ctx context.Context, id int32) error
+	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) error
+	CreateUser(ctx context.Context, arg CreateUserParams) error
+	DeleteUser(ctx context.Context, id int32) (int64, error)
 	GetRoleByUserID(ctx context.Context, id int32) (string, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id int32) (User, error)
 	ListUsers(ctx context.Context) ([]ListUsersRow, error)
+	LockActiveRefreshToken(ctx context.Context, tokenHash string) (int32, error)
+	RegisterUser(ctx context.Context, arg RegisterUserParams) error
+	RevokeRefreshToken(ctx context.Context, tokenHash string) error
+	RevokeRefreshTokenByHash(ctx context.Context, tokenHash string) error
+	UpdateManagedUser(ctx context.Context, arg UpdateManagedUserParams) (int64, error)
+	UpdateProfile(ctx context.Context, arg UpdateProfileParams) (int64, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
 	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error
 }

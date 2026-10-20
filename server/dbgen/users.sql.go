@@ -7,6 +7,7 @@ package dbgen
 
 import (
 	"context"
+	"database/sql"
 	"time"
 )
 
@@ -37,10 +38,25 @@ func (q *Queries) CreateAdminIfMissing(ctx context.Context, arg CreateAdminIfMis
 	return err
 }
 
-const createUser = `-- name: CreateUser :one
+const createRefreshToken = `-- name: CreateRefreshToken :exec
+INSERT INTO refresh_tokens (user_id, token_hash, expires_at)
+VALUES ($1, $2, $3)
+`
+
+type CreateRefreshTokenParams struct {
+	UserID    int32     `json:"user_id"`
+	TokenHash string    `json:"token_hash"`
+	ExpiresAt time.Time `json:"expires_at"`
+}
+
+func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) error {
+	_, err := q.db.ExecContext(ctx, createRefreshToken, arg.UserID, arg.TokenHash, arg.ExpiresAt)
+	return err
+}
+
+const createUser = `-- name: CreateUser :exec
 INSERT INTO users (name, email, password, role, updated_at)
 VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
-RETURNING id, name, email, password, role, created_at, updated_at
 `
 
 type CreateUserParams struct {
@@ -50,33 +66,26 @@ type CreateUserParams struct {
 	Role     string `json:"role"`
 }
 
-func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, createUser,
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
+	_, err := q.db.ExecContext(ctx, createUser,
 		arg.Name,
 		arg.Email,
 		arg.Password,
 		arg.Role,
 	)
-	var i User
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Email,
-		&i.Password,
-		&i.Role,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+	return err
 }
 
-const deleteUser = `-- name: DeleteUser :exec
+const deleteUser = `-- name: DeleteUser :execrows
 DELETE FROM users WHERE id = $1
 `
 
-func (q *Queries) DeleteUser(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, deleteUser, id)
-	return err
+func (q *Queries) DeleteUser(ctx context.Context, id int32) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteUser, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const getRoleByUserID = `-- name: GetRoleByUserID :one
@@ -177,6 +186,116 @@ func (q *Queries) ListUsers(ctx context.Context) ([]ListUsersRow, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const lockActiveRefreshToken = `-- name: LockActiveRefreshToken :one
+SELECT user_id
+FROM refresh_tokens
+WHERE token_hash = $1
+  AND revoked_at IS NULL
+  AND expires_at > CURRENT_TIMESTAMP
+FOR UPDATE
+`
+
+func (q *Queries) LockActiveRefreshToken(ctx context.Context, tokenHash string) (int32, error) {
+	row := q.db.QueryRowContext(ctx, lockActiveRefreshToken, tokenHash)
+	var user_id int32
+	err := row.Scan(&user_id)
+	return user_id, err
+}
+
+const registerUser = `-- name: RegisterUser :exec
+INSERT INTO users (name, email, password, role, updated_at)
+VALUES ($1, $2, $3, 'user', CURRENT_TIMESTAMP)
+`
+
+type RegisterUserParams struct {
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+func (q *Queries) RegisterUser(ctx context.Context, arg RegisterUserParams) error {
+	_, err := q.db.ExecContext(ctx, registerUser, arg.Name, arg.Email, arg.Password)
+	return err
+}
+
+const revokeRefreshToken = `-- name: RevokeRefreshToken :exec
+UPDATE refresh_tokens
+SET revoked_at = CURRENT_TIMESTAMP
+WHERE token_hash = $1 AND revoked_at IS NULL
+`
+
+func (q *Queries) RevokeRefreshToken(ctx context.Context, tokenHash string) error {
+	_, err := q.db.ExecContext(ctx, revokeRefreshToken, tokenHash)
+	return err
+}
+
+const revokeRefreshTokenByHash = `-- name: RevokeRefreshTokenByHash :exec
+UPDATE refresh_tokens
+SET revoked_at = CURRENT_TIMESTAMP
+WHERE token_hash = $1
+`
+
+func (q *Queries) RevokeRefreshTokenByHash(ctx context.Context, tokenHash string) error {
+	_, err := q.db.ExecContext(ctx, revokeRefreshTokenByHash, tokenHash)
+	return err
+}
+
+const updateManagedUser = `-- name: UpdateManagedUser :execrows
+UPDATE users
+SET name = $1, email = $2, role = $3,
+    password = COALESCE($4, password), updated_at = CURRENT_TIMESTAMP
+WHERE id = $5
+`
+
+type UpdateManagedUserParams struct {
+	Name     string         `json:"name"`
+	Email    string         `json:"email"`
+	Role     string         `json:"role"`
+	Password sql.NullString `json:"password"`
+	ID       int32          `json:"id"`
+}
+
+func (q *Queries) UpdateManagedUser(ctx context.Context, arg UpdateManagedUserParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateManagedUser,
+		arg.Name,
+		arg.Email,
+		arg.Role,
+		arg.Password,
+		arg.ID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const updateProfile = `-- name: UpdateProfile :execrows
+UPDATE users
+SET name = $1, email = $2,
+    password = COALESCE($3, password), updated_at = CURRENT_TIMESTAMP
+WHERE id = $4
+`
+
+type UpdateProfileParams struct {
+	Name     string         `json:"name"`
+	Email    string         `json:"email"`
+	Password sql.NullString `json:"password"`
+	ID       int32          `json:"id"`
+}
+
+func (q *Queries) UpdateProfile(ctx context.Context, arg UpdateProfileParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateProfile,
+		arg.Name,
+		arg.Email,
+		arg.Password,
+		arg.ID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const updateUser = `-- name: UpdateUser :one
