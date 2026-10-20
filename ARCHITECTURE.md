@@ -31,7 +31,7 @@ flowchart LR
 | PUT | `/profile` | any user | updates name/email and optionally password |
 | GET | `/healthz` · `/health` | none | checks database connectivity |
 
-Handlers use parameterized SQL; no pagination is implemented. User and media CRUD exist; volunteers currently have contribution endpoints rather than application management.
+Auth, refresh-token, profile, and admin user handlers use generated sqlc queries with request contexts and injected query dependencies. Remaining content, media, contact, and volunteer handlers still use parameterized SQL pending the later B2/B3 migrations. No pagination is implemented. User and media CRUD exist; volunteers currently have contribution endpoints rather than application management.
 
 ### Current data model
 
@@ -42,8 +42,8 @@ Handlers use parameterized SQL; no pagination is implemented. User and media CRU
 - The canonical Goose SQL migrations live in `server/db/migrations/`; `server/db/migrations_embed.go` embeds them into the API binary. The migration directory contains SQL files only. Schema migrations contain no sample rows. Dev sample rows live in `server/db/seed/dev.sql` and load only through the `seed` Compose profile.
 - `MIGRATE_ON_START=true` makes the API create a Goose provider and apply pending migrations before bootstrapping the admin or serving requests. The provider uses a PostgreSQL session advisory lock so concurrent API starts serialize. Development Compose sets this to true by default; set it explicitly in `.env` for other environments.
 - Tool versions are pinned in `server/go.mod` using Go's `tool` directive: `go tool sqlc` v1.29.0 and `go tool goose` v3.24.3. Generate with `make sqlc`; enforce generated-code parity with `make sqlc-check` (`go tool sqlc diff`).
-- `sqlc.yaml` reads schema from `server/db/migrations` and query sources from `server/db/query`. Generated code is committed under `server/dbgen`; handlers continue using their existing SQL until the next planned migration task.
-- `DATABASE_URL_TEST` enables real-Postgres integration tests. Tests create an isolated temporary schema, exercise migration up/down/up, and check BootstrapAdmin idempotence; they skip when the variable is unset.
+- `sqlc.yaml` reads schema from `server/db/migrations` and query sources from `server/db/query`. Generated code is committed under `server/dbgen`. Auth, refresh-token, profile, and admin user handlers call injected `*dbgen.Queries`; refresh rotation uses `WithTx` and locks the active token row with `SELECT ... FOR UPDATE`. Later work migrates posts/events and media/contact/volunteer contributions in separate parts.
+- `DATABASE_URL_TEST` enables real-Postgres integration tests. Tests create an isolated temporary schema and cover migration up/down/up, BootstrapAdmin idempotence, and auth/user/session flows including concurrent refresh, duplicate emails, admin guards, and role re-checks; they skip when the variable is unset.
 
 ## 2. Target architecture
 
