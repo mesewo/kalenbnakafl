@@ -11,18 +11,27 @@ import (
 type Querier interface {
 	CountAdmins(ctx context.Context) (int64, error)
 	CreateAdminIfMissing(ctx context.Context, arg CreateAdminIfMissingParams) error
+	CreateEvent(ctx context.Context, arg CreateEventParams) error
+	CreatePost(ctx context.Context, arg CreatePostParams) error
 	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) error
 	CreateUser(ctx context.Context, arg CreateUserParams) error
+	DeleteEvent(ctx context.Context, id int32) (int64, error)
+	DeletePost(ctx context.Context, id int32) (int64, error)
 	DeleteUser(ctx context.Context, id int32) (int64, error)
 	GetRoleByUserID(ctx context.Context, id int32) (string, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id int32) (User, error)
+	ListEvents(ctx context.Context) ([]Event, error)
+	ListPosts(ctx context.Context, includeUnpublished bool) ([]ListPostsRow, error)
 	ListUsers(ctx context.Context) ([]ListUsersRow, error)
 	LockActiveRefreshToken(ctx context.Context, tokenHash string) (int32, error)
+	PublishPost(ctx context.Context, arg PublishPostParams) (int64, error)
 	RegisterUser(ctx context.Context, arg RegisterUserParams) error
 	RevokeRefreshToken(ctx context.Context, tokenHash string) error
 	RevokeRefreshTokenByHash(ctx context.Context, tokenHash string) error
+	UpdateEvent(ctx context.Context, arg UpdateEventParams) (int64, error)
 	UpdateManagedUser(ctx context.Context, arg UpdateManagedUserParams) (int64, error)
+	UpdatePost(ctx context.Context, arg UpdatePostParams) (int64, error)
 	UpdateProfile(ctx context.Context, arg UpdateProfileParams) (int64, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
 	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error
