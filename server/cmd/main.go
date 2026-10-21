@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"kalenbnakafl/database"
@@ -33,23 +34,30 @@ func corsMiddleware() gin.HandlerFunc {
 		c.Next()
 	}
 }
+
 func main() {
 	if err := utils.ValidateJWTSecret(); err != nil {
 		log.Fatal(err)
 	}
-	database.Connect()
+	db, queries, err := database.Connect()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
 	if strings.EqualFold(os.Getenv("MIGRATE_ON_START"), "true") {
-		if err := database.Migrate(context.Background(), database.DB); err != nil {
+		if err := database.Migrate(context.Background(), db); err != nil {
 			log.Fatal(err)
 		}
 	}
-	if err := database.BootstrapAdmin(); err != nil {
+	if err := database.BootstrapAdmin(context.Background(), queries); err != nil {
 		log.Fatal(err)
 	}
 	r := gin.Default()
 	r.Use(corsMiddleware())
 	health := func(c *gin.Context) {
-		if err := database.DB.Ping(); err != nil {
+		ctx, cancel := context.WithTimeout(c.Request.Context(), 3*time.Second)
+		defer cancel()
+		if err := database.Ping(ctx, db); err != nil {
 			c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable"})
 			return
 		}
@@ -63,7 +71,7 @@ func main() {
 	}
 	_ = os.MkdirAll(uploadDir, 0755)
 	r.Static("/uploads", uploadDir)
-	routes.SetupRoutes(r, database.Queries, database.DB)
+	routes.SetupRoutes(r, queries, db)
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"

@@ -101,16 +101,14 @@ func TestBootstrapAdminIsIdempotent(t *testing.T) {
 	if err := Migrate(context.Background(), db); err != nil {
 		t.Fatalf("apply migrations: %v", err)
 	}
-	previousDB, previousQueries := DB, Queries
-	DB, Queries = db, dbgen.New(db)
-	t.Cleanup(func() { DB, Queries = previousDB, previousQueries })
+	queries := dbgen.New(db)
 	t.Setenv("ADMIN_EMAIL", "Admin@Example.org")
 	t.Setenv("ADMIN_PASSWORD", "a-test-password-with-length")
 
-	if err := BootstrapAdmin(); err != nil {
+	if err := BootstrapAdmin(context.Background(), queries); err != nil {
 		t.Fatalf("bootstrap first admin: %v", err)
 	}
-	if err := BootstrapAdmin(); err != nil {
+	if err := BootstrapAdmin(context.Background(), queries); err != nil {
 		t.Fatalf("bootstrap second admin: %v", err)
 	}
 	var count int

@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"kalenbnakafl/database"
+	"kalenbnakafl/dbgen"
 )
 
 type ContactMessage struct {
@@ -13,13 +13,16 @@ type ContactMessage struct {
 	Message string `json:"message"`
 }
 
-func CreateContact(c *gin.Context) {
+func (a *API) CreateContact(c *gin.Context) {
 	var contact ContactMessage
 	if err := c.ShouldBindJSON(&contact); err != nil || !validateText(contact.Name, 120) || !validEmail(contact.Email) || !validateText(contact.Message, 5000) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Name, valid email, and a message are required"})
 		return
 	}
-	if _, err := database.DB.Exec(`INSERT INTO contacts(name,email,message) VALUES($1,$2,$3)`, clean(contact.Name), clean(contact.Email), clean(contact.Message)); err != nil {
+	err := a.q.CreateContact(c.Request.Context(), dbgen.CreateContactParams{
+		Name: clean(contact.Name), Email: clean(contact.Email), Message: clean(contact.Message),
+	})
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to submit contact message"})
 		return
 	}

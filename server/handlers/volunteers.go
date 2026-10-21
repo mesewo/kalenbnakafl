@@ -1,29 +1,37 @@
 package handlers
 
 import (
-	"github.com/gin-gonic/gin"
-	"kalenbnakafl/database"
-	"kalenbnakafl/models"
+	"database/sql"
 	"net/http"
+	"strconv"
+
+	"github.com/gin-gonic/gin"
+	"kalenbnakafl/dbgen"
+	"kalenbnakafl/models"
 )
 
-func GetVolunteers(c *gin.Context) {
-	rows, err := database.DB.Query(`SELECT u.id,u.name,u.email,u.role,u.created_at,COALESCE(SUM(vc.hours),0) FROM users u LEFT JOIN volunteer_contributions vc ON vc.volunteer_id=u.id WHERE u.role='volunteer' GROUP BY u.id ORDER BY u.name`)
+func (a *API) GetVolunteers(c *gin.Context) {
+	rows, err := a.q.ListVolunteers(c.Request.Context())
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Failed to fetch volunteers"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch volunteers"})
 		return
 	}
-	defer rows.Close()
-	items := []models.Volunteer{}
-	for rows.Next() {
-		var v models.Volunteer
-		if err := rows.Scan(&v.ID, &v.Name, &v.Email, &v.Role, &v.CreatedAt, &v.TotalHours); err == nil {
-			items = append(items, v)
+	items := make([]models.Volunteer, 0, len(rows))
+	for _, row := range rows {
+		hours, err := strconv.ParseFloat(row.TotalHours, 64)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch volunteers"})
+			return
 		}
+		items = append(items, models.Volunteer{
+			User:       models.User{ID: int(row.ID), Name: row.Name, Email: row.Email, Role: row.Role, CreatedAt: row.CreatedAt},
+			TotalHours: hours,
+		})
 	}
-	c.JSON(200, items)
+	c.JSON(http.StatusOK, items)
 }
-func AddContribution(c *gin.Context) {
+
+func (a *API) AddContribution(c *gin.Context) {
 	id, ok := parseID(c)
 	if !ok {
 		return
@@ -34,13 +42,20 @@ func AddContribution(c *gin.Context) {
 		ContributionDate string  `json:"contribution_date"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil || input.Hours <= 0 || input.Hours > 1000 {
-		c.JSON(400, gin.H{"error": "Hours must be greater than zero"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Hours must be greater than zero"})
 		return
 	}
 	createdBy, _ := c.Get("user_id")
-	_, err := database.DB.Exec(`INSERT INTO volunteer_contributions(volunteer_id,hours,notes,contribution_date,created_by) SELECT $1,$2,$3,COALESCE(NULLIF($4,'')::date,CURRENT_DATE),$5 FROM users WHERE id=$1 AND role='volunteer'`, id, input.Hours, clean(input.Notes), input.ContributionDate, createdBy)
+	createdByID := sql.NullInt32{}
+	if userID, ok := createdBy.(int); ok {
+		createdByID = sql.NullInt32{Int32: int32(userID), Valid: true}
+	}
+	err := a.q.AddVolunteerContribution(c.Request.Context(), dbgen.AddVolunteerContributionParams{
+		VolunteerID: int32(id), Hours: strconv.FormatFloat(input.Hours, 'f', -1, 64),
+		Notes: clean(input.Notes), ContributionDate: input.ContributionDate, CreatedBy: createdByID,
+	})
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Could not record contribution"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not record contribution"})
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"message": "Contribution recorded"})
