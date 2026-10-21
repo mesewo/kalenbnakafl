@@ -153,6 +153,8 @@
 | `cd server && go tool sqlc diff -f ../sqlc.yaml` | Passed with no diff. | 2026-10-20 |
 | `cd server && go tool sqlc diff -f ../sqlc.yaml` (B2) | Passed with no diff after adding post/event queries. | 2026-10-21 |
 | `cd server && go build ./... && go vet ./... && go test ./...` (B2) | Passed; Postgres integration tests skipped locally because `DATABASE_URL_TEST` was unset. | 2026-10-21 |
+| `cd server && go tool sqlc diff -f ../sqlc.yaml` (B3) | Passed with no diff after adding media, contact, and volunteer queries. | 2026-10-21 |
+| `cd server && go build ./... && go vet ./... && go test ./...` (B3) | Passed; PostgreSQL integration tests skipped locally because `DATABASE_URL_TEST` was unset. | 2026-10-21 |
 | `cd server && go tool goose -dir db/migrations validate` | Passed after moving the embed source outside the migration directory. | 2026-10-20 |
 | `docker compose --env-file .env.example config --quiet` | Passed; Docker emitted warnings that its user config file was inaccessible. | 2026-10-20 |
 | Prompt V Compose `down` / `up --build -d` / `/healthz` | `down` could not connect to the Docker Engine named pipe (daemon unavailable); `up` and health curl were not run. No volumes were removed. | 2026-10-20 |
