@@ -82,7 +82,9 @@ func authRequest(r http.Handler, method, path, body string, cookies ...*http.Coo
 	request := httptest.NewRequest(method, path, strings.NewReader(body))
 	request.Header.Set("Content-Type", "application/json")
 	for _, cookie := range cookies {
-		request.AddCookie(cookie)
+		if cookie != nil {
+			request.AddCookie(cookie)
+		}
 	}
 	response := httptest.NewRecorder()
 	r.ServeHTTP(response, request)
