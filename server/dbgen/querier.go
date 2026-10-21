@@ -9,21 +9,28 @@ import (
 )
 
 type Querier interface {
+	AddVolunteerContribution(ctx context.Context, arg AddVolunteerContributionParams) error
 	CountAdmins(ctx context.Context) (int64, error)
 	CreateAdminIfMissing(ctx context.Context, arg CreateAdminIfMissingParams) error
+	CreateContact(ctx context.Context, arg CreateContactParams) error
 	CreateEvent(ctx context.Context, arg CreateEventParams) error
+	CreateMedia(ctx context.Context, arg CreateMediaParams) error
 	CreatePost(ctx context.Context, arg CreatePostParams) error
 	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) error
 	CreateUser(ctx context.Context, arg CreateUserParams) error
 	DeleteEvent(ctx context.Context, id int32) (int64, error)
+	DeleteMedia(ctx context.Context, id int32) (int64, error)
 	DeletePost(ctx context.Context, id int32) (int64, error)
 	DeleteUser(ctx context.Context, id int32) (int64, error)
+	GetMediaFilePath(ctx context.Context, id int32) (string, error)
 	GetRoleByUserID(ctx context.Context, id int32) (string, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id int32) (User, error)
 	ListEvents(ctx context.Context) ([]Event, error)
+	ListMedia(ctx context.Context) ([]ListMediaRow, error)
 	ListPosts(ctx context.Context, includeUnpublished bool) ([]ListPostsRow, error)
 	ListUsers(ctx context.Context) ([]ListUsersRow, error)
+	ListVolunteers(ctx context.Context) ([]ListVolunteersRow, error)
 	LockActiveRefreshToken(ctx context.Context, tokenHash string) (int32, error)
 	PublishPost(ctx context.Context, arg PublishPostParams) (int64, error)
 	RegisterUser(ctx context.Context, arg RegisterUserParams) error
