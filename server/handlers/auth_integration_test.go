@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -20,13 +19,24 @@ import (
 	"kalenbnakafl/database"
 	"kalenbnakafl/dbgen"
 	"kalenbnakafl/handlers"
+	"kalenbnakafl/internal/config"
 	"kalenbnakafl/routes"
 	"kalenbnakafl/utils"
 )
 
+const integrationJWTSecret = "integration-test-secret-with-at-least-32-bytes"
+
+func integrationConfig() config.Config {
+	return config.Config{Port: "8080", AppEnv: "development", DatabaseURL: "unused", JWTSecret: []byte(integrationJWTSecret), UploadDir: "/tmp", MaxUploadBytes: 10 << 20, DBConnectRetries: 1}
+}
+
 func authTestApp(t *testing.T) (*sql.DB, *dbgen.Queries, *gin.Engine) {
+	return authTestAppWithConfig(t, integrationConfig())
+}
+
+func authTestAppWithConfig(t *testing.T, cfg config.Config) (*sql.DB, *dbgen.Queries, *gin.Engine) {
 	t.Helper()
-	dsn := os.Getenv("DATABASE_URL_TEST")
+	dsn := config.Environment("DATABASE_URL_TEST")
 	if dsn == "" {
 		t.Skip("DATABASE_URL_TEST is not set; skipping PostgreSQL auth integration test")
 	}
@@ -37,17 +47,17 @@ func authTestApp(t *testing.T) (*sql.DB, *dbgen.Queries, *gin.Engine) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	if err := base.PingContext(ctx); err != nil {
-		base.Close()
+		_ = base.Close()
 		t.Fatalf("ping test database: %v", err)
 	}
 	parsed, err := url.Parse(dsn)
 	if err != nil || (parsed.Scheme != "postgres" && parsed.Scheme != "postgresql") {
-		base.Close()
+		_ = base.Close()
 		t.Skip("DATABASE_URL_TEST must be a postgres URL")
 	}
 	schema := fmt.Sprintf("auth_test_%d", time.Now().UnixNano())
 	if _, err := base.ExecContext(ctx, `CREATE SCHEMA "`+schema+`"`); err != nil {
-		base.Close()
+		_ = base.Close()
 		t.Fatalf("create test schema: %v", err)
 	}
 	query := parsed.Query()
@@ -55,17 +65,17 @@ func authTestApp(t *testing.T) (*sql.DB, *dbgen.Queries, *gin.Engine) {
 	parsed.RawQuery = query.Encode()
 	db, err := sql.Open("postgres", parsed.String())
 	if err != nil {
-		base.Exec(`DROP SCHEMA "` + schema + `" CASCADE`)
-		base.Close()
+		_, _ = base.Exec(`DROP SCHEMA "` + schema + `" CASCADE`)
+		_ = base.Close()
 		t.Fatalf("open test schema: %v", err)
 	}
 	if err := db.PingContext(ctx); err != nil {
-		db.Close()
-		base.Exec(`DROP SCHEMA "` + schema + `" CASCADE`)
-		base.Close()
+		_ = db.Close()
+		_, _ = base.Exec(`DROP SCHEMA "` + schema + `" CASCADE`)
+		_ = base.Close()
 		t.Fatalf("ping test schema: %v", err)
 	}
-	t.Cleanup(func() { db.Close(); base.Exec(`DROP SCHEMA "` + schema + `" CASCADE`); base.Close() })
+	t.Cleanup(func() { _ = db.Close(); _, _ = base.Exec(`DROP SCHEMA "` + schema + `" CASCADE`); _ = base.Close() })
 	if err := database.Migrate(ctx, db); err != nil {
 		t.Fatalf("migrate test schema: %v", err)
 	}
@@ -74,7 +84,7 @@ func authTestApp(t *testing.T) (*sql.DB, *dbgen.Queries, *gin.Engine) {
 	gin.SetMode(gin.TestMode)
 	q := dbgen.New(db)
 	r := gin.New()
-	routes.SetupRoutes(r, q, db)
+	routes.SetupRoutes(r, q, db, cfg)
 	return db, q, r
 }
 
@@ -93,7 +103,7 @@ func authRequest(r http.Handler, method, path, body string, cookies ...*http.Coo
 
 func adminCookie(t *testing.T, id int, role string) *http.Cookie {
 	t.Helper()
-	token, err := utils.GenerateToken(id, role)
+	token, err := utils.GenerateToken(integrationConfig().JWTSecret, id, role)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -193,12 +203,13 @@ func TestRefreshRotationAndConcurrentSingleUse(t *testing.T) {
 		close(statuses)
 		successes, failures := 0, 0
 		for status := range statuses {
-			if status == 200 {
+			switch status {
+			case 200:
 				successes++
-			} else if status == 401 {
+			case 401:
 				failures++
-			} else {
-				t.Errorf("unexpected concurrent refresh status %d", status)
+			default:
+				t.Errorf("unexpected refresh status %d", status)
 			}
 		}
 		if successes != 1 || failures != 1 {
@@ -218,7 +229,7 @@ func TestAdminGuardsAndRoleRecheck(t *testing.T) {
 	if got := authRequest(r, http.MethodDelete, fmt.Sprintf("/api/admin/users/%d", admin2), "", adminCookie(t, int(admin1), "admin")).Code; got != http.StatusOK {
 		t.Fatalf("delete second admin status=%d", got)
 	}
-	api := handlers.NewAPI(q, db)
+	api := handlers.NewAPI(q, db, integrationConfig())
 	for _, tc := range []struct {
 		name, method, body string
 		invoke             func(*gin.Context)

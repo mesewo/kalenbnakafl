@@ -1,6 +1,34 @@
-# ARCHITECTURE.md
+﻿# ARCHITECTURE.md
 
 Two views: **Current** (what the code does today) and **Target** (what the roadmap builds). The project is a community NGO site and staff workspace. Agents must keep this file in sync with the code.
+
+## Runtime configuration
+
+The process loads and validates environment settings once into `internal/config.Config` before opening the database. Invalid settings are reported together and stop startup. `TRUSTED_PROXIES` is an optional comma-separated list; it is empty by default.
+
+| Setting | Default / validation | Purpose |
+|---|---|---|
+| `PORT` | `8080`; 1�65535 | HTTP listen port |
+| `APP_ENV` | `development` | Cookie and Gin mode; `production` enables release mode |
+| `DATABASE_URL` | required | PostgreSQL connection string |
+| `JWT_SECRET` | required; at least 32 bytes | Signs access tokens |
+| `CORS_ORIGINS` | empty | Comma-separated allowed origins |
+| `UPLOAD_DIR` | `/data/uploads` | Uploaded media storage |
+| `UPLOAD_MAX_BYTES` | 10 MiB; positive integer | Maximum uploaded file size |
+| `DB_CONNECT_RETRIES` | `8`; positive integer | Database connection retry count |
+| `MIGRATE_ON_START` | `false` in the binary; Compose sets `true` | Apply embedded migrations before serving |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | both optional; set together, password at least 12 characters | First-admin bootstrap |
+| `TRUSTED_PROXIES` | empty | Explicit Gin trusted proxy CIDRs or addresses |
+
+The HTTP server uses bounded read/write/idle timeouts and graceful SIGINT/SIGTERM shutdown. `/healthz` is liveness and does not query PostgreSQL; `/readyz` and the `/health` alias check PostgreSQL with a two-second deadline. The container healthchecks use `/readyz`.
+
+## HTTP logging, errors, and request limits
+
+The API configures `log/slog` with a text handler in development and JSON in production. Gin uses `gin.New()` with middleware ordered as request ID, access log, panic recovery, then request body limit. Request IDs accept only `^[A-Za-z0-9-]{8,64}$`; invalid or absent IDs are replaced and returned in `X-Request-ID`. Access records include request ID, method, route pattern, status, latency in milliseconds, and authenticated user ID when available. Request bodies, cookies, authorization headers, passwords, and tokens are never logged; panic values are intentionally omitted.
+
+All API errors use `{"error":{"code":"...","message":"...","details":{}}}`. Stable codes are `invalid_json`, `validation_failed`, `unauthorized`, `forbidden`, `not_found`, `conflict`, `rate_limited`, `payload_too_large`, and `internal`. Unexpected failures are logged with the request ID and return a generic message. The default request body limit is 1 MiB; media upload routes allow the configured file limit plus 1 MiB for multipart framing. The frontend API client extracts the nested message, safely handles non-JSON proxy errors, applies a 15-second request timeout (120 seconds for uploads), and signals session expiry on protected-route 401 responses.
+
+Access JWTs use a typed claim structure and accept only HS256. Parsing requires issuer, issue time, expiry, positive user ID, and a recognized role; malformed claims return unauthorized.
 
 ## 1. Current state
 
@@ -29,7 +57,8 @@ flowchart LR
 | GET/POST/PATCH/DELETE | `/editor/posts` · `/editor/events` · `/editor/media` | editor/admin | editor content and media routes |
 | GET | `/me` · `/profile` | any user | authenticated profile reads |
 | PUT | `/profile` | any user | updates name/email and optionally password |
-| GET | `/healthz` · `/health` | none | checks database connectivity |
+| GET | `/healthz` | none | liveness; no database call |
+| GET | `/readyz` · `/health` | none | readiness; checks database connectivity |
 
 Auth, refresh-token, profile, admin user, post, event, media, contact, and volunteer handlers use generated sqlc queries with request contexts and injected dependencies. Handler and middleware database access no longer uses package-level database globals. No pagination is implemented. User and media CRUD exist; volunteers currently have contribution endpoints rather than application management.
 

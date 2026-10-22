@@ -15,5 +15,5 @@ WORKDIR /app
 COPY --from=builder --chown=app:app /app/app /app/app
 EXPOSE 8080
 USER 10001:10001
-HEALTHCHECK --interval=10s --timeout=5s --start-period=20s --retries=5 CMD wget -q -O /dev/null http://127.0.0.1:8080/healthz || exit 1
+HEALTHCHECK --interval=10s --timeout=5s --start-period=20s --retries=5 CMD wget -q -O /dev/null http://127.0.0.1:8080/readyz || exit 1
 ENTRYPOINT ["/app/app"]

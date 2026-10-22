@@ -5,18 +5,18 @@ import (
 	"database/sql"
 	"fmt"
 	"net/url"
-	"os"
 	"strings"
 	"testing"
 	"time"
 
 	_ "github.com/lib/pq"
 	"kalenbnakafl/dbgen"
+	"kalenbnakafl/internal/config"
 )
 
 func testDatabase(t *testing.T) *sql.DB {
 	t.Helper()
-	dsn := os.Getenv("DATABASE_URL_TEST")
+	dsn := config.Environment("DATABASE_URL_TEST")
 	if dsn == "" {
 		t.Skip("DATABASE_URL_TEST is not set; skipping PostgreSQL integration test")
 	}
@@ -28,18 +28,18 @@ func testDatabase(t *testing.T) *sql.DB {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := base.PingContext(ctx); err != nil {
-		base.Close()
+		_ = base.Close()
 		t.Fatalf("ping test database: %v", err)
 	}
 
 	parsed, err := url.Parse(dsn)
 	if err != nil || (parsed.Scheme != "postgres" && parsed.Scheme != "postgresql") {
-		base.Close()
+		_ = base.Close()
 		t.Skip("DATABASE_URL_TEST must be a postgres:// or postgresql:// URL to isolate the test schema")
 	}
 	schema := fmt.Sprintf("phase1_test_%d", time.Now().UnixNano())
 	if _, err := base.ExecContext(ctx, `CREATE SCHEMA "`+schema+`"`); err != nil {
-		base.Close()
+		_ = base.Close()
 		t.Fatalf("create isolated test schema: %v", err)
 	}
 	query := parsed.Query()
@@ -48,13 +48,13 @@ func testDatabase(t *testing.T) *sql.DB {
 	db, err := sql.Open("postgres", parsed.String())
 	if err != nil {
 		_, _ = base.Exec(`DROP SCHEMA "` + schema + `" CASCADE`)
-		base.Close()
+		_ = base.Close()
 		t.Fatalf("open schema-scoped test database: %v", err)
 	}
 	if err := db.PingContext(ctx); err != nil {
-		db.Close()
+		_ = db.Close()
 		_, _ = base.Exec(`DROP SCHEMA "` + schema + `" CASCADE`)
-		base.Close()
+		_ = base.Close()
 		t.Fatalf("ping schema-scoped test database: %v", err)
 	}
 	t.Cleanup(func() {
@@ -104,11 +104,12 @@ func TestBootstrapAdminIsIdempotent(t *testing.T) {
 	queries := dbgen.New(db)
 	t.Setenv("ADMIN_EMAIL", "Admin@Example.org")
 	t.Setenv("ADMIN_PASSWORD", "a-test-password-with-length")
+	cfg := config.Config{AdminEmail: config.Environment("ADMIN_EMAIL"), AdminPassword: config.Environment("ADMIN_PASSWORD")}
 
-	if err := BootstrapAdmin(context.Background(), queries); err != nil {
+	if err := BootstrapAdmin(context.Background(), queries, cfg); err != nil {
 		t.Fatalf("bootstrap first admin: %v", err)
 	}
-	if err := BootstrapAdmin(context.Background(), queries); err != nil {
+	if err := BootstrapAdmin(context.Background(), queries, cfg); err != nil {
 		t.Fatalf("bootstrap second admin: %v", err)
 	}
 	var count int

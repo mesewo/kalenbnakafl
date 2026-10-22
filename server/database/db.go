@@ -5,46 +5,43 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
-	"os"
-	"strconv"
+	"log/slog"
 	"strings"
 	"time"
 
 	_ "github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
 	"kalenbnakafl/dbgen"
+	"kalenbnakafl/internal/config"
 )
 
-func Connect() (*sql.DB, *dbgen.Queries, error) {
-	connStr := os.Getenv("DATABASE_URL")
-	if strings.TrimSpace(connStr) == "" {
-		return nil, nil, errors.New("DATABASE_URL is required")
-	}
-	retries := 8
-	if value, err := strconv.Atoi(os.Getenv("DB_CONNECT_RETRIES")); err == nil && value > 0 {
-		retries = value
-	}
+func Connect(ctx context.Context, cfg config.Config) (*sql.DB, *dbgen.Queries, error) {
 	var lastErr error
-	for attempt := 1; attempt <= retries; attempt++ {
-		db, err := sql.Open("postgres", connStr)
+	for attempt := 1; attempt <= cfg.DBConnectRetries; attempt++ {
+		db, err := sql.Open("postgres", cfg.DatabaseURL)
 		if err == nil {
 			db.SetMaxOpenConns(25)
 			db.SetMaxIdleConns(5)
 			db.SetConnMaxLifetime(30 * time.Minute)
-			err = db.Ping()
+			err = db.PingContext(ctx)
 		}
 		if err == nil {
-			log.Println("PostgreSQL connected")
+			slog.Info("PostgreSQL connected")
 			return db, dbgen.New(db), nil
 		}
 		lastErr = err
 		if db != nil {
 			_ = db.Close()
 		}
-		log.Printf("database unavailable (attempt %d/%d): %v", attempt, retries, err)
-		if attempt < retries {
-			time.Sleep(time.Duration(attempt) * 2 * time.Second)
+		slog.Warn("database unavailable", "attempt", attempt, "attempts", cfg.DBConnectRetries, "error_type", fmt.Sprintf("%T", err))
+		if attempt < cfg.DBConnectRetries {
+			timer := time.NewTimer(time.Duration(attempt) * 2 * time.Second)
+			select {
+			case <-ctx.Done():
+				timer.Stop()
+				return nil, nil, fmt.Errorf("database connection canceled: %w", ctx.Err())
+			case <-timer.C:
+			}
 		}
 	}
 	return nil, nil, fmt.Errorf("database connection failed: %w", lastErr)
@@ -54,9 +51,9 @@ func Ping(ctx context.Context, db *sql.DB) error {
 	return db.PingContext(ctx)
 }
 
-func BootstrapAdmin(ctx context.Context, q *dbgen.Queries) error {
-	email := strings.ToLower(strings.TrimSpace(os.Getenv("ADMIN_EMAIL")))
-	password := os.Getenv("ADMIN_PASSWORD")
+func BootstrapAdmin(ctx context.Context, q *dbgen.Queries, cfg config.Config) error {
+	email := strings.ToLower(strings.TrimSpace(cfg.AdminEmail))
+	password := cfg.AdminPassword
 	if email == "" && password == "" {
 		return nil
 	}
@@ -79,6 +76,6 @@ func BootstrapAdmin(ctx context.Context, q *dbgen.Queries) error {
 	}); err != nil {
 		return fmt.Errorf("bootstrap admin: %w", err)
 	}
-	log.Printf("bootstrapped admin account %s", email)
+	slog.Info("bootstrapped admin account", "email", email)
 	return nil
 }

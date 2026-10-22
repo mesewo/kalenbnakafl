@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"kalenbnakafl/internal/httpx"
 	"net/http"
 	"sync"
 	"time"
@@ -32,7 +33,7 @@ func LimitRequests(limit int, window time.Duration) gin.HandlerFunc {
 		allowed := current.count <= limit
 		visitors.Unlock()
 		if !allowed {
-			c.JSON(http.StatusTooManyRequests, gin.H{"error": "Too many requests. Please wait and try again."})
+			httpx.Fail(c, http.StatusTooManyRequests, "Too many requests. Please wait and try again.")
 			c.Abort()
 			return
 		}

@@ -2,51 +2,49 @@ package utils
 
 import (
 	"errors"
-	"os"
-	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func JWTSecret() []byte { return []byte(os.Getenv("JWT_SECRET")) }
-func ValidateJWTSecret() error {
-	if len(strings.TrimSpace(os.Getenv("JWT_SECRET"))) < 32 {
-		return errors.New("JWT_SECRET must be at least 32 characters")
-	}
-	return nil
+var ErrInvalidToken = errors.New("invalid token")
+
+type TokenClaims struct {
+	UserID int    `json:"user_id"`
+	Role   string `json:"role"`
+	jwt.RegisteredClaims
 }
-func GenerateToken(userID int, role string) (string, error) {
-	if err := ValidateJWTSecret(); err != nil {
-		return "", err
+
+func GenerateToken(secret []byte, userID int, role string) (string, error) {
+	if len(secret) < 32 {
+		return "", errors.New("JWT_SECRET must be at least 32 bytes")
 	}
-	claims := jwt.MapClaims{"user_id": userID, "role": role, "iss": "kalenbnakafl", "exp": time.Now().Add(24 * time.Hour).Unix()}
-	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(JWTSecret())
+	claims := TokenClaims{UserID: userID, Role: role, RegisteredClaims: jwt.RegisteredClaims{Issuer: "kalenbnakafl", ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)), IssuedAt: jwt.NewNumericDate(time.Now())}}
+	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(secret)
 }
-func ParseToken(value string) (int, string, error) {
-	if err := ValidateJWTSecret(); err != nil {
-		return 0, "", err
+
+func ParseToken(secret []byte, value string) (int, string, error) {
+	if len(secret) < 32 {
+		return 0, "", ErrInvalidToken
 	}
-	token, err := jwt.Parse(value, func(token *jwt.Token) (interface{}, error) {
+	claims := &TokenClaims{}
+	token, err := jwt.ParseWithClaims(value, claims, func(token *jwt.Token) (any, error) {
 		if token.Method != jwt.SigningMethodHS256 {
-			return nil, errors.New("unexpected signing method")
+			return nil, ErrInvalidToken
 		}
-		return JWTSecret(), nil
+		return secret, nil
 	}, jwt.WithIssuer("kalenbnakafl"), jwt.WithValidMethods([]string{"HS256"}))
-	if err != nil || !token.Valid {
-		return 0, "", errors.New("invalid token")
+	if err != nil || token == nil || !token.Valid || claims.UserID < 1 || !validRole(claims.Role) || claims.ExpiresAt == nil || claims.IssuedAt == nil {
+		return 0, "", ErrInvalidToken
 	}
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		return 0, "", errors.New("invalid claims")
+	return claims.UserID, claims.Role, nil
+}
+
+func validRole(role string) bool {
+	switch role {
+	case "admin", "editor", "user", "volunteer":
+		return true
+	default:
+		return false
 	}
-	uid, ok := claims["user_id"].(float64)
-	if !ok || uid < 1 {
-		return 0, "", errors.New("invalid user id")
-	}
-	role, ok := claims["role"].(string)
-	if !ok || role == "" {
-		return 0, "", errors.New("invalid role")
-	}
-	return int(uid), role, nil
 }
