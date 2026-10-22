@@ -87,7 +87,11 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Printf("close database pool: %v", err)
+		}
+	}()
 	if cfg.MigrateOnStart {
 		if err := database.Migrate(ctx, db); err != nil {
 			return fmt.Errorf("migrate database: %w", err)

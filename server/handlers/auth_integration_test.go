@@ -47,17 +47,17 @@ func authTestAppWithConfig(t *testing.T, cfg config.Config) (*sql.DB, *dbgen.Que
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	if err := base.PingContext(ctx); err != nil {
-		base.Close()
+		_ = base.Close()
 		t.Fatalf("ping test database: %v", err)
 	}
 	parsed, err := url.Parse(dsn)
 	if err != nil || (parsed.Scheme != "postgres" && parsed.Scheme != "postgresql") {
-		base.Close()
+		_ = base.Close()
 		t.Skip("DATABASE_URL_TEST must be a postgres URL")
 	}
 	schema := fmt.Sprintf("auth_test_%d", time.Now().UnixNano())
 	if _, err := base.ExecContext(ctx, `CREATE SCHEMA "`+schema+`"`); err != nil {
-		base.Close()
+		_ = base.Close()
 		t.Fatalf("create test schema: %v", err)
 	}
 	query := parsed.Query()
@@ -65,17 +65,17 @@ func authTestAppWithConfig(t *testing.T, cfg config.Config) (*sql.DB, *dbgen.Que
 	parsed.RawQuery = query.Encode()
 	db, err := sql.Open("postgres", parsed.String())
 	if err != nil {
-		base.Exec(`DROP SCHEMA "` + schema + `" CASCADE`)
-		base.Close()
+		_, _ = base.Exec(`DROP SCHEMA "` + schema + `" CASCADE`)
+		_ = base.Close()
 		t.Fatalf("open test schema: %v", err)
 	}
 	if err := db.PingContext(ctx); err != nil {
-		db.Close()
-		base.Exec(`DROP SCHEMA "` + schema + `" CASCADE`)
-		base.Close()
+		_ = db.Close()
+		_, _ = base.Exec(`DROP SCHEMA "` + schema + `" CASCADE`)
+		_ = base.Close()
 		t.Fatalf("ping test schema: %v", err)
 	}
-	t.Cleanup(func() { db.Close(); base.Exec(`DROP SCHEMA "` + schema + `" CASCADE`); base.Close() })
+	t.Cleanup(func() { _ = db.Close(); _, _ = base.Exec(`DROP SCHEMA "` + schema + `" CASCADE`); _ = base.Close() })
 	if err := database.Migrate(ctx, db); err != nil {
 		t.Fatalf("migrate test schema: %v", err)
 	}
@@ -203,12 +203,13 @@ func TestRefreshRotationAndConcurrentSingleUse(t *testing.T) {
 		close(statuses)
 		successes, failures := 0, 0
 		for status := range statuses {
-			if status == 200 {
+			switch status {
+			case 200:
 				successes++
-			} else if status == 401 {
+			case 401:
 				failures++
-			} else {
-				t.Errorf("unexpected concurrent refresh status %d", status)
+			default:
+				t.Errorf("unexpected refresh status %d", status)
 			}
 		}
 		if successes != 1 || failures != 1 {

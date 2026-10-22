@@ -15,7 +15,6 @@ func TestHealthAndReadinessWhenDatabaseDown(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer db.Close()
 	if err := db.Close(); err != nil {
 		t.Fatal(err)
 	}

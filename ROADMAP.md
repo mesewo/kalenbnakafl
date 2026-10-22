@@ -33,11 +33,11 @@
 
 ## Phase 1 — Backend foundation (≈ 2 sessions)
 
-- [ ] `internal/config`: typed env config, fail-fast validation (`JWT_SECRET` ≥ 32 bytes, `DATABASE_URL`)
+- [x] `internal/config`: typed env config, fail-fast validation (`JWT_SECRET` ≥ 32 bytes, `DATABASE_URL`)
 - [ ] DB: connect with retry/backoff, pool settings, `Ping` with context; optional pgx migration (ADR-003)
 - [ ] Migrations with Goose: embedded `server/db/migrations/0001_init.sql` (current schema + `CHECK` on role, `TIMESTAMPTZ`, indexes), serialized by a Postgres session lock; run before serving when `MIGRATE_ON_START=true`
 - [ ] Bootstrap admin from env; dev-only `server/db/seed/dev.sql` behind the `seed` Compose profile
-- [ ] `http.Server` with timeouts, graceful shutdown, `GIN_MODE=release`, `/healthz` + `/readyz`
+- [x] `http.Server` with timeouts, graceful shutdown, Gin release mode in production, `/healthz` + `/readyz`
 - [ ] Middleware: request ID, `slog` access log, panic recovery → 500 JSON, CORS allowlist, body size limit
 - [ ] JWT: single source, typed claims, pinned `HS256`, checked assertions (no panics)
 - [ ] Unified error model + validation (`binding` tags / validator) + `pq` unique-violation → 409
@@ -155,6 +155,11 @@
 | `cd server && go build ./... && go vet ./... && go test ./...` (B2) | Passed; Postgres integration tests skipped locally because `DATABASE_URL_TEST` was unset. | 2026-10-21 |
 | `cd server && go tool sqlc diff -f ../sqlc.yaml` (B3) | Passed with no diff after adding media, contact, and volunteer queries. | 2026-10-21 |
 | `cd server && go build ./... && go vet ./... && go test ./...` (B3) | Passed; PostgreSQL integration tests skipped locally because `DATABASE_URL_TEST` was unset. | 2026-10-21 |
+| `cd server && go build ./... && go vet ./... && go test ./...` (typed config/lifecycle) | Passed; config and health tests passed; PostgreSQL integration tests skipped because `DATABASE_URL_TEST` was unset. | 2026-10-22 |
+| `cd server && gofmt -l .` | Passed; no files listed. | 2026-10-22 |
+| `git grep -n "os\\.Getenv" -- server` | Passed; matches only `server/internal/config/config.go`. | 2026-10-22 |
+| `cd server && go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0 run` | Passed: 0 issues. | 2026-10-22 |
+| `docker compose down && docker compose up --build -d`; `curl http://localhost:8080/readyz` | API and DB healthy; `/readyz` returned `{"status":"ok"}`. Frontend returned HTTP 200 but its existing Docker health probe timed out and marked it unhealthy. | 2026-10-22 |
 | `cd server && go tool goose -dir db/migrations validate` | Passed after moving the embed source outside the migration directory. | 2026-10-20 |
 | `docker compose --env-file .env.example config --quiet` | Passed; Docker emitted warnings that its user config file was inaccessible. | 2026-10-20 |
 | Prompt V Compose `down` / `up --build -d` / `/healthz` | `down` could not connect to the Docker Engine named pipe (daemon unavailable); `up` and health curl were not run. No volumes were removed. | 2026-10-20 |

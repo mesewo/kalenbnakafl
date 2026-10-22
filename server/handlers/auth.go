@@ -153,7 +153,7 @@ func (a *API) Refresh(c *gin.Context) {
 		c.JSON(500, gin.H{"error": "Could not refresh session"})
 		return
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	qtx := a.q.WithTx(tx)
 	userID, err := qtx.LockActiveRefreshToken(ctx, tokenHash(old))
 	if err != nil {
