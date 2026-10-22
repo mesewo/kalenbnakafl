@@ -40,7 +40,7 @@ func (a *API) UploadMedia(c *gin.Context) {
 		return
 	}
 	header, err := c.FormFile("file")
-	if err != nil || header.Size > 10*1024*1024 {
+	if err != nil || header.Size > a.cfg.MaxUploadBytes {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Choose a file smaller than 10MB"})
 		return
 	}
@@ -50,7 +50,7 @@ func (a *API) UploadMedia(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "This file type is not supported"})
 		return
 	}
-	dir := mediaUploadDir()
+	dir := a.cfg.UploadDir
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Storage is not available"})
 		return
@@ -112,16 +112,8 @@ func (a *API) DeleteMedia(c *gin.Context) {
 		return
 	}
 	filename := filepath.Base(strings.TrimPrefix(path, "/uploads/"))
-	if err := os.Remove(filepath.Join(mediaUploadDir(), filename)); err != nil && !errors.Is(err, os.ErrNotExist) {
+	if err := os.Remove(filepath.Join(a.cfg.UploadDir, filename)); err != nil && !errors.Is(err, os.ErrNotExist) {
 		slog.Error("remove media file after deleting metadata", "media_id", id, "path", path, "error", err)
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Media deleted"})
-}
-
-func mediaUploadDir() string {
-	dir := os.Getenv("UPLOAD_DIR")
-	if dir == "" {
-		return "/data/uploads"
-	}
-	return dir
 }

@@ -10,7 +10,7 @@ import (
 	"kalenbnakafl/utils"
 )
 
-func AuthMiddleware(q *dbgen.Queries) gin.HandlerFunc {
+func AuthMiddleware(q *dbgen.Queries, jwtSecret []byte) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token, err := c.Cookie("access_token")
 		if err != nil || token == "" {
@@ -18,7 +18,7 @@ func AuthMiddleware(q *dbgen.Queries) gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		userID, _, err := utils.ParseToken(token)
+		userID, _, err := utils.ParseToken(jwtSecret, token)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired session"})
 			c.Abort()

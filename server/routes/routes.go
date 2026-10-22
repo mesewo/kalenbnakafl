@@ -2,15 +2,17 @@ package routes
 
 import (
 	"database/sql"
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"kalenbnakafl/dbgen"
 	"kalenbnakafl/handlers"
+	"kalenbnakafl/internal/config"
 	"kalenbnakafl/middleware"
-	"time"
 )
 
-func SetupRoutes(r *gin.Engine, q *dbgen.Queries, db *sql.DB) {
-	apiHandlers := handlers.NewAPI(q, db)
+func SetupRoutes(r *gin.Engine, q *dbgen.Queries, db *sql.DB, cfg config.Config) {
+	apiHandlers := handlers.NewAPI(q, db, cfg)
 	api := r.Group("/api")
 	publicLimit := middleware.LimitRequests(30, time.Minute)
 	authLimit := middleware.LimitRequests(10, time.Minute)
@@ -22,7 +24,7 @@ func SetupRoutes(r *gin.Engine, q *dbgen.Queries, db *sql.DB) {
 	api.GET("/posts", apiHandlers.GetPosts)
 	api.GET("/events", apiHandlers.GetEvents)
 	admin := api.Group("/admin")
-	admin.Use(middleware.AuthMiddleware(q), middleware.RequireRole("admin"))
+	admin.Use(middleware.AuthMiddleware(q, cfg.JWTSecret), middleware.RequireRole("admin"))
 	admin.GET("/posts", apiHandlers.GetPosts)
 	admin.POST("/posts", apiHandlers.CreatePost)
 	admin.PATCH("/posts/:id", apiHandlers.UpdatePost)
@@ -42,7 +44,7 @@ func SetupRoutes(r *gin.Engine, q *dbgen.Queries, db *sql.DB) {
 	admin.GET("/volunteers", apiHandlers.GetVolunteers)
 	admin.POST("/volunteers/:id/contributions", apiHandlers.AddContribution)
 	editor := api.Group("/editor")
-	editor.Use(middleware.AuthMiddleware(q), middleware.RequireRole("admin", "editor"))
+	editor.Use(middleware.AuthMiddleware(q, cfg.JWTSecret), middleware.RequireRole("admin", "editor"))
 	editor.GET("/posts", apiHandlers.GetPosts)
 	editor.POST("/posts", apiHandlers.CreatePost)
 	editor.PATCH("/posts/:id", apiHandlers.UpdatePost)
@@ -56,7 +58,7 @@ func SetupRoutes(r *gin.Engine, q *dbgen.Queries, db *sql.DB) {
 	editor.POST("/media", apiHandlers.UploadMedia)
 	editor.DELETE("/media/:id", apiHandlers.DeleteMedia)
 	protected := api.Group("/")
-	protected.Use(middleware.AuthMiddleware(q))
+	protected.Use(middleware.AuthMiddleware(q, cfg.JWTSecret))
 	protected.GET("/me", apiHandlers.Me)
 	protected.GET("/profile", apiHandlers.Profile)
 	protected.PUT("/profile", apiHandlers.UpdateProfile)

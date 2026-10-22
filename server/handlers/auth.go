@@ -9,7 +9,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -17,6 +16,7 @@ import (
 	"github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
 	"kalenbnakafl/dbgen"
+	"kalenbnakafl/internal/config"
 	"kalenbnakafl/models"
 	"kalenbnakafl/utils"
 )
@@ -26,9 +26,9 @@ var allowedRoles = map[string]bool{"user": true, "volunteer": true, "editor": tr
 const accessCookie = "access_token"
 const refreshCookie = "refresh_token"
 
-func secureCookies() bool { return !strings.EqualFold(os.Getenv("APP_ENV"), "development") }
-func cookieSameSite() http.SameSite {
-	if secureCookies() {
+func secureCookies(appEnv string) bool { return !strings.EqualFold(appEnv, "development") }
+func cookieSameSite(appEnv string) http.SameSite {
+	if secureCookies(appEnv) {
 		return http.SameSiteNoneMode
 	}
 	return http.SameSiteLaxMode
@@ -44,19 +44,19 @@ func newRefreshToken() (string, error) {
 	}
 	return base64.RawURLEncoding.EncodeToString(raw), nil
 }
-func setSessionCookies(c *gin.Context, userID int, role string, refresh string) error {
-	access, err := utils.GenerateToken(userID, role)
+func setSessionCookies(c *gin.Context, userID int, role string, refresh string, cfg config.Config) error {
+	access, err := utils.GenerateToken(cfg.JWTSecret, userID, role)
 	if err != nil {
 		return err
 	}
-	opts := &http.Cookie{Path: "/", HttpOnly: true, Secure: secureCookies(), SameSite: cookieSameSite(), MaxAge: 15 * 60}
+	opts := &http.Cookie{Path: "/", HttpOnly: true, Secure: secureCookies(cfg.AppEnv), SameSite: cookieSameSite(cfg.AppEnv), MaxAge: 15 * 60}
 	http.SetCookie(c.Writer, &http.Cookie{Name: accessCookie, Value: access, Path: opts.Path, HttpOnly: opts.HttpOnly, Secure: opts.Secure, SameSite: opts.SameSite, MaxAge: opts.MaxAge})
 	http.SetCookie(c.Writer, &http.Cookie{Name: refreshCookie, Value: refresh, Path: opts.Path, HttpOnly: opts.HttpOnly, Secure: opts.Secure, SameSite: opts.SameSite, MaxAge: 7 * 24 * 60 * 60})
 	return nil
 }
-func clearSessionCookies(c *gin.Context) {
+func clearSessionCookies(c *gin.Context, cfg config.Config) {
 	for _, name := range []string{accessCookie, refreshCookie} {
-		http.SetCookie(c.Writer, &http.Cookie{Name: name, Value: "", Path: "/", HttpOnly: true, Secure: secureCookies(), SameSite: cookieSameSite(), MaxAge: -1})
+		http.SetCookie(c.Writer, &http.Cookie{Name: name, Value: "", Path: "/", HttpOnly: true, Secure: secureCookies(cfg.AppEnv), SameSite: cookieSameSite(cfg.AppEnv), MaxAge: -1})
 	}
 }
 func publicUser(user models.User) gin.H {
@@ -134,7 +134,7 @@ func (a *API) Login(c *gin.Context) {
 		c.JSON(500, gin.H{"error": "Could not create session"})
 		return
 	}
-	if err = setSessionCookies(c, int(row.ID), row.Role, refresh); err != nil {
+	if err = setSessionCookies(c, int(row.ID), row.Role, refresh, a.cfg); err != nil {
 		c.JSON(500, gin.H{"error": "Could not create session"})
 		return
 	}
@@ -158,7 +158,7 @@ func (a *API) Refresh(c *gin.Context) {
 	userID, err := qtx.LockActiveRefreshToken(ctx, tokenHash(old))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			clearSessionCookies(c)
+			clearSessionCookies(c, a.cfg)
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Refresh session expired"})
 			return
 		}
@@ -191,7 +191,7 @@ func (a *API) Refresh(c *gin.Context) {
 		c.JSON(500, gin.H{"error": "Could not rotate session"})
 		return
 	}
-	if err = setSessionCookies(c, int(row.ID), row.Role, refresh); err != nil {
+	if err = setSessionCookies(c, int(row.ID), row.Role, refresh, a.cfg); err != nil {
 		c.JSON(500, gin.H{"error": "Could not create session"})
 		return
 	}
@@ -205,7 +205,7 @@ func (a *API) Logout(c *gin.Context) {
 			return
 		}
 	}
-	clearSessionCookies(c)
+	clearSessionCookies(c, a.cfg)
 	c.JSON(http.StatusOK, gin.H{"message": "Signed out"})
 }
 

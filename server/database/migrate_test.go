@@ -5,18 +5,18 @@ import (
 	"database/sql"
 	"fmt"
 	"net/url"
-	"os"
 	"strings"
 	"testing"
 	"time"
 
 	_ "github.com/lib/pq"
 	"kalenbnakafl/dbgen"
+	"kalenbnakafl/internal/config"
 )
 
 func testDatabase(t *testing.T) *sql.DB {
 	t.Helper()
-	dsn := os.Getenv("DATABASE_URL_TEST")
+	dsn := config.Environment("DATABASE_URL_TEST")
 	if dsn == "" {
 		t.Skip("DATABASE_URL_TEST is not set; skipping PostgreSQL integration test")
 	}
@@ -104,11 +104,12 @@ func TestBootstrapAdminIsIdempotent(t *testing.T) {
 	queries := dbgen.New(db)
 	t.Setenv("ADMIN_EMAIL", "Admin@Example.org")
 	t.Setenv("ADMIN_PASSWORD", "a-test-password-with-length")
+	cfg := config.Config{AdminEmail: config.Environment("ADMIN_EMAIL"), AdminPassword: config.Environment("ADMIN_PASSWORD")}
 
-	if err := BootstrapAdmin(context.Background(), queries); err != nil {
+	if err := BootstrapAdmin(context.Background(), queries, cfg); err != nil {
 		t.Fatalf("bootstrap first admin: %v", err)
 	}
-	if err := BootstrapAdmin(context.Background(), queries); err != nil {
+	if err := BootstrapAdmin(context.Background(), queries, cfg); err != nil {
 		t.Fatalf("bootstrap second admin: %v", err)
 	}
 	var count int

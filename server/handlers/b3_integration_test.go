@@ -85,9 +85,10 @@ func TestContactSubmitStoresRowAndRateLimitStillApplies(t *testing.T) {
 }
 
 func TestMediaUploadDeleteAndInsertFailureCleanup(t *testing.T) {
-	db, q, r := authTestApp(t)
 	dir := t.TempDir()
-	t.Setenv("UPLOAD_DIR", dir)
+	cfg := integrationConfig()
+	cfg.UploadDir = dir
+	db, q, r := authTestAppWithConfig(t, cfg)
 	adminID := createAuthUser(t, q, "Media Admin", "media-admin@example.org", "a-long-test-password", "admin")
 	cookie := adminCookie(t, int(adminID), "admin")
 
@@ -130,7 +131,7 @@ func TestMediaUploadDeleteAndInsertFailureCleanup(t *testing.T) {
 		t.Fatalf("media row remains after delete: exists=%v err=%v", exists, err)
 	}
 
-	api := handlers.NewAPI(q, db)
+	api := handlers.NewAPI(q, db, cfg)
 	gin.SetMode(gin.TestMode)
 	failed := mediaUploadRequest(t, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
@@ -186,9 +187,10 @@ func TestVolunteerContributionHoursPreserved(t *testing.T) {
 }
 
 func TestB3RoleRouteMatrix(t *testing.T) {
-	db, q, r := authTestApp(t)
 	dir := t.TempDir()
-	t.Setenv("UPLOAD_DIR", dir)
+	cfg := integrationConfig()
+	cfg.UploadDir = dir
+	db, q, r := authTestAppWithConfig(t, cfg)
 	ids := map[string]int32{}
 	for _, role := range []string{"user", "volunteer", "editor", "admin"} {
 		ids[role] = createAuthUser(t, q, role, role+"@b3-matrix.example.org", "a-long-test-password", role)

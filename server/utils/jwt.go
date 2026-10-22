@@ -2,36 +2,28 @@ package utils
 
 import (
 	"errors"
-	"os"
-	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func JWTSecret() []byte { return []byte(os.Getenv("JWT_SECRET")) }
-func ValidateJWTSecret() error {
-	if len(strings.TrimSpace(os.Getenv("JWT_SECRET"))) < 32 {
-		return errors.New("JWT_SECRET must be at least 32 characters")
-	}
-	return nil
-}
-func GenerateToken(userID int, role string) (string, error) {
-	if err := ValidateJWTSecret(); err != nil {
-		return "", err
+func GenerateToken(secret []byte, userID int, role string) (string, error) {
+	if len(secret) < 32 {
+		return "", errors.New("JWT_SECRET must be at least 32 bytes")
 	}
 	claims := jwt.MapClaims{"user_id": userID, "role": role, "iss": "kalenbnakafl", "exp": time.Now().Add(24 * time.Hour).Unix()}
-	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(JWTSecret())
+	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(secret)
 }
-func ParseToken(value string) (int, string, error) {
-	if err := ValidateJWTSecret(); err != nil {
-		return 0, "", err
+
+func ParseToken(secret []byte, value string) (int, string, error) {
+	if len(secret) < 32 {
+		return 0, "", errors.New("JWT_SECRET must be at least 32 bytes")
 	}
 	token, err := jwt.Parse(value, func(token *jwt.Token) (interface{}, error) {
 		if token.Method != jwt.SigningMethodHS256 {
 			return nil, errors.New("unexpected signing method")
 		}
-		return JWTSecret(), nil
+		return secret, nil
 	}, jwt.WithIssuer("kalenbnakafl"), jwt.WithValidMethods([]string{"HS256"}))
 	if err != nil || !token.Valid {
 		return 0, "", errors.New("invalid token")

@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -20,13 +19,24 @@ import (
 	"kalenbnakafl/database"
 	"kalenbnakafl/dbgen"
 	"kalenbnakafl/handlers"
+	"kalenbnakafl/internal/config"
 	"kalenbnakafl/routes"
 	"kalenbnakafl/utils"
 )
 
+const integrationJWTSecret = "integration-test-secret-with-at-least-32-bytes"
+
+func integrationConfig() config.Config {
+	return config.Config{Port: "8080", AppEnv: "development", DatabaseURL: "unused", JWTSecret: []byte(integrationJWTSecret), UploadDir: "/tmp", MaxUploadBytes: 10 << 20, DBConnectRetries: 1}
+}
+
 func authTestApp(t *testing.T) (*sql.DB, *dbgen.Queries, *gin.Engine) {
+	return authTestAppWithConfig(t, integrationConfig())
+}
+
+func authTestAppWithConfig(t *testing.T, cfg config.Config) (*sql.DB, *dbgen.Queries, *gin.Engine) {
 	t.Helper()
-	dsn := os.Getenv("DATABASE_URL_TEST")
+	dsn := config.Environment("DATABASE_URL_TEST")
 	if dsn == "" {
 		t.Skip("DATABASE_URL_TEST is not set; skipping PostgreSQL auth integration test")
 	}
@@ -74,7 +84,7 @@ func authTestApp(t *testing.T) (*sql.DB, *dbgen.Queries, *gin.Engine) {
 	gin.SetMode(gin.TestMode)
 	q := dbgen.New(db)
 	r := gin.New()
-	routes.SetupRoutes(r, q, db)
+	routes.SetupRoutes(r, q, db, cfg)
 	return db, q, r
 }
 
@@ -93,7 +103,7 @@ func authRequest(r http.Handler, method, path, body string, cookies ...*http.Coo
 
 func adminCookie(t *testing.T, id int, role string) *http.Cookie {
 	t.Helper()
-	token, err := utils.GenerateToken(id, role)
+	token, err := utils.GenerateToken(integrationConfig().JWTSecret, id, role)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -218,7 +228,7 @@ func TestAdminGuardsAndRoleRecheck(t *testing.T) {
 	if got := authRequest(r, http.MethodDelete, fmt.Sprintf("/api/admin/users/%d", admin2), "", adminCookie(t, int(admin1), "admin")).Code; got != http.StatusOK {
 		t.Fatalf("delete second admin status=%d", got)
 	}
-	api := handlers.NewAPI(q, db)
+	api := handlers.NewAPI(q, db, integrationConfig())
 	for _, tc := range []struct {
 		name, method, body string
 		invoke             func(*gin.Context)

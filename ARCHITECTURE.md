@@ -2,6 +2,26 @@
 
 Two views: **Current** (what the code does today) and **Target** (what the roadmap builds). The project is a community NGO site and staff workspace. Agents must keep this file in sync with the code.
 
+## Runtime configuration
+
+The process loads and validates environment settings once into `internal/config.Config` before opening the database. Invalid settings are reported together and stop startup. `TRUSTED_PROXIES` is an optional comma-separated list; it is empty by default.
+
+| Setting | Default / validation | Purpose |
+|---|---|---|
+| `PORT` | `8080`; 1�65535 | HTTP listen port |
+| `APP_ENV` | `development` | Cookie and Gin mode; `production` enables release mode |
+| `DATABASE_URL` | required | PostgreSQL connection string |
+| `JWT_SECRET` | required; at least 32 bytes | Signs access tokens |
+| `CORS_ORIGINS` | empty | Comma-separated allowed origins |
+| `UPLOAD_DIR` | `/data/uploads` | Uploaded media storage |
+| `UPLOAD_MAX_BYTES` | 10 MiB; positive integer | Maximum uploaded file size |
+| `DB_CONNECT_RETRIES` | `8`; positive integer | Database connection retry count |
+| `MIGRATE_ON_START` | `false` in the binary; Compose sets `true` | Apply embedded migrations before serving |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | both optional; set together, password at least 12 characters | First-admin bootstrap |
+| `TRUSTED_PROXIES` | empty | Explicit Gin trusted proxy CIDRs or addresses |
+
+The HTTP server uses bounded read/write/idle timeouts and graceful SIGINT/SIGTERM shutdown. `/healthz` is liveness and does not query PostgreSQL; `/readyz` and the `/health` alias check PostgreSQL with a two-second deadline. The container healthchecks use `/readyz`.
+
 ## 1. Current state
 
 ```mermaid
@@ -29,7 +49,8 @@ flowchart LR
 | GET/POST/PATCH/DELETE | `/editor/posts` · `/editor/events` · `/editor/media` | editor/admin | editor content and media routes |
 | GET | `/me` · `/profile` | any user | authenticated profile reads |
 | PUT | `/profile` | any user | updates name/email and optionally password |
-| GET | `/healthz` · `/health` | none | checks database connectivity |
+| GET | `/healthz` | none | liveness; no database call |
+| GET | `/readyz` · `/health` | none | readiness; checks database connectivity |
 
 Auth, refresh-token, profile, admin user, post, event, media, contact, and volunteer handlers use generated sqlc queries with request contexts and injected dependencies. Handler and middleware database access no longer uses package-level database globals. No pagination is implemented. User and media CRUD exist; volunteers currently have contribution endpoints rather than application management.
 

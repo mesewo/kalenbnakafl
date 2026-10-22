@@ -190,7 +190,7 @@ func TestEventValidationMessagesUnchanged(t *testing.T) {
 
 func TestCreatePostForeignKeyErrorMapsTo422(t *testing.T) {
 	db, q, _ := authTestApp(t)
-	api := handlers.NewAPI(q, db)
+	api := handlers.NewAPI(q, db, integrationConfig())
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
