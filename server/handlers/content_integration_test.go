@@ -177,12 +177,17 @@ func TestEventValidationMessagesUnchanged(t *testing.T) {
 			if response.Code != http.StatusBadRequest {
 				t.Fatalf("status=%d want=400 body=%s", response.Code, response.Body)
 			}
-			var payload map[string]string
+			var payload struct {
+				Error struct {
+					Code    string `json:"code"`
+					Message string `json:"message"`
+				} `json:"error"`
+			}
 			if err := json.Unmarshal(response.Body.Bytes(), &payload); err != nil {
 				t.Fatal(err)
 			}
-			if payload["error"] != want {
-				t.Fatalf("error=%q want=%q", payload["error"], want)
+			if payload.Error.Code != "validation_failed" || payload.Error.Message != want {
+				t.Fatalf("error=%#v want code=validation_failed message=%q", payload.Error, want)
 			}
 		})
 	}
