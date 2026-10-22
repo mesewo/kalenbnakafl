@@ -1,4 +1,4 @@
-﻿# ROADMAP.md — from working skeleton to portfolio-grade
+# ROADMAP.md — from working skeleton to portfolio-grade
 
 **Goal:** a repo and a live demo that survive a 10-minute recruiter/hiring-manager review for a *senior full-stack* role: one-command startup, real security, real tests, CI, docs, and a polished, working UI.
 
@@ -56,8 +56,8 @@
 
 ## Phase 2 — Complete the domain API (≈ 2–3 sessions)
 
-- [ ] Posts: CRUD, slug, `published`/`published_at`, public list filtered to published, pagination + search
-- [ ] Events: CRUD, `starts_at/ends_at/location`, `?upcoming=true`
+- [x] Posts: CRUD, slug, `published`/`published_at`, public list filtered to published, pagination + search
+- [x] Events: CRUD, `event_date`/`ends_at`/`location`, `?upcoming=true`
 - [ ] Media: multipart upload (size/type allowlist, content sniffing, random storage keys), list, delete; `Storage` interface (local volume now)
 - [ ] Users (admin): list, change role, delete, password reset trigger
 - [ ] Profile: `GET/PATCH /me` (name, password change with current password)
@@ -168,6 +168,11 @@
 | `cd server && go tool goose -dir db/migrations validate` | Passed after moving the embed source outside the migration directory. | 2026-10-20 |
 | `docker compose --env-file .env.example config --quiet` | Passed; Docker emitted warnings that its user config file was inaccessible. | 2026-10-20 |
 | Prompt V Compose `down` / `up --build -d` / `/healthz` | `down` could not connect to the Docker Engine named pipe (daemon unavailable); `up` and health curl were not run. No volumes were removed. | 2026-10-20 |
+
+| `cd server && go build ./... && go vet ./... && go test ./...` (posts/events Phase 2) | Passed; ran the full integration suite against disposable PostgreSQL 15, including existing-row migration 0002, slug generation/collision/fallback/custom edit, first-publish timestamp, published-only detail, paging, English and Amharic FTS, upcoming/detail/end-time validation, and role matrix. | 2026-10-22 |
+| `cd server && go tool sqlc diff -f ../sqlc.yaml` (posts/events Phase 2) | Passed with no generated-code diff. | 2026-10-22 |
+| `cd front-end && npm run lint && npx tsc --noEmit && npm run build` (posts/events Phase 2) | Lint passed with 5 existing dashboard hook warnings; TypeScript and production build passed. Next warned that Baseline browser data is over two months old. | 2026-10-22 |
+| `docker compose down && docker compose up --build -d` (posts/events Phase 2) | Passed without removing volumes; API, DB, and frontend became healthy. `/readyz` and `/healthz` returned `{"status":"ok"}`; `/api/posts?page=1&limit=2` and `/api/events?upcoming=true&page=1&limit=2` returned HTTP 200 pagination envelopes; Goose reports versions 0, 1, and 2 applied. | 2026-10-22 |
 
 ### Phase 0 baseline run — 2026-10-20
 

@@ -1,4 +1,4 @@
-﻿# ARCHITECTURE.md
+# ARCHITECTURE.md
 
 Two views: **Current** (what the code does today) and **Target** (what the roadmap builds). The project is a community NGO site and staff workspace. Agents must keep this file in sync with the code.
 
@@ -50,7 +50,10 @@ flowchart LR
 | POST | `/login` | none | sets access + refresh cookies; access 15 min, refresh 7 d |
 | POST | `/refresh` · `/logout` | refresh cookie / none | rotates or revokes refresh session |
 | POST | `/contact` | none | validates and stores row; IP limited |
-| GET | `/posts` · `/events` | none | published posts only; events currently unpaginated |
+| GET | `/posts?page&limit&q` | none | published posts only; paginated; simple-config full-text search; newest published first |
+| GET | `/posts/{slug}` | none | returns a published post; drafts return 404 |
+| GET | `/events?upcoming&page&limit` | none | paginated; upcoming sorts ascending, otherwise newest first |
+| GET | `/events/{id}` | none | returns an event by ID |
 | GET | `/admin/posts` · `/admin/events` | admin | staff CRUD and publish controls |
 | GET/POST/DELETE | `/admin/media` | admin | list, upload, delete |
 | GET/POST/PATCH/DELETE | `/admin/users` | admin | user CRUD |
@@ -60,11 +63,11 @@ flowchart LR
 | GET | `/healthz` | none | liveness; no database call |
 | GET | `/readyz` · `/health` | none | readiness; checks database connectivity |
 
-Auth, refresh-token, profile, admin user, post, event, media, contact, and volunteer handlers use generated sqlc queries with request contexts and injected dependencies. Handler and middleware database access no longer uses package-level database globals. No pagination is implemented. User and media CRUD exist; volunteers currently have contribution endpoints rather than application management.
+Auth, refresh-token, profile, admin user, post, event, media, contact, and volunteer handlers use generated sqlc queries with request contexts and injected dependencies. Handler and middleware database access no longer uses package-level database globals. Post and event public/staff lists use `{items,page,limit,total}` pagination (default 10, maximum 50). Post search uses the `simple` text-search configuration and a GIN index. User and media CRUD exist; volunteers currently have contribution endpoints rather than application management.
 
 ### Current data model
 
-`users(id, name, email, password, role, created_at, updated_at)` with a unique lower(email) index · `posts(id, title, content, author_id→users, published, created_at, updated_at)` · `events(id, title, description, event_date, created_at)` · `media(id, title, file_path, media_type, original_name, size_bytes, uploaded_by→users, created_at)` · `contacts(id, name, email, message, created_at)` · `refresh_tokens(id, user_id, token_hash, expires_at, revoked_at)` · `volunteer_contributions(...)`
+`users(id, name, email, password, role, created_at, updated_at)` with a unique lower(email) index · `posts(id, slug UNIQUE, title, content, author_id→users, published, published_at, cover_media_id→media ON DELETE SET NULL, search_vector GIN, created_at, updated_at)` · `events(id, title, description, event_date, ends_at nullable and after event_date, location, created_at)` · `media(id, title, file_path, media_type, original_name, size_bytes, uploaded_by→users, created_at)` · `contacts(id, name, email, message, created_at)` · `refresh_tokens(id, user_id, token_hash, expires_at, revoked_at)` · `volunteer_contributions(...)`
 
 ### Migration and sqlc workflow
 
