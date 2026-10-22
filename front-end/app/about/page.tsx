@@ -1,27 +1,2 @@
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
-
-export default function AboutPage() {
-  return (
-    <>
-      <Navbar />
-
-      <section className="bg-primary py-16 text-center">
-        <h1 className="text-4xl font-bold">About Kalen Benakafil</h1>
-      </section>
-
-      <section className="max-w-5xl mx-auto px-4 py-16 space-y-6">
-        <p>
-          Kalen Benakafil is a faith-based organization dedicated to spiritual
-          growth, community service, and social development.
-        </p>
-        <p>
-          Our mission is to strengthen faith, support communities, and empower
-          volunteers through organized programs and events.
-        </p>
-      </section>
-
-      <Footer />
-    </>
-  );
-}
+import Link from "next/link"; import Navbar from "@/components/Navbar"; import Footer from "@/components/Footer";
+export default function AboutPage(){return <><Navbar/><main id="main-content"><section className="page-hero"><div className="container"><span className="eyebrow">Our story</span><h1>Community work starts with paying attention.</h1><p>Kalen Benakafil is a community NGO creating practical ways for people to connect, contribute, and build a more supportive local future.</p></div></section><section className="section"><div className="container grid-2"><div><span className="eyebrow">What guides us</span><h2 className="display" style={{fontSize:"clamp(2.3rem,5vw,4.2rem)"}}>Care becomes useful when we make it <em>shared.</em></h2></div><div className="card"><p>We believe healthy communities are built through everyday participation: neighbors sharing knowledge, welcoming new voices, and showing up for the work in front of them.</p><p>Our programs and events are designed to be accessible, practical, and rooted in the strengths already present in the community.</p><Link className="btn btn-primary" href="/events">See how we gather</Link></div></div></section><section className="section" style={{background:"var(--cream)"}}><div className="container"><div className="section-head"><div><span className="eyebrow">Our approach</span><h2>Grounded in people.</h2></div><p>No grand promises. Just thoughtful programs, honest communication, and a commitment to making participation easier.</p></div><div className="grid-3"><article className="card"><div className="icon-box">A</div><h3>Accessible</h3><p>We make room for different abilities, schedules, experiences, and ways of contributing.</p></article><article className="card"><div className="icon-box">B</div><h3>Practical</h3><p>We focus on clear opportunities and useful support that people can take into daily life.</p></article><article className="card"><div className="icon-box">C</div><h3>Collaborative</h3><p>We listen first and work with community members, partners, and volunteers as equals.</p></article></div></div></section><section className="cta-band section"><div className="container cta-row"><h2>Want to help shape what comes next?</h2><Link href="/volunteer" className="btn btn-primary">Explore volunteering</Link></div></section></main><Footer/></>}

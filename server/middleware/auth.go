@@ -1,49 +1,41 @@
 package middleware
 
 import (
+	"database/sql"
+	"errors"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
+	"kalenbnakafl/dbgen"
+	"kalenbnakafl/utils"
 )
 
-var jwtSecret = []byte("super-secret-key") // same as utils
-
-func AuthMiddleware() gin.HandlerFunc {
+func AuthMiddleware(q *dbgen.Queries) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		authHeader := c.GetHeader("Authorization")
-
-		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header missing"})
+		token, err := c.Cookie("access_token")
+		if err != nil || token == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
 			c.Abort()
 			return
 		}
-
-		parts := strings.Split(authHeader, " ")
-		if len(parts) != 2 || parts[0] != "Bearer" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authorization format"})
+		userID, _, err := utils.ParseToken(token)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired session"})
 			c.Abort()
 			return
 		}
-
-		tokenStr := parts[1]
-
-		token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
-			return jwtSecret, nil
-		})
-
-		if err != nil || !token.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
+		role, err := q.GetRoleByUserID(c.Request.Context(), int32(userID))
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Account not found"})
+			} else {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not verify session"})
+			}
 			c.Abort()
 			return
 		}
-
-		claims := token.Claims.(jwt.MapClaims)
-
-		c.Set("user_id", int(claims["user_id"].(float64)))
-		c.Set("role", claims["role"].(string))
-
+		c.Set("user_id", userID)
+		c.Set("role", role)
 		c.Next()
 	}
 }

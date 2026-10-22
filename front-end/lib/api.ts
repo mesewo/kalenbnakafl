@@ -1,29 +1,10 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
-
-export async function apiFetch(
-  endpoint: string,
-  options: RequestInit = {},
-  token?: string | null
-) {
-  if (!API_URL || API_URL === "undefined") {
-    throw new Error("API URL is not configured. Check NEXT_PUBLIC_API_URL in .env.local");
-  }
-
-  const url = `${API_URL}${endpoint}`;
-  
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token && { Authorization: `Bearer ${token}` }),
-      ...options.headers,
-    },
-  });
-
-  if (!res.ok) {
-    const error = await res.json();
-    throw new Error(error.error || "API Error");
-  }
-
-  return res.json();
-}
+export type UserRole = "admin" | "editor" | "user" | "volunteer";
+export type User = { id:number; name:string; email:string; role:UserRole; created_at?:string };
+export type Post = { id:number; title:string; content:string; author_id?:number; author_name?:string; published?:boolean; created_at?:string; updated_at?:string };
+export type EventItem = { id:number; title:string; description:string; event_date:string; created_at?:string };
+export type MediaItem = { id:number; title:string; file_path:string; media_type?:string; original_name?:string; size_bytes?:number; created_at?:string };
+const API_URL=process.env.NEXT_PUBLIC_API_URL||"/api";
+function getUrl(endpoint:string){if(endpoint.startsWith("http://")||endpoint.startsWith("https://"))return endpoint;const base=API_URL.replace(/\/$/,"");return `${base}${endpoint.startsWith("/")?endpoint:`/${endpoint}`}`;}
+export async function apiFetch<T=unknown>(endpoint:string,options:RequestInit={}):Promise<T>{const headers=new Headers(options.headers);if(!(options.body instanceof FormData)&&!headers.has("Content-Type"))headers.set("Content-Type","application/json");let response:Response;try{response=await fetch(getUrl(endpoint),{...options,headers,credentials:"include"});}catch{throw new Error("We could not reach the service. Please check your connection and try again.");}const text=await response.text();let payload:unknown=null;if(text){try{payload=JSON.parse(text);}catch{payload=text;}}if(!response.ok){const message=typeof payload==="object"&&payload!==null&&"error" in payload?String((payload as {error:unknown}).error):"Something went wrong. Please try again.";throw new Error(message);}return payload as T;}
+export function formatDate(value?:string,withTime=false){if(!value)return "Date to be announced";const date=new Date(value);if(Number.isNaN(date.getTime()))return value;return new Intl.DateTimeFormat(undefined,{dateStyle:"medium",...(withTime?{timeStyle:"short" as const}:{})}).format(date);}
+export function excerpt(value:string,length=150){const clean=value.replace(/\s+/g," ").trim();return clean.length>length?`${clean.slice(0,length).trimEnd()}…`:clean;}

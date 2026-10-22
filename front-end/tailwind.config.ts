@@ -1,20 +1,3 @@
 import type { Config } from "tailwindcss";
-
-const config: Config = {
-  content: [
-    "./src/app/**/*.{ts,tsx}",
-    "./src/components/**/*.{ts,tsx}",
-  ],
-  theme: {
-    extend: {
-      colors: {
-        primary: "#FACC15",   // yellow-400
-        primaryDark: "#EAB308", // yellow-500
-        accent: "#78350F",    // dark brown
-      },
-    },
-  },
-  plugins: [],
-};
-
+const config: Config = { content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./context/**/*.{ts,tsx}", "./lib/**/*.{ts,tsx}"], theme: { extend: { colors: { primary: "#F5C842", primaryDark: "#152238", accent: "#355C4A" } } }, plugins: [] };
 export default config;

@@ -1,28 +1,25 @@
 package middleware
 
 import (
-	"net/http"
-
 	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
 func RequireRole(roles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userRole, exists := c.Get("role")
-
-		if !exists {
+		value, exists := c.Get("role")
+		role, ok := value.(string)
+		if !exists || !ok {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
 			c.Abort()
 			return
 		}
-
-		for _, role := range roles {
-			if userRole == role {
+		for _, allowed := range roles {
+			if role == allowed {
 				c.Next()
 				return
 			}
 		}
-
 		c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient permissions"})
 		c.Abort()
 	}
