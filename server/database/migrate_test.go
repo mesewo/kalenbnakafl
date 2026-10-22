@@ -127,3 +127,54 @@ func TestBootstrapAdminIsIdempotent(t *testing.T) {
 		t.Fatalf("expected normalized bootstrap email, got %q", email)
 	}
 }
+
+func TestMigration0002BackfillsRowsCreatedBy0001(t *testing.T) {
+	db := testDatabase(t)
+	ctx := context.Background()
+	provider, err := newMigrationProvider(db)
+	if err != nil {
+		t.Fatalf("create provider: %v", err)
+	}
+	if _, err := provider.UpTo(ctx, 1); err != nil {
+		t.Fatalf("apply migration 0001: %v", err)
+	}
+	if _, err := db.Exec(`INSERT INTO users(name,email,password,role) VALUES ('Migration Author','migration@example.org','hash','admin')`); err != nil {
+		t.Fatalf("insert migration author: %v", err)
+	}
+	if _, err := db.Exec(`INSERT INTO posts(title,content,author_id,published) VALUES ('Hello, World!','body',1,true),('Hello World','body',1,false),('አማርኛ','body',1,false)`); err != nil {
+		t.Fatalf("insert pre-0002 posts: %v", err)
+	}
+	if _, err := provider.Up(ctx); err != nil {
+		t.Fatalf("apply migration 0002 over existing rows: %v", err)
+	}
+	rows, err := db.Query(`SELECT title,slug,published_at FROM posts ORDER BY id`)
+	if err != nil {
+		t.Fatalf("read migrated posts: %v", err)
+	}
+	defer rows.Close()
+	want := []string{"hello-world", "hello-world-2"}
+	index := 0
+	for rows.Next() {
+		var title, slug string
+		var publishedAt sql.NullTime
+		if err := rows.Scan(&title, &slug, &publishedAt); err != nil {
+			t.Fatalf("scan migrated post: %v", err)
+		}
+		if index < len(want) && slug != want[index] {
+			t.Errorf("post %q slug=%q want=%q", title, slug, want[index])
+		}
+		if index == 0 && !publishedAt.Valid {
+			t.Error("existing published post has null published_at")
+		}
+		if index == 2 && !strings.HasPrefix(slug, "post-") {
+			t.Errorf("Amharic fallback slug=%q", slug)
+		}
+		index++
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatalf("iterate migrated posts: %v", err)
+	}
+	if index != 3 {
+		t.Fatalf("read %d migrated posts, want 3", index)
+	}
+}
