@@ -27,9 +27,9 @@ type Event struct {
 	CreatedAt   time.Time `json:"created_at,omitempty"`
 }
 type EventInput struct {
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	EventDate   time.Time `json:"event_date"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	EventDate   string `json:"event_date"`
 }
 type Media struct {
 	ID           int       `json:"id"`

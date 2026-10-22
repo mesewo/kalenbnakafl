@@ -24,11 +24,16 @@ func (a *API) GetEvents(c *gin.Context) {
 
 func (a *API) CreateEvent(c *gin.Context) {
 	var input models.EventInput
-	if !httpx.BindJSON(c, &input) || !validateText(input.Title, 180) || !validateText(input.Description, 20000) || !parseEventTime(input.EventDate) {
+	if !httpx.BindJSON(c, &input) {
 		httpx.Fail(c, http.StatusBadRequest, "Title, description, and a valid event date are required")
 		return
 	}
-	err := a.q.CreateEvent(c.Request.Context(), dbgen.CreateEventParams{Title: clean(input.Title), Description: clean(input.Description), EventDate: input.EventDate})
+	eventDate, validDate := parseEventTime(input.EventDate)
+	if !validateText(input.Title, 180) || !validateText(input.Description, 20000) || !validDate {
+		httpx.Fail(c, http.StatusBadRequest, "Title, description, and a valid event date are required")
+		return
+	}
+	err := a.q.CreateEvent(c.Request.Context(), dbgen.CreateEventParams{Title: clean(input.Title), Description: clean(input.Description), EventDate: eventDate})
 	if err != nil {
 		if status, constraint := postEventConstraintStatus(err); constraint {
 			httpx.Fail(c, status, "Failed to create event")
@@ -46,11 +51,16 @@ func (a *API) UpdateEvent(c *gin.Context) {
 		return
 	}
 	var input models.EventInput
-	if !httpx.BindJSON(c, &input) || !validateText(input.Title, 180) || !validateText(input.Description, 20000) || !parseEventTime(input.EventDate) {
+	if !httpx.BindJSON(c, &input) {
 		httpx.Fail(c, http.StatusBadRequest, "Title, description, and a valid event date are required")
 		return
 	}
-	affected, err := a.q.UpdateEvent(c.Request.Context(), dbgen.UpdateEventParams{Title: clean(input.Title), Description: clean(input.Description), EventDate: input.EventDate, ID: int32(id)})
+	eventDate, validDate := parseEventTime(input.EventDate)
+	if !validateText(input.Title, 180) || !validateText(input.Description, 20000) || !validDate {
+		httpx.Fail(c, http.StatusBadRequest, "Title, description, and a valid event date are required")
+		return
+	}
+	affected, err := a.q.UpdateEvent(c.Request.Context(), dbgen.UpdateEventParams{Title: clean(input.Title), Description: clean(input.Description), EventDate: eventDate, ID: int32(id)})
 	if err != nil {
 		if status, constraint := postEventConstraintStatus(err); constraint {
 			httpx.Fail(c, status, "Failed to update event")

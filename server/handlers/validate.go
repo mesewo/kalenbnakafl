@@ -26,4 +26,7 @@ func validateText(value string, max int) bool {
 	value = clean(value)
 	return value != "" && len(value) <= max
 }
-func parseEventTime(value time.Time) bool { return !value.IsZero() }
+func parseEventTime(value string) (time.Time, bool) {
+	parsed, err := time.Parse(time.RFC3339Nano, value)
+	return parsed, err == nil
+}
