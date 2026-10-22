@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"github.com/gin-gonic/gin"
+	"kalenbnakafl/internal/httpx"
 	"net/http"
 )
 
@@ -10,7 +11,7 @@ func RequireRole(roles ...string) gin.HandlerFunc {
 		value, exists := c.Get("role")
 		role, ok := value.(string)
 		if !exists || !ok {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+			httpx.Fail(c, http.StatusForbidden, "Access denied")
 			c.Abort()
 			return
 		}
@@ -20,7 +21,7 @@ func RequireRole(roles ...string) gin.HandlerFunc {
 				return
 			}
 		}
-		c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient permissions"})
+		httpx.Fail(c, http.StatusForbidden, "Insufficient permissions")
 		c.Abort()
 	}
 }

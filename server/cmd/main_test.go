@@ -6,11 +6,16 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/gin-gonic/gin"
+
 	"kalenbnakafl/dbgen"
 	"kalenbnakafl/internal/config"
 )
 
 func TestHealthAndReadinessWhenDatabaseDown(t *testing.T) {
+	previousMode := gin.Mode()
+	gin.SetMode(gin.TestMode)
+	t.Cleanup(func() { gin.SetMode(previousMode) })
 	db, err := sql.Open("postgres", "postgres://invalid:invalid@127.0.0.1:1/invalid?connect_timeout=1")
 	if err != nil {
 		t.Fatal(err)

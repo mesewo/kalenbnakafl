@@ -1,4 +1,4 @@
-# ARCHITECTURE.md
+ï»¿# ARCHITECTURE.md
 
 Two views: **Current** (what the code does today) and **Target** (what the roadmap builds). The project is a community NGO site and staff workspace. Agents must keep this file in sync with the code.
 
@@ -8,7 +8,7 @@ The process loads and validates environment settings once into `internal/config.
 
 | Setting | Default / validation | Purpose |
 |---|---|---|
-| `PORT` | `8080`; 1–65535 | HTTP listen port |
+| `PORT` | `8080`; 1ï¿½65535 | HTTP listen port |
 | `APP_ENV` | `development` | Cookie and Gin mode; `production` enables release mode |
 | `DATABASE_URL` | required | PostgreSQL connection string |
 | `JWT_SECRET` | required; at least 32 bytes | Signs access tokens |
@@ -21,6 +21,14 @@ The process loads and validates environment settings once into `internal/config.
 | `TRUSTED_PROXIES` | empty | Explicit Gin trusted proxy CIDRs or addresses |
 
 The HTTP server uses bounded read/write/idle timeouts and graceful SIGINT/SIGTERM shutdown. `/healthz` is liveness and does not query PostgreSQL; `/readyz` and the `/health` alias check PostgreSQL with a two-second deadline. The container healthchecks use `/readyz`.
+
+## HTTP logging, errors, and request limits
+
+The API configures `log/slog` with a text handler in development and JSON in production. Gin uses `gin.New()` with middleware ordered as request ID, access log, panic recovery, then request body limit. Request IDs accept only `^[A-Za-z0-9-]{8,64}$`; invalid or absent IDs are replaced and returned in `X-Request-ID`. Access records include request ID, method, route pattern, status, latency in milliseconds, and authenticated user ID when available. Request bodies, cookies, authorization headers, passwords, and tokens are never logged; panic values are intentionally omitted.
+
+All API errors use `{"error":{"code":"...","message":"...","details":{}}}`. Stable codes are `invalid_json`, `validation_failed`, `unauthorized`, `forbidden`, `not_found`, `conflict`, `rate_limited`, `payload_too_large`, and `internal`. Unexpected failures are logged with the request ID and return a generic message. The default request body limit is 1 MiB; media upload routes allow the configured file limit plus 1 MiB for multipart framing. The frontend API client extracts the nested message, safely handles non-JSON proxy errors, applies a 15-second request timeout (120 seconds for uploads), and signals session expiry on protected-route 401 responses.
+
+Access JWTs use a typed claim structure and accept only HS256. Parsing requires issuer, issue time, expiry, positive user ID, and a recognized role; malformed claims return unauthorized.
 
 ## 1. Current state
 

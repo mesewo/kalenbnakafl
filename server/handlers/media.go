@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"errors"
-	"log/slog"
+	"kalenbnakafl/internal/httpx"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -19,7 +19,7 @@ import (
 func (a *API) GetMedia(c *gin.Context) {
 	rows, err := a.q.ListMedia(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch media"})
+		httpx.Fail(c, http.StatusInternalServerError, "Failed to fetch media")
 		return
 	}
 	items := make([]models.Media, 0, len(rows))
@@ -36,34 +36,34 @@ func (a *API) GetMedia(c *gin.Context) {
 func (a *API) UploadMedia(c *gin.Context) {
 	title := clean(c.PostForm("title"))
 	if !validateText(title, 180) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "A media title is required"})
+		httpx.Fail(c, http.StatusBadRequest, "A media title is required")
 		return
 	}
 	header, err := c.FormFile("file")
 	if err != nil || header.Size > a.cfg.MaxUploadBytes {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Choose a file smaller than 10MB"})
+		httpx.Fail(c, http.StatusRequestEntityTooLarge, "Choose a file smaller than 10MB")
 		return
 	}
 	allowed := map[string]bool{"image/jpeg": true, "image/png": true, "image/gif": true, "image/webp": true, "video/mp4": true, "application/pdf": true}
 	contentType := header.Header.Get("Content-Type")
 	if !allowed[contentType] {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "This file type is not supported"})
+		httpx.Fail(c, http.StatusBadRequest, "This file type is not supported")
 		return
 	}
 	dir := a.cfg.UploadDir
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Storage is not available"})
+		httpx.Fail(c, http.StatusInternalServerError, "Storage is not available")
 		return
 	}
 	random := make([]byte, 8)
 	if _, err := rand.Read(random); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not save file"})
+		httpx.Fail(c, http.StatusInternalServerError, "Could not save file")
 		return
 	}
 	name := hex.EncodeToString(random) + "-" + filepath.Base(header.Filename)
 	fullPath := filepath.Join(dir, name)
 	if err := c.SaveUploadedFile(header, fullPath); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not save file"})
+		httpx.Fail(c, http.StatusInternalServerError, "Could not save file")
 		return
 	}
 	path := "/uploads/" + name
@@ -80,9 +80,9 @@ func (a *API) UploadMedia(c *gin.Context) {
 	})
 	if err != nil {
 		if cleanupErr := os.Remove(fullPath); cleanupErr != nil && !errors.Is(cleanupErr, os.ErrNotExist) {
-			slog.Error("remove uploaded file after media insert failure", "path", fullPath, "error", cleanupErr)
+			httpx.Logger(c).Error("remove uploaded file after media insert failure")
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not save media metadata"})
+		httpx.Fail(c, http.StatusInternalServerError, "Could not save media metadata")
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"message": "Media uploaded", "file_path": path})
@@ -95,25 +95,25 @@ func (a *API) DeleteMedia(c *gin.Context) {
 	}
 	path, err := a.q.GetMediaFilePath(c.Request.Context(), int32(id))
 	if errors.Is(err, sql.ErrNoRows) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Media not found"})
+		httpx.Fail(c, http.StatusNotFound, "Media not found")
 		return
 	}
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not fetch media"})
+		httpx.Fail(c, http.StatusInternalServerError, "Could not fetch media")
 		return
 	}
 	removed, err := a.q.DeleteMedia(c.Request.Context(), int32(id))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not delete media"})
+		httpx.Fail(c, http.StatusInternalServerError, "Could not delete media")
 		return
 	}
 	if removed == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Media not found"})
+		httpx.Fail(c, http.StatusNotFound, "Media not found")
 		return
 	}
 	filename := filepath.Base(strings.TrimPrefix(path, "/uploads/"))
 	if err := os.Remove(filepath.Join(a.cfg.UploadDir, filename)); err != nil && !errors.Is(err, os.ErrNotExist) {
-		slog.Error("remove media file after deleting metadata", "media_id", id, "path", path, "error", err)
+		httpx.Logger(c).Error("remove media file after deleting metadata", "media_id", id)
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Media deleted"})
 }

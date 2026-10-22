@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -17,12 +17,13 @@ import (
 	"kalenbnakafl/database"
 	"kalenbnakafl/dbgen"
 	"kalenbnakafl/internal/config"
+	"kalenbnakafl/internal/httpx"
 	"kalenbnakafl/routes"
 )
 
 func main() {
 	if err := run(); err != nil {
-		log.Printf("server stopped: %v", err)
+		slog.Error("server stopped", "error_type", fmt.Sprintf("%T", err))
 		os.Exit(1)
 	}
 }
@@ -48,10 +49,12 @@ func corsMiddleware(origins []string) gin.HandlerFunc {
 }
 
 func newRouter(cfg config.Config, db *sql.DB, q *dbgen.Queries) (*gin.Engine, error) {
+
 	if strings.EqualFold(cfg.AppEnv, "production") {
 		gin.SetMode(gin.ReleaseMode)
 	}
-	r := gin.Default()
+	r := gin.New()
+	r.Use(httpx.RequestID(), httpx.AccessLog(), httpx.Recovery(), httpx.BodyLimit(1<<20, cfg.MaxUploadBytes+(1<<20)))
 	if err := r.SetTrustedProxies(cfg.TrustedProxies); err != nil {
 		return nil, fmt.Errorf("configure trusted proxies: %w", err)
 	}
@@ -61,13 +64,15 @@ func newRouter(cfg config.Config, db *sql.DB, q *dbgen.Queries) (*gin.Engine, er
 		ctx, cancel := context.WithTimeout(c.Request.Context(), 2*time.Second)
 		defer cancel()
 		if err := database.Ping(ctx, db); err != nil {
-			c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable"})
+			httpx.Logger(c).Error("readiness check failed")
+			httpx.Write(c, http.StatusServiceUnavailable, "internal", "Service unavailable.", nil)
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	}
 	r.GET("/readyz", ready)
 	r.GET("/health", ready)
+	r.NoRoute(func(c *gin.Context) { httpx.Fail(c, http.StatusNotFound, "Not found") })
 	if err := os.MkdirAll(cfg.UploadDir, 0755); err != nil {
 		return nil, fmt.Errorf("create upload directory: %w", err)
 	}
@@ -76,11 +81,19 @@ func newRouter(cfg config.Config, db *sql.DB, q *dbgen.Queries) (*gin.Engine, er
 	return r, nil
 }
 
+func configureLogger(appEnv string) {
+	if strings.EqualFold(appEnv, "production") {
+		slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
+		return
+	}
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, nil)))
+}
 func run() error {
 	cfg, err := config.Load()
 	if err != nil {
 		return err
 	}
+	configureLogger(cfg.AppEnv)
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	db, q, err := database.Connect(ctx, cfg)
@@ -89,7 +102,7 @@ func run() error {
 	}
 	defer func() {
 		if err := db.Close(); err != nil {
-			log.Printf("close database pool: %v", err)
+			slog.Error("close database pool", "error_type", fmt.Sprintf("%T", err))
 		}
 	}()
 	if cfg.MigrateOnStart {

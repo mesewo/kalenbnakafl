@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"database/sql"
+	"kalenbnakafl/internal/httpx"
 	"net/http"
 	"strconv"
 
@@ -13,14 +14,14 @@ import (
 func (a *API) GetVolunteers(c *gin.Context) {
 	rows, err := a.q.ListVolunteers(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch volunteers"})
+		httpx.Fail(c, http.StatusInternalServerError, "Failed to fetch volunteers")
 		return
 	}
 	items := make([]models.Volunteer, 0, len(rows))
 	for _, row := range rows {
 		hours, err := strconv.ParseFloat(row.TotalHours, 64)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch volunteers"})
+			httpx.Fail(c, http.StatusInternalServerError, "Failed to fetch volunteers")
 			return
 		}
 		items = append(items, models.Volunteer{
@@ -41,8 +42,8 @@ func (a *API) AddContribution(c *gin.Context) {
 		Notes            string  `json:"notes"`
 		ContributionDate string  `json:"contribution_date"`
 	}
-	if err := c.ShouldBindJSON(&input); err != nil || input.Hours <= 0 || input.Hours > 1000 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Hours must be greater than zero"})
+	if !httpx.BindJSON(c, &input) || input.Hours <= 0 || input.Hours > 1000 {
+		httpx.Fail(c, http.StatusBadRequest, "Hours must be greater than zero")
 		return
 	}
 	createdBy, _ := c.Get("user_id")
@@ -55,7 +56,7 @@ func (a *API) AddContribution(c *gin.Context) {
 		Notes: clean(input.Notes), ContributionDate: input.ContributionDate, CreatedBy: createdByID,
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not record contribution"})
+		httpx.Fail(c, http.StatusInternalServerError, "Could not record contribution")
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"message": "Contribution recorded"})

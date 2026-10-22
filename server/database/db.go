@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -26,14 +26,14 @@ func Connect(ctx context.Context, cfg config.Config) (*sql.DB, *dbgen.Queries, e
 			err = db.PingContext(ctx)
 		}
 		if err == nil {
-			log.Println("PostgreSQL connected")
+			slog.Info("PostgreSQL connected")
 			return db, dbgen.New(db), nil
 		}
 		lastErr = err
 		if db != nil {
 			_ = db.Close()
 		}
-		log.Printf("database unavailable (attempt %d/%d): %v", attempt, cfg.DBConnectRetries, err)
+		slog.Warn("database unavailable", "attempt", attempt, "attempts", cfg.DBConnectRetries, "error_type", fmt.Sprintf("%T", err))
 		if attempt < cfg.DBConnectRetries {
 			timer := time.NewTimer(time.Duration(attempt) * 2 * time.Second)
 			select {
@@ -76,6 +76,6 @@ func BootstrapAdmin(ctx context.Context, q *dbgen.Queries, cfg config.Config) er
 	}); err != nil {
 		return fmt.Errorf("bootstrap admin: %w", err)
 	}
-	log.Printf("bootstrapped admin account %s", email)
+	slog.Info("bootstrapped admin account", "email", email)
 	return nil
 }
