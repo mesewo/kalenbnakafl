@@ -7,22 +7,44 @@ package dbgen
 
 import (
 	"context"
+	"database/sql"
 	"time"
 )
 
+const countEvents = `-- name: CountEvents :one
+SELECT count(*)::bigint
+FROM events
+WHERE (NOT $1::boolean OR event_date >= CURRENT_TIMESTAMP)
+`
+
+func (q *Queries) CountEvents(ctx context.Context, upcoming bool) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countEvents, upcoming)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const createEvent = `-- name: CreateEvent :exec
-INSERT INTO events (title, description, event_date)
-VALUES ($1, $2, $3)
+INSERT INTO events (title, description, event_date, ends_at, location)
+VALUES ($1, $2, $3, $4, $5)
 `
 
 type CreateEventParams struct {
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	EventDate   time.Time `json:"event_date"`
+	Title       string       `json:"title"`
+	Description string       `json:"description"`
+	EventDate   time.Time    `json:"event_date"`
+	EndsAt      sql.NullTime `json:"ends_at"`
+	Location    string       `json:"location"`
 }
 
 func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) error {
-	_, err := q.db.ExecContext(ctx, createEvent, arg.Title, arg.Description, arg.EventDate)
+	_, err := q.db.ExecContext(ctx, createEvent,
+		arg.Title,
+		arg.Description,
+		arg.EventDate,
+		arg.EndsAt,
+		arg.Location,
+	)
 	return err
 }
 
@@ -38,27 +60,77 @@ func (q *Queries) DeleteEvent(ctx context.Context, id int32) (int64, error) {
 	return result.RowsAffected()
 }
 
-const listEvents = `-- name: ListEvents :many
-SELECT id, title, description, event_date, created_at
-FROM events
-WHERE event_date >= CURRENT_TIMESTAMP - INTERVAL '1 day'
-ORDER BY event_date ASC
+const getEventByID = `-- name: GetEventByID :one
+SELECT id, title, description, event_date, ends_at, location, created_at
+FROM events WHERE id = $1
 `
 
-func (q *Queries) ListEvents(ctx context.Context) ([]Event, error) {
-	rows, err := q.db.QueryContext(ctx, listEvents)
+type GetEventByIDRow struct {
+	ID          int32        `json:"id"`
+	Title       string       `json:"title"`
+	Description string       `json:"description"`
+	EventDate   time.Time    `json:"event_date"`
+	EndsAt      sql.NullTime `json:"ends_at"`
+	Location    string       `json:"location"`
+	CreatedAt   time.Time    `json:"created_at"`
+}
+
+func (q *Queries) GetEventByID(ctx context.Context, id int32) (GetEventByIDRow, error) {
+	row := q.db.QueryRowContext(ctx, getEventByID, id)
+	var i GetEventByIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Description,
+		&i.EventDate,
+		&i.EndsAt,
+		&i.Location,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const listEvents = `-- name: ListEvents :many
+SELECT id, title, description, event_date, ends_at, location, created_at
+FROM events
+WHERE (NOT $1::boolean OR event_date >= CURRENT_TIMESTAMP)
+ORDER BY CASE WHEN $1::boolean THEN event_date END ASC,
+         CASE WHEN NOT $1::boolean THEN created_at END DESC
+LIMIT $3::integer OFFSET $2::integer
+`
+
+type ListEventsParams struct {
+	Upcoming  bool  `json:"upcoming"`
+	RowOffset int32 `json:"row_offset"`
+	PageSize  int32 `json:"page_size"`
+}
+
+type ListEventsRow struct {
+	ID          int32        `json:"id"`
+	Title       string       `json:"title"`
+	Description string       `json:"description"`
+	EventDate   time.Time    `json:"event_date"`
+	EndsAt      sql.NullTime `json:"ends_at"`
+	Location    string       `json:"location"`
+	CreatedAt   time.Time    `json:"created_at"`
+}
+
+func (q *Queries) ListEvents(ctx context.Context, arg ListEventsParams) ([]ListEventsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listEvents, arg.Upcoming, arg.RowOffset, arg.PageSize)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Event{}
+	items := []ListEventsRow{}
 	for rows.Next() {
-		var i Event
+		var i ListEventsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Title,
 			&i.Description,
 			&i.EventDate,
+			&i.EndsAt,
+			&i.Location,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -76,15 +148,18 @@ func (q *Queries) ListEvents(ctx context.Context) ([]Event, error) {
 
 const updateEvent = `-- name: UpdateEvent :execrows
 UPDATE events
-SET title = $1, description = $2, event_date = $3
-WHERE id = $4
+SET title = $1, description = $2, event_date = $3,
+    ends_at = $4, location = $5
+WHERE id = $6
 `
 
 type UpdateEventParams struct {
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	EventDate   time.Time `json:"event_date"`
-	ID          int32     `json:"id"`
+	Title       string       `json:"title"`
+	Description string       `json:"description"`
+	EventDate   time.Time    `json:"event_date"`
+	EndsAt      sql.NullTime `json:"ends_at"`
+	Location    string       `json:"location"`
+	ID          int32        `json:"id"`
 }
 
 func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (int64, error) {
@@ -92,6 +167,8 @@ func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (int64
 		arg.Title,
 		arg.Description,
 		arg.EventDate,
+		arg.EndsAt,
+		arg.Location,
 		arg.ID,
 	)
 	if err != nil {
