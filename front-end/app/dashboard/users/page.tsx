@@ -1,3 +1,179 @@
 "use client";
-import { useEffect, useState } from "react"; import { useAuth } from "@/context/AuthContext"; import { apiFetch, type User, type UserRole } from "@/lib/api";
-export default function UsersPage(){const {user}=useAuth();const [users,setUsers]=useState<User[]>([]);const [editing,setEditing]=useState<User|null>(null);const [form,setForm]=useState({name:"",email:"",password:"",role:"user" as UserRole});const [loading,setLoading]=useState(true);const [error,setError]=useState("");async function load(){if(!user)return;setLoading(true);try{setUsers(await apiFetch<User[]>("/admin/users",{})||[]);}catch(err){setError(err instanceof Error?err.message:"Could not load users.");}finally{setLoading(false);}}useEffect(()=>{load();},[user]);function start(userToEdit?:User){setEditing(userToEdit||null);setForm({name:userToEdit?.name||"",email:userToEdit?.email||"",password:"",role:userToEdit?.role||"user"});}async function submit(e:React.FormEvent){e.preventDefault();setError("");try{await apiFetch(editing?`/admin/users/${editing.id}`:"/admin/users",{method:editing?"PATCH":"POST",body:JSON.stringify(form)});start();load();}catch(err){setError(err instanceof Error?err.message:"Could not save user.");}}async function remove(userToRemove:User){if(userToRemove.id===user?.id){setError("You cannot delete your own account from this screen.");return;}if(!window.confirm(`Delete ${userToRemove.name}?`))return;try{await apiFetch(`/admin/users/${userToRemove.id}`,{method:"DELETE"});load();}catch(err){setError(err instanceof Error?err.message:"Could not delete user.");}}return <div><div className="dashboard-title"><div><span className="eyebrow">People</span><h1>Users</h1></div><button className="btn btn-primary" onClick={()=>start()}>New user</button></div>{(editing!==null||form.name||form.email||form.password)&&<div className="form-card" style={{marginBottom:"1.5rem"}}><h2>{editing?"Edit user":"Create user"}</h2><form onSubmit={submit}><div className="grid-2"><div className="field"><label htmlFor="user-name">Name</label><input id="user-name" value={form.name} onChange={e=>setForm({...form,name:e.target.value})} required /></div><div className="field"><label htmlFor="user-email">Email</label><input id="user-email" type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} required /></div><div className="field"><label htmlFor="user-role">Role</label><select id="user-role" value={form.role} onChange={e=>setForm({...form,role:e.target.value as UserRole})}><option value="user">User</option><option value="volunteer">Volunteer</option><option value="editor">Editor</option><option value="admin">Admin</option></select></div><div className="field"><label htmlFor="user-password">{editing?"Reset password (optional)":"Password"}</label><input id="user-password" type="password" minLength={8} required={!editing} value={form.password} onChange={e=>setForm({...form,password:e.target.value})}/></div></div><div className="form-actions"><button className="btn btn-primary">{editing?"Save changes":"Create user"}</button><button type="button" className="btn btn-outline" onClick={()=>start()}>Cancel</button></div></form></div>}{error&&<div className="status status-error" role="alert" style={{marginBottom:"1rem"}}>{error}</div>}{loading?<div className="empty-state">Loading users…</div>:<div className="table-wrap"><table className="data-table"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Actions</th></tr></thead><tbody>{users.map(item=><tr key={item.id}><td>{item.name}</td><td>{item.email}</td><td><span className="badge">{item.role}</span></td><td><div className="form-actions"><button className="btn btn-outline btn-small" onClick={()=>start(item)}>Edit</button><button className="btn btn-danger btn-small" onClick={()=>remove(item)}>Delete</button></div></td></tr>)}</tbody></table></div>}</div>}
+import { useEffect, useState } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { apiFetch, type User, type UserRole } from "@/lib/api";
+export default function UsersPage() {
+  const { user } = useAuth();
+  const [users, setUsers] = useState<User[]>([]);
+  const [editing, setEditing] = useState<User | null>(null);
+  const [form, setForm] = useState({ name: "", email: "", password: "", role: "user" as UserRole });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  async function load() {
+    if (!user) return;
+    setLoading(true);
+    try {
+      setUsers((await apiFetch<User[]>("/admin/users", {})) || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not load users.");
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => {
+    load();
+  }, [user]);
+  function start(userToEdit?: User) {
+    setEditing(userToEdit || null);
+    setForm({
+      name: userToEdit?.name || "",
+      email: userToEdit?.email || "",
+      password: "",
+      role: userToEdit?.role || "user",
+    });
+  }
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    try {
+      await apiFetch(editing ? `/admin/users/${editing.id}` : "/admin/users", {
+        method: editing ? "PATCH" : "POST",
+        body: JSON.stringify(form),
+      });
+      start();
+      load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save user.");
+    }
+  }
+  async function remove(userToRemove: User) {
+    if (userToRemove.id === user?.id) {
+      setError("You cannot delete your own account from this screen.");
+      return;
+    }
+    if (!window.confirm(`Delete ${userToRemove.name}?`)) return;
+    try {
+      await apiFetch(`/admin/users/${userToRemove.id}`, { method: "DELETE" });
+      load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not delete user.");
+    }
+  }
+  return (
+    <div>
+      <div className="dashboard-title">
+        <div>
+          <span className="eyebrow">People</span>
+          <h1>Users</h1>
+        </div>
+        <button className="btn btn-primary" onClick={() => start()}>
+          New user
+        </button>
+      </div>
+      {(editing !== null || form.name || form.email || form.password) && (
+        <div className="form-card" style={{ marginBottom: "1.5rem" }}>
+          <h2>{editing ? "Edit user" : "Create user"}</h2>
+          <form onSubmit={submit}>
+            <div className="grid-2">
+              <div className="field">
+                <label htmlFor="user-name">Name</label>
+                <input
+                  id="user-name"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="user-email">Email</label>
+                <input
+                  id="user-email"
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="user-role">Role</label>
+                <select
+                  id="user-role"
+                  value={form.role}
+                  onChange={(e) => setForm({ ...form, role: e.target.value as UserRole })}
+                >
+                  <option value="user">User</option>
+                  <option value="volunteer">Volunteer</option>
+                  <option value="editor">Editor</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              <div className="field">
+                <label htmlFor="user-password">
+                  {editing ? "Reset password (optional)" : "Password"}
+                </label>
+                <input
+                  id="user-password"
+                  type="password"
+                  minLength={8}
+                  required={!editing}
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="form-actions">
+              <button className="btn btn-primary">
+                {editing ? "Save changes" : "Create user"}
+              </button>
+              <button type="button" className="btn btn-outline" onClick={() => start()}>
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+      {error && (
+        <div className="status status-error" role="alert" style={{ marginBottom: "1rem" }}>
+          {error}
+        </div>
+      )}
+      {loading ? (
+        <div className="empty-state">Loading users…</div>
+      ) : (
+        <div className="table-wrap">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((item) => (
+                <tr key={item.id}>
+                  <td>{item.name}</td>
+                  <td>{item.email}</td>
+                  <td>
+                    <span className="badge">{item.role}</span>
+                  </td>
+                  <td>
+                    <div className="form-actions">
+                      <button className="btn btn-outline btn-small" onClick={() => start(item)}>
+                        Edit
+                      </button>
+                      <button className="btn btn-danger btn-small" onClick={() => remove(item)}>
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}

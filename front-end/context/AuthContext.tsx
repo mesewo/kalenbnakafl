@@ -1,7 +1,69 @@
 ﻿"use client";
-import { createContext,useContext,useEffect,useMemo,useState } from "react";
-import { apiFetch,type User } from "@/lib/api";
-type AuthContextType={user:User|null;token:null;login:(email:string,password:string)=>Promise<void>;register:(payload:{name:string;email:string;password:string})=>Promise<void>;logout:()=>Promise<void>;isLoading:boolean};
-const AuthContext=createContext<AuthContextType|null>(null);
-export function AuthProvider({children}:{children:React.ReactNode}){const [user,setUser]=useState<User|null>(null);const [isLoading,setIsLoading]=useState(true);useEffect(()=>{const expire=()=>setUser(null);window.addEventListener("auth:session-expired",expire);return()=>window.removeEventListener("auth:session-expired",expire);},[]);useEffect(()=>{let active=true;(async()=>{try{const data=await apiFetch<{user:User}>("/me");if(active)setUser(data.user);}catch{try{const data=await apiFetch<{user:User}>("/refresh",{method:"POST"});if(active)setUser(data.user);}catch{if(active)setUser(null);}}finally{if(active)setIsLoading(false);}})();return()=>{active=false;};},[]);async function login(email:string,password:string){const data=await apiFetch<{user:User}>("/login",{method:"POST",body:JSON.stringify({email,password})});setUser(data.user);}async function register(payload:{name:string;email:string;password:string}){await apiFetch("/register",{method:"POST",body:JSON.stringify(payload)});}async function logout(){try{await apiFetch("/logout",{method:"POST"});}finally{setUser(null);}}const value=useMemo(()=>({user,token:null,login,register,logout,isLoading}),[user,isLoading]);return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>}
-export function useAuth(){const context=useContext(AuthContext);if(!context)throw new Error("useAuth must be used inside AuthProvider");return context;}
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { apiFetch, type User } from "@/lib/api";
+type AuthContextType = {
+  user: User | null;
+  token: null;
+  login: (email: string, password: string) => Promise<void>;
+  register: (payload: { name: string; email: string; password: string }) => Promise<void>;
+  logout: () => Promise<void>;
+  isLoading: boolean;
+};
+const AuthContext = createContext<AuthContextType | null>(null);
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  useEffect(() => {
+    const expire = () => setUser(null);
+    window.addEventListener("auth:session-expired", expire);
+    return () => window.removeEventListener("auth:session-expired", expire);
+  }, []);
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const data = await apiFetch<{ user: User }>("/me");
+        if (active) setUser(data.user);
+      } catch {
+        try {
+          const data = await apiFetch<{ user: User }>("/refresh", { method: "POST" });
+          if (active) setUser(data.user);
+        } catch {
+          if (active) setUser(null);
+        }
+      } finally {
+        if (active) setIsLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+  async function login(email: string, password: string) {
+    const data = await apiFetch<{ user: User }>("/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+    setUser(data.user);
+  }
+  async function register(payload: { name: string; email: string; password: string }) {
+    await apiFetch("/register", { method: "POST", body: JSON.stringify(payload) });
+  }
+  async function logout() {
+    try {
+      await apiFetch("/logout", { method: "POST" });
+    } finally {
+      setUser(null);
+    }
+  }
+  const value = useMemo(
+    () => ({ user, token: null, login, register, logout, isLoading }),
+    [user, isLoading],
+  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error("useAuth must be used inside AuthProvider");
+  return context;
+}

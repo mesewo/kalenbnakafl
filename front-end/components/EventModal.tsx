@@ -2,15 +2,145 @@
 import { useEffect, useRef, useState } from "react";
 import { apiFetch, type EventItem } from "@/lib/api";
 
-export default function EventModal({isOpen,onClose,onSuccess,userRole,event}:{isOpen:boolean;onClose:()=>void;onSuccess:()=>void;userRole:string|undefined;event?:EventItem|null}) {
-  const [form,setForm]=useState({title:"",description:"",event_date:"",ends_at:"",location:""});
-  const [error,setError]=useState("");
-  const [loading,setLoading]=useState(false);
-  const closeRef=useRef<HTMLButtonElement>(null);
-  useEffect(()=>{setForm({title:event?.title||"",description:event?.description||"",event_date:event?.event_date?new Date(event.event_date).toISOString().slice(0,16):"",ends_at:event?.ends_at?new Date(event.ends_at).toISOString().slice(0,16):"",location:event?.location||""});setError("");},[event,isOpen]);
-  useEffect(()=>{if(isOpen)closeRef.current?.focus();},[isOpen]);
-  if(!isOpen)return null;
-  const prefix="/staff";
-  async function submit(e:React.FormEvent){e.preventDefault();setError("");if(!form.title.trim()||!form.description.trim()||!form.event_date){setError("Title, description, and date are required.");return;}setLoading(true);try{await apiFetch(event?`${prefix}/events/${event.id}`:`${prefix}/events`,{method:event?"PATCH":"POST",body:JSON.stringify({...form,event_date:new Date(form.event_date).toISOString(),ends_at:form.ends_at?new Date(form.ends_at).toISOString():""})});onSuccess();onClose();}catch(err){setError(err instanceof Error?err.message:"Could not save the event.");}finally{setLoading(false);}}
-  return <div className="modal-backdrop"><div className="modal" role="dialog" aria-modal="true" aria-labelledby="event-modal-title"><div className="modal-head"><h2 id="event-modal-title">{event?"Edit event":"Create an event"}</h2><button className="close-btn" ref={closeRef} type="button" aria-label="Close dialog" onClick={onClose}>×</button></div>{error&&<div className="status status-error" role="alert" style={{marginBottom:"1rem"}}>{error}</div>}<form onSubmit={submit}><div className="field"><label htmlFor="event-title">Title</label><input id="event-title" value={form.title} onChange={e=>setForm(prev=>({...prev,title:e.target.value}))} required /></div><div className="field"><label htmlFor="event-description">Description</label><textarea id="event-description" value={form.description} onChange={e=>setForm(prev=>({...prev,description:e.target.value}))} required /></div><div className="field"><label htmlFor="event-date">Date and time</label><input id="event-date" type="datetime-local" value={form.event_date} onChange={e=>setForm(prev=>({...prev,event_date:e.target.value}))} required /></div><div className="field"><label htmlFor="event-ends-at">End date and time (optional)</label><input id="event-ends-at" type="datetime-local" value={form.ends_at} onChange={e=>setForm(prev=>({...prev,ends_at:e.target.value}))} /></div><div className="field"><label htmlFor="event-location">Location</label><input id="event-location" value={form.location} onChange={e=>setForm(prev=>({...prev,location:e.target.value}))} /></div><div className="form-actions"><button className="btn btn-primary" disabled={loading}>{loading?"Saving…":event?"Save changes":"Create event"}</button><button className="btn btn-outline" type="button" onClick={onClose}>Cancel</button></div></form></div></div>;
+export default function EventModal({
+  isOpen,
+  onClose,
+  onSuccess,
+  userRole,
+  event,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+  userRole: string | undefined;
+  event?: EventItem | null;
+}) {
+  const [form, setForm] = useState({
+    title: "",
+    description: "",
+    event_date: "",
+    ends_at: "",
+    location: "",
+  });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    setForm({
+      title: event?.title || "",
+      description: event?.description || "",
+      event_date: event?.event_date ? new Date(event.event_date).toISOString().slice(0, 16) : "",
+      ends_at: event?.ends_at ? new Date(event.ends_at).toISOString().slice(0, 16) : "",
+      location: event?.location || "",
+    });
+    setError("");
+  }, [event, isOpen]);
+  useEffect(() => {
+    if (isOpen) closeRef.current?.focus();
+  }, [isOpen]);
+  if (!isOpen) return null;
+  const prefix = "/staff";
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    if (!form.title.trim() || !form.description.trim() || !form.event_date) {
+      setError("Title, description, and date are required.");
+      return;
+    }
+    setLoading(true);
+    try {
+      await apiFetch(event ? `${prefix}/events/${event.id}` : `${prefix}/events`, {
+        method: event ? "PATCH" : "POST",
+        body: JSON.stringify({
+          ...form,
+          event_date: new Date(form.event_date).toISOString(),
+          ends_at: form.ends_at ? new Date(form.ends_at).toISOString() : "",
+        }),
+      });
+      onSuccess();
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save the event.");
+    } finally {
+      setLoading(false);
+    }
+  }
+  return (
+    <div className="modal-backdrop">
+      <div className="modal" role="dialog" aria-modal="true" aria-labelledby="event-modal-title">
+        <div className="modal-head">
+          <h2 id="event-modal-title">{event ? "Edit event" : "Create an event"}</h2>
+          <button
+            className="close-btn"
+            ref={closeRef}
+            type="button"
+            aria-label="Close dialog"
+            onClick={onClose}
+          >
+            ×
+          </button>
+        </div>
+        {error && (
+          <div className="status status-error" role="alert" style={{ marginBottom: "1rem" }}>
+            {error}
+          </div>
+        )}
+        <form onSubmit={submit}>
+          <div className="field">
+            <label htmlFor="event-title">Title</label>
+            <input
+              id="event-title"
+              value={form.title}
+              onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
+              required
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="event-description">Description</label>
+            <textarea
+              id="event-description"
+              value={form.description}
+              onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
+              required
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="event-date">Date and time</label>
+            <input
+              id="event-date"
+              type="datetime-local"
+              value={form.event_date}
+              onChange={(e) => setForm((prev) => ({ ...prev, event_date: e.target.value }))}
+              required
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="event-ends-at">End date and time (optional)</label>
+            <input
+              id="event-ends-at"
+              type="datetime-local"
+              value={form.ends_at}
+              onChange={(e) => setForm((prev) => ({ ...prev, ends_at: e.target.value }))}
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="event-location">Location</label>
+            <input
+              id="event-location"
+              value={form.location}
+              onChange={(e) => setForm((prev) => ({ ...prev, location: e.target.value }))}
+            />
+          </div>
+          <div className="form-actions">
+            <button className="btn btn-primary" disabled={loading}>
+              {loading ? "Saving…" : event ? "Save changes" : "Create event"}
+            </button>
+            <button className="btn btn-outline" type="button" onClick={onClose}>
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
 }

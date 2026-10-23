@@ -1,2 +1,64 @@
-import Link from "next/link"; import Navbar from "@/components/Navbar"; import Footer from "@/components/Footer";
-export default function VolunteerPage(){return <><Navbar/><main id="main-content"><section className="page-hero"><div className="container"><span className="eyebrow">Make a difference</span><h1>Bring your time, skills, and curiosity.</h1><p>Volunteering with Kalen Benakafil is about finding a useful role that fits how you want to contribute.</p></div></section><section className="section"><div className="container grid-2"><div><span className="eyebrow">Ways to participate</span><h2 className="display" style={{fontSize:"clamp(2.3rem,5vw,4.2rem)"}}>There is no single way to <em>help.</em></h2><p className="lede">Support events, welcome participants, share a skill, help with communication, or bring an idea we can shape together.</p><Link className="btn btn-primary" href="/auth/register?role=volunteer">Register as a volunteer</Link></div><div className="grid-3" style={{gridTemplateColumns:"1fr"}}><article className="card card-accent"><h3>Show up</h3><p>Help make community events warm, organized, and easy to join.</p></article><article className="card card-accent"><h3>Share a skill</h3><p>Offer practical knowledge that helps others feel more confident and connected.</p></article><article className="card card-accent"><h3>Start a conversation</h3><p>Tell us what you care about and we will help find a meaningful next step.</p></article></div></div></section><section className="cta-band section"><div className="container cta-row"><h2>Not ready to register? Ask a question first.</h2><Link href="/contact" className="btn btn-primary">Contact the team</Link></div></section></main><Footer/></>}
+import Link from "next/link";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+export default function VolunteerPage() {
+  return (
+    <>
+      <Navbar />
+      <main id="main-content">
+        <section className="page-hero">
+          <div className="container">
+            <span className="eyebrow">Make a difference</span>
+            <h1>Bring your time, skills, and curiosity.</h1>
+            <p>
+              Volunteering with Kalen Benakafil is about finding a useful role that fits how you
+              want to contribute.
+            </p>
+          </div>
+        </section>
+        <section className="section">
+          <div className="container grid-2">
+            <div>
+              <span className="eyebrow">Ways to participate</span>
+              <h2 className="display" style={{ fontSize: "clamp(2.3rem,5vw,4.2rem)" }}>
+                There is no single way to <em>help.</em>
+              </h2>
+              <p className="lede">
+                Support events, welcome participants, share a skill, help with communication, or
+                bring an idea we can shape together.
+              </p>
+              <Link className="btn btn-primary" href="/auth/register?role=volunteer">
+                Register as a volunteer
+              </Link>
+            </div>
+            <div className="grid-3" style={{ gridTemplateColumns: "1fr" }}>
+              <article className="card card-accent">
+                <h3>Show up</h3>
+                <p>Help make community events warm, organized, and easy to join.</p>
+              </article>
+              <article className="card card-accent">
+                <h3>Share a skill</h3>
+                <p>
+                  Offer practical knowledge that helps others feel more confident and connected.
+                </p>
+              </article>
+              <article className="card card-accent">
+                <h3>Start a conversation</h3>
+                <p>Tell us what you care about and we will help find a meaningful next step.</p>
+              </article>
+            </div>
+          </div>
+        </section>
+        <section className="cta-band section">
+          <div className="container cta-row">
+            <h2>Not ready to register? Ask a question first.</h2>
+            <Link href="/contact" className="btn btn-primary">
+              Contact the team
+            </Link>
+          </div>
+        </section>
+      </main>
+      <Footer />
+    </>
+  );
+}

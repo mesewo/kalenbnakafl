@@ -1,4 +1,127 @@
 "use client";
-import Image from "next/image"; import Link from "next/link"; import { usePathname, useRouter } from "next/navigation"; import { useState } from "react"; import { useAuth } from "@/context/AuthContext";
-const links = [["/","Home"],["/about","About"],["/events","Events"],["/blog","News"],["/volunteer","Volunteer"],["/contact","Contact"]] as const;
-export default function Navbar(){ const pathname=usePathname(); const router=useRouter(); const {user,logout,isLoading}=useAuth(); const [open,setOpen]=useState(false); function handleLogout(){logout();setOpen(false);router.push("/");} return <><a className="skip-link" href="#main-content">Skip to content</a><header className="site-header"><div className="nav-wrap"><Link href="/" className="brand" onClick={()=>setOpen(false)}><Image src="/kalenbnakafl-logo.jpg" alt="Kalen Benakafil logo" width={42} height={42} priority/><span className="brand-copy"><strong>Kalen Benakafil</strong><span>Community NGO</span></span></Link><nav className="nav-links" aria-label="Primary navigation">{links.map(([href,label])=><Link key={href} href={href} aria-current={pathname===href?"page":undefined}>{label}</Link>)}</nav>{!isLoading&&<div className="nav-actions">{user?<><span className="meta">Hi, {user?.name?.split(" ")[0]||"there"}</span><Link href="/dashboard" className="btn btn-primary btn-small">Dashboard</Link><button type="button" onClick={handleLogout} className="btn btn-outline btn-small">Log out</button></>:<><Link href="/auth/login" className="btn btn-outline btn-small">Log in</Link><Link href="/auth/register" className="btn btn-sun btn-small">Join us</Link></>}</div>}<button className="nav-menu" type="button" aria-expanded={open} aria-controls="mobile-navigation" aria-label={open?"Close menu":"Open menu"} onClick={()=>setOpen(value=>!value)}>{open?"×":"☰"}</button></div>{open&&<nav id="mobile-navigation" className="mobile-nav" aria-label="Mobile navigation">{links.map(([href,label])=><Link key={href} href={href} aria-current={pathname===href?"page":undefined} onClick={()=>setOpen(false)}>{label}</Link>)}{user?<><Link href="/dashboard" onClick={()=>setOpen(false)}>Dashboard</Link><button className="btn btn-outline" onClick={handleLogout}>Log out</button></>:<><Link href="/auth/login" onClick={()=>setOpen(false)}>Log in</Link><Link href="/auth/register" onClick={()=>setOpen(false)}>Join us</Link></>}</nav>}</header></>; }
+import Image from "next/image";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
+const links = [
+  ["/", "Home"],
+  ["/about", "About"],
+  ["/events", "Events"],
+  ["/blog", "News"],
+  ["/volunteer", "Volunteer"],
+  ["/contact", "Contact"],
+] as const;
+export default function Navbar() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const { user, logout, isLoading } = useAuth();
+  const [open, setOpen] = useState(false);
+  function handleLogout() {
+    logout();
+    setOpen(false);
+    router.push("/");
+  }
+  return (
+    <>
+      <a className="skip-link" href="#main-content">
+        Skip to content
+      </a>
+      <header className="site-header">
+        <div className="nav-wrap">
+          <Link href="/" className="brand" onClick={() => setOpen(false)}>
+            <Image
+              src="/kalenbnakafl-logo.jpg"
+              alt="Kalen Benakafil logo"
+              width={42}
+              height={42}
+              priority
+            />
+            <span className="brand-copy">
+              <strong>Kalen Benakafil</strong>
+              <span>Community NGO</span>
+            </span>
+          </Link>
+          <nav className="nav-links" aria-label="Primary navigation">
+            {links.map(([href, label]) => (
+              <Link key={href} href={href} aria-current={pathname === href ? "page" : undefined}>
+                {label}
+              </Link>
+            ))}
+          </nav>
+          {!isLoading && (
+            <div className="nav-actions">
+              {user ? (
+                <>
+                  <span className="meta">Hi, {user?.name?.split(" ")[0] || "there"}</span>
+                  <Link href="/dashboard" className="btn btn-primary btn-small">
+                    Dashboard
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="btn btn-outline btn-small"
+                  >
+                    Log out
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link href="/auth/login" className="btn btn-outline btn-small">
+                    Log in
+                  </Link>
+                  <Link href="/auth/register" className="btn btn-sun btn-small">
+                    Join us
+                  </Link>
+                </>
+              )}
+            </div>
+          )}
+          <button
+            className="nav-menu"
+            type="button"
+            aria-expanded={open}
+            aria-controls="mobile-navigation"
+            aria-label={open ? "Close menu" : "Open menu"}
+            onClick={() => setOpen((value) => !value)}
+          >
+            {open ? "×" : "☰"}
+          </button>
+        </div>
+        {open && (
+          <nav id="mobile-navigation" className="mobile-nav" aria-label="Mobile navigation">
+            {links.map(([href, label]) => (
+              <Link
+                key={href}
+                href={href}
+                aria-current={pathname === href ? "page" : undefined}
+                onClick={() => setOpen(false)}
+              >
+                {label}
+              </Link>
+            ))}
+            {user ? (
+              <>
+                <Link href="/dashboard" onClick={() => setOpen(false)}>
+                  Dashboard
+                </Link>
+                <button className="btn btn-outline" onClick={handleLogout}>
+                  Log out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link href="/auth/login" onClick={() => setOpen(false)}>
+                  Log in
+                </Link>
+                <Link href="/auth/register" onClick={() => setOpen(false)}>
+                  Join us
+                </Link>
+              </>
+            )}
+          </nav>
+        )}
+      </header>
+    </>
+  );
+}
