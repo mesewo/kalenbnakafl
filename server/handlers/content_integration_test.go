@@ -55,7 +55,7 @@ func TestPublicPostListExcludesDrafts(t *testing.T) {
 		t.Fatalf("public list = %#v; expected only published id %d (draft %d)", publicPosts, publishedID, draftID)
 	}
 	adminID := createAuthUser(t, q, "Staff", "post-admin@example.org", "a-long-test-password", "admin")
-	staffResponse := authRequest(r, http.MethodGet, "/api/admin/posts", "", adminCookie(t, int(adminID), "admin"))
+	staffResponse := authRequest(r, http.MethodGet, "/api/staff/posts", "", adminCookie(t, int(adminID), "admin"))
 	var staffPosts models.Page[models.Post]
 	if staffResponse.Code != http.StatusOK || json.Unmarshal(staffResponse.Body.Bytes(), &staffPosts) != nil || len(staffPosts.Items) != 2 {
 		t.Fatalf("staff posts status=%d body=%s", staffResponse.Code, staffResponse.Body)
@@ -65,7 +65,7 @@ func TestPublicPostListExcludesDrafts(t *testing.T) {
 func TestPostCreateUsesAuthenticatedAuthor(t *testing.T) {
 	db, q, r := authTestApp(t)
 	adminID := createAuthUser(t, q, "Staff", "author-check@example.org", "a-long-test-password", "admin")
-	response := authRequest(r, http.MethodPost, "/api/admin/posts", `{"title":"forged author","content":"body","author_id":2147483000}`, adminCookie(t, int(adminID), "admin"))
+	response := authRequest(r, http.MethodPost, "/api/staff/posts", `{"title":"forged author","content":"body","author_id":2147483000}`, adminCookie(t, int(adminID), "admin"))
 	if response.Code != http.StatusCreated {
 		t.Fatalf("create post status=%d body=%s", response.Code, response.Body)
 	}
@@ -93,7 +93,7 @@ func TestPostEventWriteRoleMatrix(t *testing.T) {
 	eventBody := fmt.Sprintf(`{"title":"matrix event","description":"body","event_date":%q}`, time.Now().Add(48*time.Hour).UTC().Format(time.RFC3339))
 	validPostBody := `{"title":"matrix post","content":"body","author_id":2147483000}`
 	postBody := `{"title":"matrix post","content":"body"}`
-	prefixes := []string{"/api/admin", "/api/editor"}
+	prefixes := []string{"/api/staff"}
 	type mutation struct {
 		name, method, path, body string
 		success                  int
@@ -114,7 +114,7 @@ func TestPostEventWriteRoleMatrix(t *testing.T) {
 				name := prefix + mutation.path + "/" + role
 				t.Run(mutation.name+"/"+name, func(t *testing.T) {
 					path := prefix + mutation.path
-					if role == "admin" || (role == "editor" && prefix == "/api/editor") {
+					if role == "admin" || role == "editor" {
 						if mutation.fixture == "post" {
 							path = fmt.Sprintf(path, insertTestPost(t, db, ids[role], false))
 						}
@@ -130,10 +130,10 @@ func TestPostEventWriteRoleMatrix(t *testing.T) {
 					}
 					response := authRequest(r, mutation.method, path, mutation.body, cookie)
 					want := http.StatusUnauthorized
-					if role == "user" || role == "volunteer" || (prefix == "/api/admin" && role == "editor") {
+					if role == "user" || role == "volunteer" {
 						want = http.StatusForbidden
 					}
-					if role == "admin" || (prefix == "/api/editor" && role == "editor") {
+					if role == "admin" || role == "editor" {
 						want = mutation.success
 					}
 					if response.Code != want {
@@ -151,11 +151,11 @@ func TestMissingPostEventMutationIDsReturn404(t *testing.T) {
 	cookie := adminCookie(t, int(adminID), "admin")
 	date := time.Now().Add(48 * time.Hour).UTC().Format(time.RFC3339)
 	cases := []struct{ method, path, body string }{
-		{http.MethodPatch, "/api/admin/posts/2147483000", `{"title":"title","content":"body"}`},
-		{http.MethodDelete, "/api/admin/posts/2147483000", ""},
-		{http.MethodPatch, "/api/admin/posts/2147483000/publish", `{"published":true}`},
-		{http.MethodPatch, "/api/admin/events/2147483000", fmt.Sprintf(`{"title":"title","description":"body","event_date":%q}`, date)},
-		{http.MethodDelete, "/api/admin/events/2147483000", ""},
+		{http.MethodPatch, "/api/staff/posts/2147483000", `{"title":"title","content":"body"}`},
+		{http.MethodDelete, "/api/staff/posts/2147483000", ""},
+		{http.MethodPatch, "/api/staff/posts/2147483000/publish", `{"published":true}`},
+		{http.MethodPatch, "/api/staff/events/2147483000", fmt.Sprintf(`{"title":"title","description":"body","event_date":%q}`, date)},
+		{http.MethodDelete, "/api/staff/events/2147483000", ""},
 	}
 	for _, tc := range cases {
 		response := authRequest(r, tc.method, tc.path, tc.body, cookie)
@@ -170,8 +170,8 @@ func TestEventValidationMessagesUnchanged(t *testing.T) {
 	adminID := createAuthUser(t, q, "Staff", "event-validation@example.org", "a-long-test-password", "admin")
 	cookie := adminCookie(t, int(adminID), "admin")
 	cases := []struct{ name, method, path, body string }{
-		{name: "invalid event time", method: http.MethodPost, path: "/api/admin/events", body: `{"title":"title","description":"body","event_date":"not-a-date"}`},
-		{name: "empty event title", method: http.MethodPost, path: "/api/admin/events", body: fmt.Sprintf(`{"title":"  ","description":"body","event_date":%q}`, time.Now().Add(48*time.Hour).UTC().Format(time.RFC3339))},
+		{name: "invalid event time", method: http.MethodPost, path: "/api/staff/events", body: `{"title":"title","description":"body","event_date":"not-a-date"}`},
+		{name: "empty event title", method: http.MethodPost, path: "/api/staff/events", body: fmt.Sprintf(`{"title":"  ","description":"body","event_date":%q}`, time.Now().Add(48*time.Hour).UTC().Format(time.RFC3339))},
 	}
 	const want = "Title, description, and a valid event date are required"
 	for _, tc := range cases {
@@ -202,7 +202,7 @@ func TestCreatePostForeignKeyErrorMapsTo422(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	c.Request = httptest.NewRequest(http.MethodPost, "/api/admin/posts", strings.NewReader(`{"title":"title","content":"body"}`))
+	c.Request = httptest.NewRequest(http.MethodPost, "/api/staff/posts", strings.NewReader(`{"title":"title","content":"body"}`))
 	c.Request.Header.Set("Content-Type", "application/json")
 	c.Set("user_id", int(2147483000))
 	api.CreatePost(c)
@@ -247,7 +247,7 @@ func TestPostSlugFallbackCollisionAndPublishedAtIsFirstPublish(t *testing.T) {
 	create := func(title string) int32 {
 		t.Helper()
 		body, _ := json.Marshal(map[string]string{"title": title, "content": "A searchable body"})
-		response := authRequest(r, http.MethodPost, "/api/admin/posts", string(body), cookie)
+		response := authRequest(r, http.MethodPost, "/api/staff/posts", string(body), cookie)
 		if response.Code != http.StatusCreated {
 			t.Fatalf("create post status=%d body=%s", response.Code, response.Body)
 		}
@@ -271,7 +271,7 @@ func TestPostSlugFallbackCollisionAndPublishedAtIsFirstPublish(t *testing.T) {
 		t.Fatalf("generated slugs = %q, %q", firstSlug, secondSlug)
 	}
 
-	amharicID := create("አማርኛ")
+	amharicID := create("áŠ áˆ›áˆ­áŠ›")
 	var amharicSlug string
 	if err := db.QueryRow(`SELECT slug FROM posts WHERE id=$1`, amharicID).Scan(&amharicSlug); err != nil {
 		t.Fatal(err)
@@ -283,7 +283,7 @@ func TestPostSlugFallbackCollisionAndPublishedAtIsFirstPublish(t *testing.T) {
 	publish := func(published bool) {
 		t.Helper()
 		body := fmt.Sprintf(`{"published":%t}`, published)
-		response := authRequest(r, http.MethodPatch, fmt.Sprintf("/api/admin/posts/%d/publish", first), body, cookie)
+		response := authRequest(r, http.MethodPatch, fmt.Sprintf("/api/staff/posts/%d/publish", first), body, cookie)
 		if response.Code != http.StatusOK {
 			t.Fatalf("publish status=%d body=%s", response.Code, response.Body)
 		}
@@ -352,7 +352,7 @@ func TestEventUpcomingDetailAndEndTimeValidation(t *testing.T) {
 	}
 	start := time.Now().Add(48 * time.Hour).UTC()
 	body := fmt.Sprintf(`{"title":"bad range","description":"body","event_date":%q,"ends_at":%q}`, start.Format(time.RFC3339), start.Add(-time.Hour).Format(time.RFC3339))
-	response := authRequest(r, http.MethodPost, "/api/admin/events", body, adminCookie(t, int(adminID), "admin"))
+	response := authRequest(r, http.MethodPost, "/api/staff/events", body, adminCookie(t, int(adminID), "admin"))
 	if response.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("invalid event range status=%d want=422 body=%s", response.Code, response.Body)
 	}
@@ -362,7 +362,7 @@ func TestStaffCanSetAndEditPostSlug(t *testing.T) {
 	db, q, r := authTestApp(t)
 	adminID := createAuthUser(t, q, "Staff", "manual-slug@example.org", "a-long-test-password", "admin")
 	cookie := adminCookie(t, int(adminID), "admin")
-	create := authRequest(r, http.MethodPost, "/api/admin/posts", `{"title":"Manual title","content":"body","slug":"manual-slug"}`, cookie)
+	create := authRequest(r, http.MethodPost, "/api/staff/posts", `{"title":"Manual title","content":"body","slug":"manual-slug"}`, cookie)
 	if create.Code != http.StatusCreated {
 		t.Fatalf("create with slug status=%d body=%s", create.Code, create.Body)
 	}
@@ -370,11 +370,11 @@ func TestStaffCanSetAndEditPostSlug(t *testing.T) {
 	if err := db.QueryRow(`SELECT id FROM posts WHERE slug='manual-slug'`).Scan(&id); err != nil {
 		t.Fatal(err)
 	}
-	update := authRequest(r, http.MethodPatch, fmt.Sprintf("/api/admin/posts/%d", id), `{"title":"Manual title","content":"body","slug":"revised-slug"}`, cookie)
+	update := authRequest(r, http.MethodPatch, fmt.Sprintf("/api/staff/posts/%d", id), `{"title":"Manual title","content":"body","slug":"revised-slug"}`, cookie)
 	if update.Code != http.StatusOK {
 		t.Fatalf("update slug status=%d body=%s", update.Code, update.Body)
 	}
-	invalid := authRequest(r, http.MethodPost, "/api/admin/posts", `{"title":"Invalid slug","content":"body","slug":"UPPER CASE"}`, cookie)
+	invalid := authRequest(r, http.MethodPost, "/api/staff/posts", `{"title":"Invalid slug","content":"body","slug":"UPPER CASE"}`, cookie)
 	if invalid.Code != http.StatusBadRequest {
 		t.Fatalf("invalid slug status=%d want=400 body=%s", invalid.Code, invalid.Body)
 	}
@@ -382,12 +382,29 @@ func TestStaffCanSetAndEditPostSlug(t *testing.T) {
 
 func TestPostFullTextSearchFindsAmharicTitle(t *testing.T) {
 	db, _, r := authTestApp(t)
-	if _, err := db.Exec(`INSERT INTO posts(slug,title,content,published,published_at) VALUES ('amharic-search','አማርኛ ፍለጋ','የማህበረሰብ ዜና',true,CURRENT_TIMESTAMP)`); err != nil {
+	if _, err := db.Exec(`INSERT INTO posts(slug,title,content,published,published_at) VALUES ('amharic-search','áŠ áˆ›áˆ­áŠ› ááˆˆáŒ‹','á‹¨áˆ›áˆ…á‰ áˆ¨áˆ°á‰¥ á‹œáŠ“',true,CURRENT_TIMESTAMP)`); err != nil {
 		t.Fatalf("insert Amharic post: %v", err)
 	}
-	response := authRequest(r, http.MethodGet, "/api/posts?q="+url.QueryEscape("አማርኛ"), "")
+	response := authRequest(r, http.MethodGet, "/api/posts?q="+url.QueryEscape("áŠ áˆ›áˆ­áŠ›"), "")
 	var result models.Page[models.Post]
 	if response.Code != http.StatusOK || json.Unmarshal(response.Body.Bytes(), &result) != nil || result.Total != 1 || result.Items[0].Slug != "amharic-search" {
 		t.Fatalf("Amharic search status=%d body=%s", response.Code, response.Body)
+	}
+}
+
+func TestRemovedContentRouteTreesReturn404(t *testing.T) {
+	_, _, r := authTestApp(t)
+	for _, path := range []string{
+		"/api/admin/posts", "/api/admin/posts/1", "/api/admin/posts/1/publish",
+		"/api/admin/events", "/api/admin/events/1",
+		"/api/admin/media", "/api/admin/media/1",
+		"/api/editor/posts", "/api/editor/posts/1", "/api/editor/posts/1/publish",
+		"/api/editor/events", "/api/editor/events/1",
+		"/api/editor/media", "/api/editor/media/1",
+	} {
+		response := authRequest(r, http.MethodGet, path, "", nil)
+		if response.Code != http.StatusNotFound {
+			t.Errorf("GET %s status=%d want=404", path, response.Code)
+		}
 	}
 }

@@ -92,7 +92,7 @@ func TestMediaUploadDeleteAndInsertFailureCleanup(t *testing.T) {
 	adminID := createAuthUser(t, q, "Media Admin", "media-admin@example.org", "a-long-test-password", "admin")
 	cookie := adminCookie(t, int(adminID), "admin")
 
-	upload := mediaUploadRequest(t, r, "/api/admin/media", cookie, "photo.png")
+	upload := mediaUploadRequest(t, r, "/api/staff/media", cookie, "photo.png")
 	if upload.Code != http.StatusCreated {
 		t.Fatalf("upload status=%d body=%s", upload.Code, upload.Body)
 	}
@@ -114,12 +114,12 @@ func TestMediaUploadDeleteAndInsertFailureCleanup(t *testing.T) {
 	if err := db.QueryRow(`SELECT id FROM media WHERE file_path=$1`, uploaded.FilePath).Scan(&mediaID); err != nil {
 		t.Fatalf("media row missing: %v", err)
 	}
-	list := authRequest(r, http.MethodGet, "/api/admin/media", "", cookie)
+	list := authRequest(r, http.MethodGet, "/api/staff/media", "", cookie)
 	var items []models.Media
 	if list.Code != http.StatusOK || json.Unmarshal(list.Body.Bytes(), &items) != nil || len(items) != 1 || items[0].FilePath != uploaded.FilePath {
 		t.Fatalf("media list status=%d body=%s items=%+v", list.Code, list.Body, items)
 	}
-	deleted := authRequest(r, http.MethodDelete, fmt.Sprintf("/api/admin/media/%d", mediaID), "", cookie)
+	deleted := authRequest(r, http.MethodDelete, fmt.Sprintf("/api/staff/media/%d", mediaID), "", cookie)
 	if deleted.Code != http.StatusOK {
 		t.Fatalf("delete status=%d body=%s", deleted.Code, deleted.Body)
 	}
@@ -139,7 +139,7 @@ func TestMediaUploadDeleteAndInsertFailureCleanup(t *testing.T) {
 		ctx.Set("user_id", int(2147483000))
 		api.UploadMedia(ctx)
 		w.WriteHeader(ctx.Writer.Status())
-	}), "/api/admin/media", nil, "orphan.png")
+	}), "/api/staff/media", nil, "orphan.png")
 	if failed.Code != http.StatusInternalServerError {
 		t.Fatalf("invalid uploader status=%d body=%s", failed.Code, failed.Body)
 	}
@@ -207,10 +207,10 @@ func TestB3RoleRouteMatrix(t *testing.T) {
 			cookie = cookies[role]
 		}
 		want := http.StatusUnauthorized
-		if role == "user" || role == "volunteer" || (prefix == "/api/admin" && role == "editor") {
+		if role == "user" || role == "volunteer" || false {
 			want = http.StatusForbidden
 		}
-		if role == "admin" || (prefix == "/api/editor" && role == "editor") {
+		if role == "admin" || (prefix == "/api/staff" && role == "editor") {
 			want = http.StatusOK
 			if method == http.MethodPost {
 				want = http.StatusCreated
@@ -231,7 +231,7 @@ func TestB3RoleRouteMatrix(t *testing.T) {
 			}
 		case http.MethodDelete:
 			var mediaID int32
-			if role == "admin" || (prefix == "/api/editor" && role == "editor") {
+			if role == "admin" || (prefix == "/api/staff" && role == "editor") {
 				filename := fmt.Sprintf("/uploads/matrix-%s.png", name)
 				file := filepath.Join(dir, filepath.Base(filename))
 				if err := os.WriteFile(file, []byte("fixture"), 0600); err != nil {
@@ -250,7 +250,7 @@ func TestB3RoleRouteMatrix(t *testing.T) {
 	}
 
 	for _, role := range roles {
-		for _, prefix := range []string{"/api/admin", "/api/editor"} {
+		for _, prefix := range []string{"/api/staff"} {
 			for _, route := range []struct{ method, path string }{
 				{http.MethodGet, "/media"},
 				{http.MethodPost, "/media"},
