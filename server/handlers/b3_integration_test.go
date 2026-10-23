@@ -207,7 +207,7 @@ func TestB3RoleRouteMatrix(t *testing.T) {
 			cookie = cookies[role]
 		}
 		want := http.StatusUnauthorized
-		if role == "user" || role == "volunteer" || false {
+		if role != "guest" {
 			want = http.StatusForbidden
 		}
 		if role == "admin" || (prefix == "/api/staff" && role == "editor") {
