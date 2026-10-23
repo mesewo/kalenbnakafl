@@ -70,11 +70,11 @@
 
 ## Phase 3 — Auth hardening (≈ 1 session)
 
-- [ ] httpOnly/Secure/SameSite cookies; short access token + rotating refresh token (hashed in DB); logout revokes
+- [x] httpOnly/Secure/SameSite cookies; short access token + rotating refresh token (hashed in DB); logout revokes
 - [ ] Role re-validated from DB (short cache)
-- [ ] Rate limits on login/register/contact; lockout/backoff on repeated failures
+- [x] Rate limits on login/register/contact; lockout/backoff on repeated failures
 - [ ] Password policy (min length, common-password check), constant-time compare paths
-- [ ] Origin check / CSRF defense for cookie-authenticated mutations
+- [x] Origin check / CSRF defense for cookie-authenticated mutations
 - [ ] Security headers (Go + Next), `SetTrustedProxies`
 - [ ] Authorization tests: every protected route × every role (matrix test)
 
@@ -181,6 +181,11 @@
 | `docker compose up --build -d` (media hardening) | Passed; API, DB, and frontend became healthy. Admin uploaded a PNG, opened the stored URL, verified nosniff/CSP/cache headers, byte-range response and no directory listing; smoke rows deleted. | 2026-10-23 |
 | `docker compose down && docker compose up --build -d`; `curl.exe http://127.0.0.1:8080/healthz`; `curl.exe http://127.0.0.1:8080/readyz` (Prompt V, media hardening) | Passed without removing volumes; API, DB, and frontend healthy; both health endpoints returned `{"status":"ok"}`. | 2026-10-23 |
 
+| `cd server && go tool sqlc diff -f ../sqlc.yaml` (Phase 3 auth/rate limits) | Passed with no diff. | 2026-10-24 |
+| `cd server && go build ./... && go vet ./...` (Phase 3 auth/rate limits) | Passed. | 2026-10-24 |
+| `cd server && go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0 run --path-mode=abs` (Phase 3 auth/rate limits) | Passed: 0 issues. | 2026-10-24 |
+| `cd server && gofmt -l . && go vet ./... && go test ./...` (Prompt V, Phase 3) | Passed; PostgreSQL-backed run passed all packages using Compose PostgreSQL, including middleware origin/proxy/rate-limit tests and auth cookie test. | 2026-10-24 |
+| `docker compose down && docker compose up --build -d`; `/healthz`, `/readyz`; Next-proxy login and staff post create/delete | Passed; Compose required container/network recreation after subnet pinning; all services healthy, login 200, create 201, cleanup 200. | 2026-10-24 |
 ### Phase 0 baseline run — 2026-10-20
 
 | Command | Exact result |

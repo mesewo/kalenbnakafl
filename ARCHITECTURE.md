@@ -4,7 +4,7 @@ Two views: **Current** (what the code does today) and **Target** (what the roadm
 
 ## Runtime configuration
 
-The process loads and validates environment settings once into `internal/config.Config` before opening the database. Invalid settings are reported together and stop startup. `TRUSTED_PROXIES` is an optional comma-separated list; it is empty by default.
+The process loads and validates environment settings once into `internal/config.Config` before opening the database. Invalid settings are reported together and stop startup. `TRUSTED_PROXIES` is a comma-separated list of trusted proxy CIDRs or addresses. The binary defaults to no trusted proxies; Compose pins its private default network to `172.21.0.0/24` and trusts that CIDR.
 
 | Setting | Default / validation | Purpose |
 |---|---|---|
@@ -18,7 +18,7 @@ The process loads and validates environment settings once into `internal/config.
 | `DB_CONNECT_RETRIES` | `8`; positive integer | Database connection retry count |
 | `MIGRATE_ON_START` | `false` in the binary; Compose sets `true` | Apply embedded migrations before serving |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | both optional; set together, password at least 12 characters | First-admin bootstrap |
-| `TRUSTED_PROXIES` | empty | Explicit Gin trusted proxy CIDRs or addresses |
+| `TRUSTED_PROXIES` | empty in the binary; Compose defaults to `172.21.0.0/24` | Explicit Gin trusted proxy CIDRs or addresses |
 
 The HTTP server uses bounded read/write/idle timeouts and graceful SIGINT/SIGTERM shutdown. `/healthz` is liveness and does not query PostgreSQL; `/readyz` and the `/health` alias check PostgreSQL with a two-second deadline. The container healthchecks use `/readyz`.
 
@@ -28,7 +28,7 @@ The API configures `log/slog` with a text handler in development and JSON in pro
 
 All API errors use `{"error":{"code":"...","message":"...","details":{}}}`. Stable codes are `invalid_json`, `validation_failed`, `unauthorized`, `forbidden`, `not_found`, `conflict`, `rate_limited`, `payload_too_large`, and `internal`. Unexpected failures are logged with the request ID and return a generic message. The default request body limit is 1 MiB; media upload routes allow the configured file limit plus 1 MiB for multipart framing. The frontend API client extracts the nested message, safely handles non-JSON proxy errors, applies a 15-second request timeout (120 seconds for uploads), and signals session expiry on protected-route 401 responses.
 
-Access JWTs use a typed claim structure and accept only HS256. Parsing requires issuer, issue time, expiry, positive user ID, and a recognized role; malformed claims return unauthorized.
+Access JWTs use a typed claim structure and accept only HS256. Parsing requires issuer, issue time, expiry, positive user ID, and a recognized role; malformed claims return unauthorized. Session cookies are `HttpOnly; SameSite=Lax` in every environment and `Secure` except in development. For POST, PUT, PATCH, and DELETE requests carrying an access or refresh cookie, the API requires an allowed `Origin`, or an allowed `Referer` when `Origin` is absent. Login, registration, and contact are exempt because they do not read or rely on an existing session. Login attempts use a fixed-window key of trusted client IP plus lowercased email; register and contact use client IP. Rejections include `Retry-After`. The in-memory limiter sweeps expired entries on each attempt and caps its map at 10,000 keys.
 
 ## 1. Current state
 
@@ -115,11 +115,11 @@ Feature-folder layout keeps each domain self-contained and testable; repositorie
 
 ### Auth design (target)
 
-1. `POST /api/auth/login` → verifies bcrypt, issues **access JWT (15 min)** and **refresh token (7 d, random, hashed in DB)** as `httpOnly; Secure; SameSite=Lax` cookies.
-2. `POST /api/auth/refresh` rotates the refresh token; `POST /api/auth/logout` revokes it.
-3. Middleware validates the access JWT (`HS256` pinned, typed claims) and **loads the current role from DB** (cached ≤ 60 s) so demotions apply quickly.
-4. Mutating requests from the browser require a CSRF defense (SameSite + `Origin` check; double-submit token if cross-site is ever needed).
-5. Rate limits: login 5/min/IP+email, register 5/hour/IP, contact 3/hour/IP.
+1. `POST /api/login` verifies bcrypt and issues an access JWT (15 min) and refresh token (7 d, random, hashed in DB) as `HttpOnly; SameSite=Lax` cookies; `Secure` is enabled outside development.
+2. `POST /api/refresh` rotates the refresh token; `POST /api/logout` revokes it.
+3. Auth middleware validates the access JWT and reads the current role from PostgreSQL on every request, so demotions apply immediately.
+4. Mutating requests carrying a session cookie require an allowed `Origin`, or an allowed `Referer` fallback. Login, registration, and contact are exempt because they do not rely on a session.
+5. Rate limits: login 10/minute per trusted client IP and lowercased email; registration and contact 10/minute and 30/minute per IP respectively. `Retry-After` is returned on throttling.
 6. First admin is created from `ADMIN_EMAIL` / `ADMIN_PASSWORD` env on first boot only if no admin exists.
 
 Roles → permissions:

@@ -46,6 +46,7 @@ func mediaUploadRequestWithData(t *testing.T, r http.Handler, path string, cooki
 	}
 	request := httptest.NewRequest(http.MethodPost, path, &body)
 	request.Header.Set("Content-Type", writer.FormDataContentType())
+	request.Header.Set("Origin", "http://localhost:3000")
 	if cookie != nil {
 		request.AddCookie(cookie)
 	}
@@ -57,6 +58,7 @@ func requestWithIP(r http.Handler, method, path, body, remote string, cookie *ht
 	request := httptest.NewRequest(method, path, strings.NewReader(body))
 	request.RemoteAddr = remote
 	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Origin", "http://localhost:3000")
 	if cookie != nil {
 		request.AddCookie(cookie)
 	}

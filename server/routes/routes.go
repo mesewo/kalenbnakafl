@@ -14,10 +14,12 @@ import (
 func SetupRoutes(r *gin.Engine, q *dbgen.Queries, db *sql.DB, cfg config.Config) {
 	apiHandlers := handlers.NewAPI(q, db, cfg)
 	api := r.Group("/api")
+	api.Use(middleware.RequireSessionOrigin(cfg.CORSOrigins))
 	publicLimit := middleware.LimitRequests(30, time.Minute)
 	authLimit := middleware.LimitRequests(10, time.Minute)
+	loginLimit := middleware.LimitLoginRequests(middleware.NewMemoryLimiter(10000), 10, time.Minute)
 	api.POST("/register", authLimit, apiHandlers.Register)
-	api.POST("/login", authLimit, apiHandlers.Login)
+	api.POST("/login", loginLimit, apiHandlers.Login)
 	api.POST("/refresh", authLimit, apiHandlers.Refresh)
 	api.POST("/logout", apiHandlers.Logout)
 	api.POST("/contact", publicLimit, apiHandlers.CreateContact)
