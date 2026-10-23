@@ -1,13 +1,13 @@
-INSERT INTO posts (title, content, published)
-SELECT 'Welcome to Kalen Benakafil',
+INSERT INTO posts (slug, title, content, published, published_at)
+SELECT 'welcome-to-kalen-benakafil', 'Welcome to Kalen Benakafil',
        'This is our first community note about building practical ways to participate.',
-       true
+       true, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM posts WHERE title = 'Welcome to Kalen Benakafil');
 
-INSERT INTO posts (title, content, published)
-SELECT 'Upcoming community work',
+INSERT INTO posts (slug, title, content, published, published_at)
+SELECT 'upcoming-community-work', 'Upcoming community work',
        'Learn about upcoming events and how you can participate.',
-       true
+       true, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM posts WHERE title = 'Upcoming community work');
 
 INSERT INTO events (title, description, event_date)

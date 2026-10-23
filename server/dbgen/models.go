@@ -18,11 +18,13 @@ type Contact struct {
 }
 
 type Event struct {
-	ID          int32     `json:"id"`
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	EventDate   time.Time `json:"event_date"`
-	CreatedAt   time.Time `json:"created_at"`
+	ID          int32        `json:"id"`
+	Title       string       `json:"title"`
+	Description string       `json:"description"`
+	EventDate   time.Time    `json:"event_date"`
+	CreatedAt   time.Time    `json:"created_at"`
+	Location    string       `json:"location"`
+	EndsAt      sql.NullTime `json:"ends_at"`
 }
 
 type Media struct {
@@ -35,16 +37,21 @@ type Media struct {
 	UploadedBy   sql.NullInt32  `json:"uploaded_by"`
 	CreatedAt    time.Time      `json:"created_at"`
 	UpdatedAt    time.Time      `json:"updated_at"`
+	Kind         string         `json:"kind"`
 }
 
 type Post struct {
-	ID        int32         `json:"id"`
-	Title     string        `json:"title"`
-	Content   string        `json:"content"`
-	AuthorID  sql.NullInt32 `json:"author_id"`
-	Published bool          `json:"published"`
-	CreatedAt time.Time     `json:"created_at"`
-	UpdatedAt time.Time     `json:"updated_at"`
+	ID           int32         `json:"id"`
+	Title        string        `json:"title"`
+	Content      string        `json:"content"`
+	AuthorID     sql.NullInt32 `json:"author_id"`
+	Published    bool          `json:"published"`
+	CreatedAt    time.Time     `json:"created_at"`
+	UpdatedAt    time.Time     `json:"updated_at"`
+	Slug         string        `json:"slug"`
+	PublishedAt  sql.NullTime  `json:"published_at"`
+	CoverMediaID sql.NullInt32 `json:"cover_media_id"`
+	SearchVector interface{}   `json:"search_vector"`
 }
 
 type RefreshToken struct {

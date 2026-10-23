@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-const defaultMaxUploadBytes int64 = 10 * 1024 * 1024
+const defaultMediaMaxMB int64 = 50
 
 type Config struct {
 	Port             string
@@ -16,7 +16,7 @@ type Config struct {
 	JWTSecret        []byte
 	CORSOrigins      []string
 	UploadDir        string
-	MaxUploadBytes   int64
+	MediaMaxMB       int64
 	DBConnectRetries int
 	MigrateOnStart   bool
 	AdminEmail       string
@@ -40,7 +40,7 @@ func LoadFrom(getenv func(string) string) (Config, error) {
 		JWTSecret:        []byte(getenv("JWT_SECRET")),
 		CORSOrigins:      splitList(getenv("CORS_ORIGINS")),
 		UploadDir:        valueOr(getenv("UPLOAD_DIR"), "/data/uploads"),
-		MaxUploadBytes:   defaultMaxUploadBytes,
+		MediaMaxMB:       defaultMediaMaxMB,
 		DBConnectRetries: 8,
 		AdminEmail:       strings.TrimSpace(getenv("ADMIN_EMAIL")),
 		AdminPassword:    getenv("ADMIN_PASSWORD"),
@@ -55,12 +55,12 @@ func LoadFrom(getenv func(string) string) (Config, error) {
 			cfg.DBConnectRetries = retries
 		}
 	}
-	if value := strings.TrimSpace(getenv("UPLOAD_MAX_BYTES")); value != "" {
-		maxBytes, err := strconv.ParseInt(value, 10, 64)
-		if err != nil || maxBytes < 1 {
-			problems = append(problems, "UPLOAD_MAX_BYTES must be a positive integer")
+	if value := strings.TrimSpace(getenv("MEDIA_MAX_MB")); value != "" {
+		maxMB, err := strconv.ParseInt(value, 10, 64)
+		if err != nil || maxMB < 1 || maxMB > (int64(^uint64(0)>>1)/(1024*1024)-1) {
+			problems = append(problems, "MEDIA_MAX_MB must be a positive integer within the supported range")
 		} else {
-			cfg.MaxUploadBytes = maxBytes
+			cfg.MediaMaxMB = maxMB
 		}
 	}
 	if value := strings.TrimSpace(getenv("MIGRATE_ON_START")); value != "" {
@@ -100,8 +100,8 @@ func (c Config) validationProblems() []string {
 	if strings.TrimSpace(c.UploadDir) == "" {
 		problems = append(problems, "UPLOAD_DIR must not be empty")
 	}
-	if c.MaxUploadBytes < 1 {
-		problems = append(problems, "UPLOAD_MAX_BYTES must be a positive integer")
+	if c.MediaMaxMB < 1 {
+		problems = append(problems, "MEDIA_MAX_MB must be a positive integer")
 	}
 	if c.DBConnectRetries < 1 {
 		problems = append(problems, "DB_CONNECT_RETRIES must be a positive integer")

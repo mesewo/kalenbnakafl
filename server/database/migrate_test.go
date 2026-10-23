@@ -127,3 +127,107 @@ func TestBootstrapAdminIsIdempotent(t *testing.T) {
 		t.Fatalf("expected normalized bootstrap email, got %q", email)
 	}
 }
+
+func TestMigration0002BackfillsRowsCreatedBy0001(t *testing.T) {
+	db := testDatabase(t)
+	ctx := context.Background()
+	provider, err := newMigrationProvider(db)
+	if err != nil {
+		t.Fatalf("create provider: %v", err)
+	}
+	if _, err := provider.UpTo(ctx, 1); err != nil {
+		t.Fatalf("apply migration 0001: %v", err)
+	}
+	if _, err := db.Exec(`INSERT INTO users(name,email,password,role) VALUES ('Migration Author','migration@example.org','hash','admin')`); err != nil {
+		t.Fatalf("insert migration author: %v", err)
+	}
+	if _, err := db.Exec(`INSERT INTO posts(title,content,author_id,published) VALUES ('Hello, World!','body',1,true),('Hello World','body',1,false),('አማርኛ','body',1,false)`); err != nil {
+		t.Fatalf("insert pre-0002 posts: %v", err)
+	}
+	if _, err := provider.Up(ctx); err != nil {
+		t.Fatalf("apply migration 0002 over existing rows: %v", err)
+	}
+	rows, err := db.Query(`SELECT title,slug,published_at FROM posts ORDER BY id`)
+	if err != nil {
+		t.Fatalf("read migrated posts: %v", err)
+	}
+	defer func() {
+		if err := rows.Close(); err != nil {
+			t.Errorf("close migrated posts rows: %v", err)
+		}
+	}()
+	want := []string{"hello-world", "hello-world-2"}
+	index := 0
+	for rows.Next() {
+		var title, slug string
+		var publishedAt sql.NullTime
+		if err := rows.Scan(&title, &slug, &publishedAt); err != nil {
+			t.Fatalf("scan migrated post: %v", err)
+		}
+		if index < len(want) && slug != want[index] {
+			t.Errorf("post %q slug=%q want=%q", title, slug, want[index])
+		}
+		if index == 0 && !publishedAt.Valid {
+			t.Error("existing published post has null published_at")
+		}
+		if index == 2 && !strings.HasPrefix(slug, "post-") {
+			t.Errorf("Amharic fallback slug=%q", slug)
+		}
+		index++
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatalf("iterate migrated posts: %v", err)
+	}
+	if index != 3 {
+		t.Fatalf("read %d migrated posts, want 3", index)
+	}
+}
+
+func TestMigration0003BackfillsMediaKinds(t *testing.T) {
+	db := testDatabase(t)
+	ctx := context.Background()
+	provider, err := newMigrationProvider(db)
+	if err != nil {
+		t.Fatalf("create provider: %v", err)
+	}
+	if _, err := provider.UpTo(ctx, 2); err != nil {
+		t.Fatalf("apply migrations through 0002: %v", err)
+	}
+	if _, err := db.Exec(`INSERT INTO users(name,email,password,role) VALUES ('Media Author','media-migration@example.org','hash','admin')`); err != nil {
+		t.Fatalf("insert uploader: %v", err)
+	}
+	for _, mediaType := range []string{"image/png", "video/mp4", "audio/mpeg", "application/pdf", "application/vnd.legacy"} {
+		if _, err := db.Exec(`INSERT INTO media(title,file_path,media_type,uploaded_by) VALUES ($1,$2,$3,1)`, mediaType, "/uploads/legacy", mediaType); err != nil {
+			t.Fatalf("insert legacy media %q: %v", mediaType, err)
+		}
+	}
+	if _, err := provider.Up(ctx); err != nil {
+		t.Fatalf("apply media kind migration: %v", err)
+	}
+	rows, err := db.Query(`SELECT media_type,kind FROM media ORDER BY id`)
+	if err != nil {
+		t.Fatalf("read migrated media: %v", err)
+	}
+	defer func() {
+		if err := rows.Close(); err != nil {
+			t.Errorf("close migrated media rows: %v", err)
+		}
+	}()
+	want := map[string]string{"image/png": "image", "video/mp4": "video", "audio/mpeg": "audio", "application/pdf": "document", "application/vnd.legacy": "document"}
+	for rows.Next() {
+		var mediaType, kind string
+		if err := rows.Scan(&mediaType, &kind); err != nil {
+			t.Fatalf("scan migrated media: %v", err)
+		}
+		if kind != want[mediaType] {
+			t.Errorf("kind for %s=%s want=%s", mediaType, kind, want[mediaType])
+		}
+		delete(want, mediaType)
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatalf("iterate migrated media: %v", err)
+	}
+	if len(want) != 0 {
+		t.Errorf("migration did not return rows for %v", want)
+	}
+}

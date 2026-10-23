@@ -14,7 +14,13 @@ func TestParseTokenRejectsInvalidTokens(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tampered := good[:len(good)-1] + map[bool]string{true: "a", false: "b"}[good[len(good)-1] != 'a']
+	parts := strings.Split(good, ".")
+	if parts[2][0] == 'A' {
+		parts[2] = "B" + parts[2][1:]
+	} else {
+		parts[2] = "A" + parts[2][1:]
+	}
+	tampered := strings.Join(parts, ".")
 	baseClaims := jwt.MapClaims{"iss": "kalenbnakafl", "exp": time.Now().Add(time.Hour).Unix(), "iat": time.Now().Unix(), "user_id": 7, "role": "admin"}
 	missing := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{"iss": "kalenbnakafl", "exp": time.Now().Add(time.Hour).Unix()})
 	missingToken, err := missing.SignedString(secret)

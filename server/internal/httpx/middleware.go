@@ -79,7 +79,7 @@ func Recovery() gin.HandlerFunc {
 func BodyLimit(defaultLimit, uploadLimit int64) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		limit := defaultLimit
-		if c.Request.Method == http.MethodPost && (c.FullPath() == "/api/admin/media" || c.FullPath() == "/api/editor/media") {
+		if c.Request.Method == http.MethodPost && (c.FullPath() == "/api/staff/media") {
 			limit = uploadLimit
 		}
 		if c.Request.Body != nil {

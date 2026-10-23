@@ -1,4 +1,4 @@
-﻿# ARCHITECTURE.md
+# ARCHITECTURE.md
 
 Two views: **Current** (what the code does today) and **Target** (what the roadmap builds). The project is a community NGO site and staff workspace. Agents must keep this file in sync with the code.
 
@@ -14,7 +14,7 @@ The process loads and validates environment settings once into `internal/config.
 | `JWT_SECRET` | required; at least 32 bytes | Signs access tokens |
 | `CORS_ORIGINS` | empty | Comma-separated allowed origins |
 | `UPLOAD_DIR` | `/data/uploads` | Uploaded media storage |
-| `UPLOAD_MAX_BYTES` | 10 MiB; positive integer | Maximum uploaded file size |
+| `MEDIA_MAX_MB` | `50`; positive integer | Maximum uploaded media size |
 | `DB_CONNECT_RETRIES` | `8`; positive integer | Database connection retry count |
 | `MIGRATE_ON_START` | `false` in the binary; Compose sets `true` | Apply embedded migrations before serving |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | both optional; set together, password at least 12 characters | First-admin bootstrap |
@@ -50,21 +50,26 @@ flowchart LR
 | POST | `/login` | none | sets access + refresh cookies; access 15 min, refresh 7 d |
 | POST | `/refresh` · `/logout` | refresh cookie / none | rotates or revokes refresh session |
 | POST | `/contact` | none | validates and stores row; IP limited |
-| GET | `/posts` · `/events` | none | published posts only; events currently unpaginated |
-| GET | `/admin/posts` · `/admin/events` | admin | staff CRUD and publish controls |
-| GET/POST/DELETE | `/admin/media` | admin | list, upload, delete |
+| GET | `/posts?page&limit&q` | none | published posts only; paginated; simple-config full-text search; newest published first |
+| GET | `/posts/{slug}` | none | returns a published post; drafts return 404 |
+| GET | `/media?kind&page&limit` | none | filtered, paginated media; returns `{items,page,limit,total}` |
+| GET | `/events?upcoming&page&limit` | none | paginated; upcoming sorts ascending, otherwise newest first |
+| GET | `/events/{id}` | none | returns an event by ID |
+| GET/POST/PATCH/DELETE | `/staff/posts` · `/staff/events` | admin/editor | staff content CRUD and publish controls |
+| GET/POST/DELETE | `/staff/media` | admin/editor | list, upload, delete |
 | GET/POST/PATCH/DELETE | `/admin/users` | admin | user CRUD |
-| GET/POST/PATCH/DELETE | `/editor/posts` · `/editor/events` · `/editor/media` | editor/admin | editor content and media routes |
+
+| GET · POST | `/admin/volunteers` · `/admin/volunteers/{id}/contributions` | admin | list volunteers and add contributions |
 | GET | `/me` · `/profile` | any user | authenticated profile reads |
 | PUT | `/profile` | any user | updates name/email and optionally password |
 | GET | `/healthz` | none | liveness; no database call |
 | GET | `/readyz` · `/health` | none | readiness; checks database connectivity |
 
-Auth, refresh-token, profile, admin user, post, event, media, contact, and volunteer handlers use generated sqlc queries with request contexts and injected dependencies. Handler and middleware database access no longer uses package-level database globals. No pagination is implemented. User and media CRUD exist; volunteers currently have contribution endpoints rather than application management.
+Auth, refresh-token, profile, admin user, post, event, media, contact, and volunteer handlers use generated sqlc queries with request contexts and injected dependencies. Media is stored through a local-disk Storage interface using random content-derived extensions and atomic temporary-file renames; uploads are sniffed against the png/jpeg/webp/pdf/mp4/webm/mp3/ogg allowlist. `/uploads/*` sets nosniff, a restrictive CSP, immutable caching, and serves byte ranges without exposing directory listings. Media rows store a checked kind backfilled from existing media_type values. Handler and middleware database access no longer uses package-level database globals. Post and event public/staff lists use `{items,page,limit,total}` pagination (default 10, maximum 50). Post search uses the `simple` text-search configuration and a GIN index. User and media CRUD exist; volunteers currently have contribution endpoints rather than application management.
 
 ### Current data model
 
-`users(id, name, email, password, role, created_at, updated_at)` with a unique lower(email) index · `posts(id, title, content, author_id→users, published, created_at, updated_at)` · `events(id, title, description, event_date, created_at)` · `media(id, title, file_path, media_type, original_name, size_bytes, uploaded_by→users, created_at)` · `contacts(id, name, email, message, created_at)` · `refresh_tokens(id, user_id, token_hash, expires_at, revoked_at)` · `volunteer_contributions(...)`
+`users(id, name, email, password, role, created_at, updated_at)` with a unique lower(email) index · `posts(id, slug UNIQUE, title, content, author_id→users, published, published_at, cover_media_id→media ON DELETE SET NULL, search_vector GIN, created_at, updated_at)` · `events(id, title, description, event_date, ends_at nullable and after event_date, location, created_at)` · `media(id, title, file_path, media_type, kind CHECK image|video|audio|document with kind/created_at index, original_name, size_bytes, uploaded_by→users, created_at)` · `contacts(id, name, email, message, created_at)` · `refresh_tokens(id, user_id, token_hash, expires_at, revoked_at)` · `volunteer_contributions(...)`
 
 ### Migration and sqlc workflow
 
@@ -258,7 +263,7 @@ Rendering rules: public pages = Server Components + ISR (`revalidate: 60`, on-de
 | `CORS_ORIGINS` | api | `http://localhost:3000` | comma list; not needed behind proxy |
 | `MIGRATE_ON_START` | api | `true` in development Compose | applies embedded Goose migrations before startup |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | api | | first-boot bootstrap only |
-| `MEDIA_DIR` / `MEDIA_MAX_MB` | api | `/data/media` / `100` | later `S3_*` |
+| `UPLOAD_DIR` / `MEDIA_MAX_MB` | api | `/data/uploads` / `50` | local media disk root and per-upload limit |
 | `SMTP_*` | api | | optional contact notifications |
 | `NEXT_PUBLIC_SITE_URL` | web | `https://example.org` | SEO canonical/OG; build-time |
 | `API_INTERNAL_URL` | web | `http://api:8080` | server-side fetch; runtime |

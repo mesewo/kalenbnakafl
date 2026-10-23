@@ -22,7 +22,7 @@ func TestLoadValidation(t *testing.T) {
 		{"admin password minimum", "ADMIN_PASSWORD", "short", "ADMIN_PASSWORD must be at least 12 characters"},
 		{"port invalid", "PORT", "70000", "PORT must be an integer between 1 and 65535"},
 		{"retry invalid", "DB_CONNECT_RETRIES", "0", "DB_CONNECT_RETRIES must be a positive integer"},
-		{"upload size invalid", "UPLOAD_MAX_BYTES", "0", "UPLOAD_MAX_BYTES must be a positive integer"},
+		{"upload size invalid", "MEDIA_MAX_MB", "0", "MEDIA_MAX_MB must be a positive integer"},
 		{"migration bool invalid", "MIGRATE_ON_START", "sometimes", "MIGRATE_ON_START must be true or false"},
 	}
 	for _, tt := range tests {
@@ -58,7 +58,7 @@ func TestLoadDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.Port != "8080" || cfg.UploadDir != "/data/uploads" || cfg.DBConnectRetries != 8 || cfg.MaxUploadBytes != defaultMaxUploadBytes || cfg.MigrateOnStart {
+	if cfg.Port != "8080" || cfg.UploadDir != "/data/uploads" || cfg.DBConnectRetries != 8 || cfg.MediaMaxMB != defaultMediaMaxMB || cfg.MigrateOnStart {
 		t.Fatalf("unexpected defaults: %+v", cfg)
 	}
 }

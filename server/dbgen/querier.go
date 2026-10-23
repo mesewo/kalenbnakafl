@@ -6,11 +6,15 @@ package dbgen
 
 import (
 	"context"
+	"database/sql"
 )
 
 type Querier interface {
 	AddVolunteerContribution(ctx context.Context, arg AddVolunteerContributionParams) error
 	CountAdmins(ctx context.Context) (int64, error)
+	CountEvents(ctx context.Context, upcoming bool) (int64, error)
+	CountMedia(ctx context.Context, kind sql.NullString) (int64, error)
+	CountPosts(ctx context.Context, arg CountPostsParams) (int64, error)
 	CreateAdminIfMissing(ctx context.Context, arg CreateAdminIfMissingParams) error
 	CreateContact(ctx context.Context, arg CreateContactParams) error
 	CreateEvent(ctx context.Context, arg CreateEventParams) error
@@ -22,13 +26,15 @@ type Querier interface {
 	DeleteMedia(ctx context.Context, id int32) (int64, error)
 	DeletePost(ctx context.Context, id int32) (int64, error)
 	DeleteUser(ctx context.Context, id int32) (int64, error)
+	GetEventByID(ctx context.Context, id int32) (GetEventByIDRow, error)
 	GetMediaFilePath(ctx context.Context, id int32) (string, error)
+	GetPostBySlug(ctx context.Context, slug string) (GetPostBySlugRow, error)
 	GetRoleByUserID(ctx context.Context, id int32) (string, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id int32) (User, error)
-	ListEvents(ctx context.Context) ([]Event, error)
-	ListMedia(ctx context.Context) ([]ListMediaRow, error)
-	ListPosts(ctx context.Context, includeUnpublished bool) ([]ListPostsRow, error)
+	ListEvents(ctx context.Context, arg ListEventsParams) ([]ListEventsRow, error)
+	ListMedia(ctx context.Context, arg ListMediaParams) ([]ListMediaRow, error)
+	ListPosts(ctx context.Context, arg ListPostsParams) ([]ListPostsRow, error)
 	ListUsers(ctx context.Context) ([]ListUsersRow, error)
 	ListVolunteers(ctx context.Context) ([]ListVolunteersRow, error)
 	LockActiveRefreshToken(ctx context.Context, tokenHash string) (int32, error)
