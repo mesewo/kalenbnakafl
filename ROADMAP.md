@@ -21,10 +21,10 @@
 ## Phase 0 — Repo hygiene & safety net (≈ ½ session)
 
 - [ ] `git ls-files | grep -E '\.exe$|server/app$|\.env'` — find committed binaries/env. If any, **purge history** (`git filter-repo`) *before* making the repo public.
-- [ ] Delete `server/app`, `server/cmd.exe`, `update_passwords.sql`; add `.gitignore` (Go + Node + env + IDE + binaries) and `.dockerignore` in both services
-- [ ] Rename to the canonical name everywhere (module path + all imports in one commit, DB name, seed emails, UI strings, package name)
-- [ ] Remove commented boilerplate from `layout.tsx`/`page.tsx`, unused `public/*.svg`
-- [ ] Add `.env.example`, `LICENSE`, stub README (replaced in Phase 8)
+- [x] Confirm `server/app`, `server/cmd.exe`, and `update_passwords.sql` are absent from the working tree; add `.gitignore` (Go + Node + env + IDE + binaries) and `.dockerignore` in both services
+- [x] Rename to the canonical name everywhere (module path + imports, DB name, seed emails, UI strings, package name)
+- [x] Remove commented boilerplate from `layout.tsx`/`page.tsx` and unused `public/*.svg`
+- [x] Add `.env.example`, `LICENSE`, and the README stub (to be expanded in Phase 8)
 - [ ] Add AGENTS.md / ARCHITECTURE.md / ROADMAP.md / AUDIT.md to repo root; archive `INCOMPLETE_FEATURES.md` into `docs/history/`
 - [ ] **Rotate**: any secret that ever lived in git is burned (JWT secret, DB password)
 - [ ] Record baseline: does `docker compose up --build` work on a clean clone? Do `go build`, `npm run build` pass? Write results in *Verified commands* below.
@@ -35,13 +35,13 @@
 
 - [x] `internal/config`: typed env config, fail-fast validation (`JWT_SECRET` ≥ 32 bytes, `DATABASE_URL`)
 - [ ] DB: connect with retry/backoff, pool settings, `Ping` with context; optional pgx migration (ADR-003)
-- [ ] Migrations with Goose: embedded `server/db/migrations/0001_init.sql` (current schema + `CHECK` on role, `TIMESTAMPTZ`, indexes), serialized by a Postgres session lock; run before serving when `MIGRATE_ON_START=true`
-- [ ] Bootstrap admin from env; dev-only `server/db/seed/dev.sql` behind the `seed` Compose profile
+- [x] Migrations with Goose: embedded numbered migrations under `server/db/migrations/`, serialized by a Postgres session lock; run before serving when `MIGRATE_ON_START=true`
+- [x] Bootstrap admin from env; dev-only `server/db/seed/dev.sql` behind the `seed` Compose profile
 - [x] `http.Server` with timeouts, graceful shutdown, Gin release mode in production, `/healthz` + `/readyz`
 - [x] Middleware: request ID, `slog` access log, panic recovery → 500 JSON, CORS allowlist, body size limit
 - [x] JWT: single source, typed claims, pinned `HS256`, checked assertions (no panics)
-- [ ] Unified error model + validation (`binding` tags / validator) + `pq` unique-violation → 409
-- [ ] Remove `/content`, `/admin/dashboard` stubs; collapse `/admin` + `/editor` into one staff group + admin-only subgroup
+- [ ] Unified error model and request validation are implemented; audit all handler-specific validation and `pq` constraint mappings before marking this broader checklist item complete.
+- [x] Remove `/content`, `/admin/dashboard` stubs; collapse `/admin` + `/editor` into one staff group + admin-only subgroup
 
 **Exit:** API refuses to start misconfigured, survives DB starting late, no secrets in code, health endpoints green, `go vet` + `golangci-lint` clean.
 
@@ -51,7 +51,7 @@
 - [x] Move migrations into `server/db/migrations`, embed them, replace the three old migrations with a schema-only `0001_init.sql`, and move dev sample rows into the opt-in seed profile.
 - [x] Configure sqlc named parameters, `GetUserByEmail(email)`, `UpdateUserPassword` as password-only `:exec`, and `media` → `Media`; regenerate and confirm `go tool sqlc diff` is clean.
 - [x] Add Goose startup wiring behind `MIGRATE_ON_START`, Makefile workflows, API healthcheck, and backend CI workflow.
-- [ ] Verify migration up/down/up and admin-bootstrap idempotence against PostgreSQL (`DATABASE_URL_TEST`); tests skip locally when the variable is unset.
+- [x] Verify migration up/down/up and admin-bootstrap idempotence against PostgreSQL (`DATABASE_URL_TEST`); tests skip locally when the variable is unset.
 - [ ] Verify the Compose stack end-to-end and GitHub Actions on a runner.
 
 ## Phase 2 — Complete the domain API (≈ 2–3 sessions)
@@ -70,13 +70,13 @@
 
 ## Phase 3 — Auth hardening (≈ 1 session)
 
-- [ ] httpOnly/Secure/SameSite cookies; short access token + rotating refresh token (hashed in DB); logout revokes
-- [ ] Role re-validated from DB (short cache)
-- [ ] Rate limits on login/register/contact; lockout/backoff on repeated failures
+- [x] httpOnly/Secure/SameSite cookies; short access token + rotating refresh token (hashed in DB); logout revokes
+- [x] Role re-validated from DB on each authenticated request
+- [x] Rate limits on login/register/contact; lockout/backoff on repeated failures
 - [ ] Password policy (min length, common-password check), constant-time compare paths
-- [ ] Origin check / CSRF defense for cookie-authenticated mutations
-- [ ] Security headers (Go + Next), `SetTrustedProxies`
-- [ ] Authorization tests: every protected route × every role (matrix test)
+- [x] Origin check / CSRF defense for cookie-authenticated mutations
+- [ ] Security headers (Go + Next); trusted proxies are explicitly configurable and covered by tests
+- [x] Authorization tests: every registered API route × every role (matrix test)
 
 **Exit:** no token in `localStorage`; role-matrix test passes; `gosec` and `govulncheck` clean.
 
@@ -147,6 +147,8 @@
 | Command | Result | Date |
 |---------|--------|------|
 | `docker compose up --build` (clean clone) | Failed before start: required `.env` values missing; Docker config access denied. | 2026-10-20 |
+| `cd server && gofmt -l . && go vet ./... && go test ./...` (exhaustive registered-route matrix) | Passed; PostgreSQL integration tests ran against the configured test database, including every registered API route × guest/user/volunteer/editor/admin and removed route checks. `gofmt -l .` listed no files. | 2026-10-24 |
+| `golangci-lint run` (Prompt V, exhaustive route matrix) | Not run: `golangci-lint` is not installed in the local environment. | 2026-10-24 |
 | `cd server && go build ./... && go vet ./... && go test ./...` | Phase 0 baseline: sqlc compile failure at `database/db.go:71:20`. Phase 1: build and vet passed; tests passed with PostgreSQL integration tests skipped because `DATABASE_URL_TEST` was unset. | 2026-10-20 |
 | `cd front-end && npm ci && npm run lint && npm run build` | `npm ci` stalled; Prompt V lint then failed: `'eslint' is not recognized`; tsc and build did not run. | 2026-10-20 |
 | `cd server && go tool sqlc generate -f ../sqlc.yaml` | Passed; generated code updated in the workspace. | 2026-10-20 |
@@ -161,8 +163,6 @@
 | `cd server && go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0 run` | Passed: 0 issues. | 2026-10-22 |
 | `docker compose down && docker compose up --build -d`; `curl http://localhost:8080/readyz` | API and DB healthy; `/readyz` returned `{"status":"ok"}`. Frontend returned HTTP 200 but its existing Docker health probe timed out and marked it unhealthy. | 2026-10-22 |
 | `cd server && go build ./... && go vet ./... && go test ./...` (logging/errors/JWT) | Passed; PostgreSQL integration tests skipped because `DATABASE_URL_TEST` was unset. | 2026-10-22 |
-| `cd server && gofmt -l .` | Passed; no files listed. | 2026-10-22 |
-| `cd server && go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0 run` | Passed: 0 issues. | 2026-10-22 |
 | `cd front-end && npm run lint && npx tsc --noEmit && npm run build` | Lint passed with 5 existing hook-dependency warnings; TypeScript and production build passed. Next.js warned Baseline browser data is stale. | 2026-10-22 |
 | `docker compose down && docker compose up --build -d`; `curl http://localhost:8080/readyz` | Build and startup passed; API and DB healthy; `/readyz` returned `{"status":"ok"}`. Frontend returned HTTP 200 but its existing healthcheck timed out after 3 seconds (container unhealthy). | 2026-10-22 |
 | `cd server && go tool goose -dir db/migrations validate` | Passed after moving the embed source outside the migration directory. | 2026-10-20 |
@@ -181,6 +181,11 @@
 | `docker compose up --build -d` (media hardening) | Passed; API, DB, and frontend became healthy. Admin uploaded a PNG, opened the stored URL, verified nosniff/CSP/cache headers, byte-range response and no directory listing; smoke rows deleted. | 2026-10-23 |
 | `docker compose down && docker compose up --build -d`; `curl.exe http://127.0.0.1:8080/healthz`; `curl.exe http://127.0.0.1:8080/readyz` (Prompt V, media hardening) | Passed without removing volumes; API, DB, and frontend healthy; both health endpoints returned `{"status":"ok"}`. | 2026-10-23 |
 
+| `cd server && go tool sqlc diff -f ../sqlc.yaml` (Phase 3 auth/rate limits) | Passed with no diff. | 2026-10-24 |
+| `cd server && go build ./... && go vet ./...` (Phase 3 auth/rate limits) | Passed. | 2026-10-24 |
+| `cd server && go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0 run --path-mode=abs` (Phase 3 auth/rate limits) | Passed: 0 issues. | 2026-10-24 |
+| `cd server && gofmt -l . && go vet ./... && go test ./...` (Prompt V, Phase 3) | Passed; PostgreSQL-backed run passed all packages using Compose PostgreSQL, including middleware origin/proxy/rate-limit tests and auth cookie test. | 2026-10-24 |
+| `docker compose down && docker compose up --build -d`; `/healthz`, `/readyz`; Next-proxy login and staff post create/delete | Passed; Compose required container/network recreation after subnet pinning; all services healthy, login 200, create 201, cleanup 200. | 2026-10-24 |
 ### Phase 0 baseline run — 2026-10-20
 
 | Command | Exact result |

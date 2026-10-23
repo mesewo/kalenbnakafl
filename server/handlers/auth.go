@@ -28,12 +28,6 @@ const accessCookie = "access_token"
 const refreshCookie = "refresh_token"
 
 func secureCookies(appEnv string) bool { return !strings.EqualFold(appEnv, "development") }
-func cookieSameSite(appEnv string) http.SameSite {
-	if secureCookies(appEnv) {
-		return http.SameSiteNoneMode
-	}
-	return http.SameSiteLaxMode
-}
 func tokenHash(value string) string {
 	sum := sha256.Sum256([]byte(value))
 	return hex.EncodeToString(sum[:])
@@ -50,14 +44,14 @@ func setSessionCookies(c *gin.Context, userID int, role string, refresh string, 
 	if err != nil {
 		return err
 	}
-	opts := &http.Cookie{Path: "/", HttpOnly: true, Secure: secureCookies(cfg.AppEnv), SameSite: cookieSameSite(cfg.AppEnv), MaxAge: 15 * 60}
+	opts := &http.Cookie{Path: "/", HttpOnly: true, Secure: secureCookies(cfg.AppEnv), SameSite: http.SameSiteLaxMode, MaxAge: 15 * 60}
 	http.SetCookie(c.Writer, &http.Cookie{Name: accessCookie, Value: access, Path: opts.Path, HttpOnly: opts.HttpOnly, Secure: opts.Secure, SameSite: opts.SameSite, MaxAge: opts.MaxAge})
 	http.SetCookie(c.Writer, &http.Cookie{Name: refreshCookie, Value: refresh, Path: opts.Path, HttpOnly: opts.HttpOnly, Secure: opts.Secure, SameSite: opts.SameSite, MaxAge: 7 * 24 * 60 * 60})
 	return nil
 }
 func clearSessionCookies(c *gin.Context, cfg config.Config) {
 	for _, name := range []string{accessCookie, refreshCookie} {
-		http.SetCookie(c.Writer, &http.Cookie{Name: name, Value: "", Path: "/", HttpOnly: true, Secure: secureCookies(cfg.AppEnv), SameSite: cookieSameSite(cfg.AppEnv), MaxAge: -1})
+		http.SetCookie(c.Writer, &http.Cookie{Name: name, Value: "", Path: "/", HttpOnly: true, Secure: secureCookies(cfg.AppEnv), SameSite: http.SameSiteLaxMode, MaxAge: -1})
 	}
 }
 func publicUser(user models.User) gin.H {

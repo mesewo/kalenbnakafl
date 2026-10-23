@@ -26,7 +26,7 @@ services:
       PORT: ${PORT:-8080}
       DB_CONNECT_RETRIES: ${DB_CONNECT_RETRIES:-8}
       MEDIA_MAX_MB: ${MEDIA_MAX_MB:-50}
-      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-172.21.0.0/24}
       UPLOAD_DIR: /data/uploads
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
@@ -76,3 +76,8 @@ services:
 volumes:
   pgdata:
   uploads:
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.21.0.0/24

@@ -27,7 +27,7 @@ import (
 const integrationJWTSecret = "integration-test-secret-with-at-least-32-bytes"
 
 func integrationConfig() config.Config {
-	return config.Config{Port: "8080", AppEnv: "development", DatabaseURL: "unused", JWTSecret: []byte(integrationJWTSecret), UploadDir: "/tmp", MediaMaxMB: 50, DBConnectRetries: 1}
+	return config.Config{Port: "8080", AppEnv: "development", DatabaseURL: "unused", JWTSecret: []byte(integrationJWTSecret), UploadDir: "/tmp", MediaMaxMB: 50, DBConnectRetries: 1, CORSOrigins: []string{"http://localhost:3000"}}
 }
 
 func authTestApp(t *testing.T) (*sql.DB, *dbgen.Queries, *gin.Engine) {
@@ -91,6 +91,7 @@ func authTestAppWithConfig(t *testing.T, cfg config.Config) (*sql.DB, *dbgen.Que
 func authRequest(r http.Handler, method, path, body string, cookies ...*http.Cookie) *httptest.ResponseRecorder {
 	request := httptest.NewRequest(method, path, strings.NewReader(body))
 	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Origin", "http://localhost:3000")
 	for _, cookie := range cookies {
 		if cookie != nil {
 			request.AddCookie(cookie)
@@ -269,5 +270,24 @@ func TestMiddlewareRejectsMissingAccount(t *testing.T) {
 	response := authRequest(r, http.MethodGet, "/api/me", "", adminCookie(t, 2147483000, "admin"))
 	if response.Code != http.StatusUnauthorized {
 		t.Fatalf("missing-account middleware status=%d, want 401", response.Code)
+	}
+}
+func TestLoginCookiesAreLaxAndSecureOutsideDevelopment(t *testing.T) {
+	cfg := integrationConfig()
+	cfg.AppEnv = "test"
+	_, q, r := authTestAppWithConfig(t, cfg)
+	createAuthUser(t, q, "Cookie Check", "cookie-check@example.org", "a-long-test-password", "user")
+	response := authRequest(r, http.MethodPost, "/api/login", `{"email":"cookie-check@example.org","password":"a-long-test-password"}`)
+	if response.Code != http.StatusOK {
+		t.Fatalf("login status=%d body=%s", response.Code, response.Body)
+	}
+	cookies := response.Result().Cookies()
+	if len(cookies) != 2 {
+		t.Fatalf("got %d session cookies, want 2", len(cookies))
+	}
+	for _, cookie := range cookies {
+		if cookie.SameSite != http.SameSiteLaxMode || !cookie.Secure || !cookie.HttpOnly {
+			t.Errorf("%s cookie attributes: SameSite=%v Secure=%v HttpOnly=%v", cookie.Name, cookie.SameSite, cookie.Secure, cookie.HttpOnly)
+		}
 	}
 }

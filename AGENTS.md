@@ -1,6 +1,6 @@
 # AGENTS.md — working agreement for AI coding agents
 
-> Read this file first, then `ARCHITECTURE.md`, `ROADMAP.md` and `AUDIT.md`.
+> Read this file first, then `ARCHITECTURE.md` and `ROADMAP.md`.
 > Works with Gemini (Cloud Shell Editor / Gemini CLI), Claude Code, Cursor, Copilot. If your tool only reads `GEMINI.md` or `CLAUDE.md`, point it here (a one-line `GEMINI.md` containing `@AGENTS.md` works in Gemini CLI; otherwise paste this file into the tool's rules/context).
 
 ## Project
@@ -8,7 +8,7 @@
 **Kalenbnakafl** — website for a community NGO: public site (news, events, media, volunteer sign-up, contact) plus a role-based admin dashboard.
 Owner: Befekadu Amdehaymanot. This repo is also a **portfolio piece for a senior full-stack role** — quality, tests, docs and security are part of the deliverable, not extras.
 
-Canonical project name: **TBD — decided in ROADMAP Phase 0** (today the repo uses 4 spellings; never invent a fifth).
+Canonical project name: **kalenbnakafl**; display name: **Kalen Benakafil**. Keep the module, database, package and UI names consistent.
 
 ## Stack
 
@@ -25,7 +25,8 @@ Scope = "Option D": comprehensive site **without payments**. Roles: `admin`, `ed
 
 ```
 .
-├── AGENTS.md  ARCHITECTURE.md  ROADMAP.md  AUDIT.md  PROJECT_NOTE.md  README.md
+├── AGENTS.md  ARCHITECTURE.md  ROADMAP.md  README.md
+├── docs/PROJECT_NOTE.md
 ├── docker-compose.yaml        # dev stack (db + api + frontend)
 ├── .env.example               # every env var documented; never commit .env
 ├── server/db/migrations/      # embedded Goose SQL; dev rows in server/db/seed/
@@ -93,10 +94,10 @@ curl -s localhost:8080/healthz                                     # ⚠ (endpoi
 - [ ] Docs updated (ARCHITECTURE / `.env.example` / ROADMAP checkbox / ADR)
 - [ ] Final message lists: what changed, how you verified it, what you did **not** do
 
-## Known traps in this repo (from AUDIT.md)
+## Known traps in this repo
 
-- `NEXT_PUBLIC_*` is baked in at **build** time. Don't "fix" it with runtime env in Compose.
+- The Next.js rewrite destination uses `API_INTERNAL_URL`, and `NEXT_PUBLIC_*` values are baked in at **build** time. Changing either at container runtime does not change the built rewrite/client bundle; pass the rewrite destination as a Docker build argument.
 - Database schema is managed by embedded Goose migrations in `server/db/migrations/`; dev sample data is opt-in through the `seed` Compose profile.
 - Tailwind v4 ignores `tailwind.config.ts` unless `@config` is used; custom colors must live in `@theme`.
-- Media JSON field name has been inconsistent (`file_url` vs `file_path`). Use the OpenAPI schema as the source of truth.
-- Go module path and DB name are misspelled variants of the project name; fix in Phase 0 in a single dedicated commit and update **every** import.
+- When the API is behind a proxy, set `TRUSTED_PROXIES` to the actual proxy address/CIDR. The binary trusts no proxies by default; do not trust arbitrary forwarded headers.
+- `init.sql` was removed; schema changes belong in numbered embedded Goose migrations under `server/db/migrations/`. Dev sample rows live separately in `server/db/seed/dev.sql`.
