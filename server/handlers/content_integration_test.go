@@ -271,7 +271,7 @@ func TestPostSlugFallbackCollisionAndPublishedAtIsFirstPublish(t *testing.T) {
 		t.Fatalf("generated slugs = %q, %q", firstSlug, secondSlug)
 	}
 
-	amharicID := create("áŠ áˆ›áˆ­áŠ›")
+	amharicID := create("áŠ áˆ›áˆ\u00adáŠ›")
 	var amharicSlug string
 	if err := db.QueryRow(`SELECT slug FROM posts WHERE id=$1`, amharicID).Scan(&amharicSlug); err != nil {
 		t.Fatal(err)
@@ -382,10 +382,10 @@ func TestStaffCanSetAndEditPostSlug(t *testing.T) {
 
 func TestPostFullTextSearchFindsAmharicTitle(t *testing.T) {
 	db, _, r := authTestApp(t)
-	if _, err := db.Exec(`INSERT INTO posts(slug,title,content,published,published_at) VALUES ('amharic-search','áŠ áˆ›áˆ­áŠ› ááˆˆáŒ‹','á‹¨áˆ›áˆ…á‰ áˆ¨áˆ°á‰¥ á‹œáŠ“',true,CURRENT_TIMESTAMP)`); err != nil {
+	if _, err := db.Exec("INSERT INTO posts(slug,title,content,published,published_at) VALUES ('amharic-search','áŠ áˆ›áˆ\u00adáŠ› á\u008d\u008dáˆˆáŒ‹','á‹¨áˆ›áˆ…á‰ áˆ¨áˆ°á‰¥ á‹œáŠ“',true,CURRENT_TIMESTAMP)"); err != nil {
 		t.Fatalf("insert Amharic post: %v", err)
 	}
-	response := authRequest(r, http.MethodGet, "/api/posts?q="+url.QueryEscape("áŠ áˆ›áˆ­áŠ›"), "")
+	response := authRequest(r, http.MethodGet, "/api/posts?q="+url.QueryEscape("áŠ áˆ›áˆ\u00adáŠ›"), "")
 	var result models.Page[models.Post]
 	if response.Code != http.StatusOK || json.Unmarshal(response.Body.Bytes(), &result) != nil || result.Total != 1 || result.Items[0].Slug != "amharic-search" {
 		t.Fatalf("Amharic search status=%d body=%s", response.Code, response.Body)

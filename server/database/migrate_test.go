@@ -151,7 +151,11 @@ func TestMigration0002BackfillsRowsCreatedBy0001(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read migrated posts: %v", err)
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			t.Errorf("close migrated posts rows: %v", err)
+		}
+	}()
 	want := []string{"hello-world", "hello-world-2"}
 	index := 0
 	for rows.Next() {
