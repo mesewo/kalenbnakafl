@@ -7,8 +7,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	"kalenbnakafl/dbgen"
 )
 
 // This test is intentionally keyed by Gin's registered routes: every route
@@ -16,9 +14,12 @@ import (
 func TestRegisteredRouteRoleMatrix(t *testing.T) {
 	db, q, r := authTestApp(t)
 	ids, cookies := map[string]int32{}, map[string]*http.Cookie{}
+	loginEmails := map[string]string{}
 	for _, role := range []string{"user", "volunteer", "editor", "admin"} {
 		ids[role] = createAuthUser(t, q, role, role+"@matrix-all.example.org", "a-long-test-password", role)
 		cookies[role] = adminCookie(t, int(ids[role]), role)
+		loginEmails[role] = role + "-login@matrix-all.example.org"
+		createAuthUser(t, q, role+" login", loginEmails[role], "a-long-test-password", role)
 	}
 	const guest, denied, allow, created = http.StatusUnauthorized, http.StatusForbidden, http.StatusOK, http.StatusCreated
 	// Status order: guest, user, volunteer, editor, admin.
@@ -62,7 +63,7 @@ func TestRegisteredRouteRoleMatrix(t *testing.T) {
 	eventID := insertTestEvent(t, db)
 	mediaID := insertMatrixMedia(t, db, postAuthor)
 	const detailSlug = "matrix-detail-post"
-	if err := q.CreatePost(t.Context(), dbgen.CreatePostParams{Slug: detailSlug, Title: "Detail", Content: "Body", AuthorID: sql.NullInt32{Int32: postAuthor, Valid: true}}); err != nil {
+	if _, err := db.ExecContext(t.Context(), `INSERT INTO posts (slug, title, content, author_id, published, published_at) VALUES ($1, $2, $3, $4, true, CURRENT_TIMESTAMP)`, detailSlug, "Detail", "Body", postAuthor); err != nil {
 		t.Fatal(err)
 	}
 	date := time.Now().Add(72 * time.Hour).UTC().Format(time.RFC3339)
@@ -82,7 +83,7 @@ func TestRegisteredRouteRoleMatrix(t *testing.T) {
 				cookie = nil
 			}
 			if key == "POST /api/refresh" && role != "guest" {
-				login := authRequest(r, http.MethodPost, "/api/login", fmt.Sprintf(`{"email":%q,"password":"a-long-test-password"}`, role+"@matrix-all.example.org"))
+				login := authRequest(r, http.MethodPost, "/api/login", fmt.Sprintf(`{"email":%q,"password":"a-long-test-password"}`, loginEmails[role]))
 				if login.Code != allow {
 					t.Fatalf("prepare refresh: %d %s", login.Code, login.Body)
 				}
@@ -137,7 +138,7 @@ func matrixRequestBody(key, role string, index int, date string) string {
 		if who == "guest" {
 			who = "user"
 		}
-		return fmt.Sprintf(`{"email":%q,"password":"a-long-test-password"}`, who+"@matrix-all.example.org")
+		return fmt.Sprintf(`{"email":%q,"password":"a-long-test-password"}`, who+"-login@matrix-all.example.org")
 	case "POST /api/contact":
 		return fmt.Sprintf(`{"name":"Contact","email":"contact-%s@example.org","message":"Hello"}`, role)
 	case "POST /api/staff/posts":
