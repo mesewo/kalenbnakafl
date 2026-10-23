@@ -53,5 +53,6 @@ type Media struct {
 	MediaType    string    `json:"media_type,omitempty"`
 	OriginalName string    `json:"original_name,omitempty"`
 	SizeBytes    int64     `json:"size_bytes,omitempty"`
+	Kind         string    `json:"kind"`
 	CreatedAt    time.Time `json:"created_at,omitempty"`
 }

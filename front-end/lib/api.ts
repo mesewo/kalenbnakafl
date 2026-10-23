@@ -3,7 +3,7 @@ export type User = { id:number; name:string; email:string; role:UserRole; create
 export type Post = { id:number; slug:string; title:string; content:string; author_id?:number; author_name?:string; published?:boolean; published_at?:string; cover_media_id?:number; created_at?:string; updated_at?:string };
 export type EventItem = { id:number; title:string; description:string; event_date:string; ends_at?:string; location:string; created_at?:string };
 export type PageResponse<T> = { items:T[]; page:number; limit:number; total:number };
-export type MediaItem = { id:number; title:string; file_path:string; media_type?:string; original_name?:string; size_bytes?:number; created_at?:string };
+export type MediaItem = { id:number; title:string; file_path:string; media_type?:string; original_name?:string; size_bytes?:number; kind:"image"|"video"|"audio"|"document"; created_at?:string };
 
 export type ApiErrorBody = { code:string; message:string; details:Record<string,unknown> };
 export class ApiError extends Error {

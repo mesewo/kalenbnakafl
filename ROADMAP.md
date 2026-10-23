@@ -58,7 +58,7 @@
 
 - [x] Posts: CRUD, slug, `published`/`published_at`, public list filtered to published, pagination + search
 - [x] Events: CRUD, `event_date`/`ends_at`/`location`, `?upcoming=true`
-- [ ] Media: multipart upload (size/type allowlist, content sniffing, random storage keys), list, delete; `Storage` interface (local volume now)
+- [x] Media: multipart upload (size/type allowlist, content sniffing, random storage keys), list, delete; `Storage` interface (local volume now)
 - [ ] Users (admin): list, change role, delete, password reset trigger
 - [ ] Profile: `GET/PATCH /me` (name, password change with current password)
 - [ ] Contact: inbox for staff, status workflow, optional email notification
@@ -173,6 +173,13 @@
 | `cd server && go tool sqlc diff -f ../sqlc.yaml` (posts/events Phase 2) | Passed with no generated-code diff. | 2026-10-22 |
 | `cd front-end && npm run lint && npx tsc --noEmit && npm run build` (posts/events Phase 2) | Lint passed with 5 existing dashboard hook warnings; TypeScript and production build passed. Next warned that Baseline browser data is over two months old. | 2026-10-22 |
 | `docker compose down && docker compose up --build -d` (posts/events Phase 2) | Passed without removing volumes; API, DB, and frontend became healthy. `/readyz` and `/healthz` returned `{"status":"ok"}`; `/api/posts?page=1&limit=2` and `/api/events?upcoming=true&page=1&limit=2` returned HTTP 200 pagination envelopes; Goose reports versions 0, 1, and 2 applied. | 2026-10-22 |
+
+| `cd server && go tool sqlc diff -f ../sqlc.yaml` (media hardening) | Passed with no generated-code diff. | 2026-10-23 |
+| `cd server && go build ./... && go vet ./... && go test ./...` (media hardening) | Passed; full suite also passed against Compose PostgreSQL 15, including migration 0003 backfill and media upload validation, path safety, kind listing, delete, and file-serving tests. | 2026-10-23 |
+| `cd server && go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0 run --path-mode=abs` | Passed: 0 issues. | 2026-10-23 |
+| `cd front-end && npm run lint && npx tsc --noEmit && npm run build` (media hardening) | Lint passed with 7 warnings and 0 errors; TypeScript and production build passed. Next.js warned that Baseline browser data is stale. | 2026-10-23 |
+| `docker compose up --build -d` (media hardening) | Passed; API, DB, and frontend became healthy. Admin uploaded a PNG, opened the stored URL, verified nosniff/CSP/cache headers, byte-range response and no directory listing; smoke rows deleted. | 2026-10-23 |
+| `docker compose down && docker compose up --build -d`; `curl.exe http://127.0.0.1:8080/healthz`; `curl.exe http://127.0.0.1:8080/readyz` (Prompt V, media hardening) | Passed without removing volumes; API, DB, and frontend healthy; both health endpoints returned `{"status":"ok"}`. | 2026-10-23 |
 
 ### Phase 0 baseline run — 2026-10-20
 

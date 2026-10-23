@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -19,7 +18,13 @@ import (
 	"kalenbnakafl/models"
 )
 
+var validTestPNG = []byte{0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52}
+
 func mediaUploadRequest(t *testing.T, r http.Handler, path string, cookie *http.Cookie, filename string) *httptest.ResponseRecorder {
+	return mediaUploadRequestWithData(t, r, path, cookie, filename, validTestPNG)
+}
+
+func mediaUploadRequestWithData(t *testing.T, r http.Handler, path string, cookie *http.Cookie, filename string, data []byte) *httptest.ResponseRecorder {
 	t.Helper()
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
@@ -28,12 +33,12 @@ func mediaUploadRequest(t *testing.T, r http.Handler, path string, cookie *http.
 	}
 	header := make(textproto.MIMEHeader)
 	header.Set("Content-Disposition", fmt.Sprintf(`form-data; name="file"; filename=%q`, filename))
-	header.Set("Content-Type", "image/png")
+	header.Set("Content-Type", "application/octet-stream")
 	part, err := writer.CreatePart(header)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := io.WriteString(part, "fake png bytes"); err != nil {
+	if _, err := part.Write(data); err != nil {
 		t.Fatal(err)
 	}
 	if err := writer.Close(); err != nil {
@@ -48,7 +53,6 @@ func mediaUploadRequest(t *testing.T, r http.Handler, path string, cookie *http.
 	r.ServeHTTP(response, request)
 	return response
 }
-
 func requestWithIP(r http.Handler, method, path, body, remote string, cookie *http.Cookie) *httptest.ResponseRecorder {
 	request := httptest.NewRequest(method, path, strings.NewReader(body))
 	request.RemoteAddr = remote
@@ -115,9 +119,14 @@ func TestMediaUploadDeleteAndInsertFailureCleanup(t *testing.T) {
 		t.Fatalf("media row missing: %v", err)
 	}
 	list := authRequest(r, http.MethodGet, "/api/staff/media", "", cookie)
-	var items []models.Media
-	if list.Code != http.StatusOK || json.Unmarshal(list.Body.Bytes(), &items) != nil || len(items) != 1 || items[0].FilePath != uploaded.FilePath {
+	var items models.Page[models.Media]
+	if list.Code != http.StatusOK || json.Unmarshal(list.Body.Bytes(), &items) != nil || len(items.Items) != 1 || items.Items[0].FilePath != uploaded.FilePath || items.Items[0].Kind != "image" {
 		t.Fatalf("media list status=%d body=%s items=%+v", list.Code, list.Body, items)
+	}
+	public := authRequest(r, http.MethodGet, "/api/media?kind=image&page=1&limit=1", "")
+	var publicPage models.Page[models.Media]
+	if public.Code != http.StatusOK || json.Unmarshal(public.Body.Bytes(), &publicPage) != nil || publicPage.Total != 1 || publicPage.Items[0].Kind != "image" {
+		t.Fatalf("public media page status=%d body=%s page=%+v", public.Code, public.Body, publicPage)
 	}
 	deleted := authRequest(r, http.MethodDelete, fmt.Sprintf("/api/staff/media/%d", mediaID), "", cookie)
 	if deleted.Code != http.StatusOK {
@@ -131,6 +140,25 @@ func TestMediaUploadDeleteAndInsertFailureCleanup(t *testing.T) {
 		t.Fatalf("media row remains after delete: exists=%v err=%v", exists, err)
 	}
 
+	missingFileUpload := mediaUploadRequest(t, r, "/api/staff/media", cookie, "missing-file.png")
+	if missingFileUpload.Code != http.StatusCreated {
+		t.Fatalf("missing-file upload status=%d body=%s", missingFileUpload.Code, missingFileUpload.Body)
+	}
+	if err := json.Unmarshal(missingFileUpload.Body.Bytes(), &uploaded); err != nil {
+		t.Fatal(err)
+	}
+	missingPath := filepath.Join(dir, filepath.Base(uploaded.FilePath))
+	var missingID int32
+	if err := db.QueryRow(`SELECT id FROM media WHERE file_path=$1`, uploaded.FilePath).Scan(&missingID); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(missingPath); err != nil {
+		t.Fatal(err)
+	}
+	missingDelete := authRequest(r, http.MethodDelete, fmt.Sprintf("/api/staff/media/%d", missingID), "", cookie)
+	if missingDelete.Code != http.StatusOK {
+		t.Fatalf("delete with missing file status=%d body=%s", missingDelete.Code, missingDelete.Body)
+	}
 	api := handlers.NewAPI(q, db, cfg)
 	gin.SetMode(gin.TestMode)
 	failed := mediaUploadRequest(t, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -152,6 +180,65 @@ func TestMediaUploadDeleteAndInsertFailureCleanup(t *testing.T) {
 	}
 }
 
+func TestMediaUploadValidationAndOpaqueNames(t *testing.T) {
+	dir := t.TempDir()
+	cfg := integrationConfig()
+	cfg.UploadDir = dir
+	cfg.MediaMaxMB = 1
+	db, q, r := authTestAppWithConfig(t, cfg)
+	adminID := createAuthUser(t, q, "Upload Admin", "upload-validation@example.org", "a-long-test-password", "admin")
+	cookie := adminCookie(t, int(adminID), "admin")
+
+	overLimit := make([]byte, 1024*1024+1)
+	copy(overLimit, validTestPNG)
+	for _, tc := range []struct {
+		name     string
+		filename string
+		data     []byte
+		want     int
+	}{
+		{"oversize", "large.png", overLimit, http.StatusRequestEntityTooLarge},
+		{"disallowed type", "payload.exe", []byte("MZ executable"), http.StatusUnprocessableEntity},
+		{"executable named png", "payload.png", []byte("MZ executable"), http.StatusUnprocessableEntity},
+		{"extension mismatch", "payload.pdf", validTestPNG, http.StatusUnprocessableEntity},
+		{"zero byte", "empty.png", nil, http.StatusUnprocessableEntity},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			response := mediaUploadRequestWithData(t, r, "/api/staff/media", cookie, tc.filename, tc.data)
+			if response.Code != tc.want {
+				t.Fatalf("status=%d want=%d body=%s", response.Code, tc.want, response.Body)
+			}
+			if tc.want == http.StatusRequestEntityTooLarge && !strings.Contains(response.Body.String(), `"code":"payload_too_large"`) {
+				t.Fatalf("oversize error is not standard format: %s", response.Body)
+			}
+		})
+	}
+
+	for _, filename := range []string{"../../x.png", "double.exe.png"} {
+		response := mediaUploadRequestWithData(t, r, "/api/staff/media", cookie, filename, validTestPNG)
+		if response.Code != http.StatusCreated {
+			t.Fatalf("upload %q status=%d body=%s", filename, response.Code, response.Body)
+		}
+		var result struct {
+			FilePath string `json:"file_path"`
+		}
+		if err := json.Unmarshal(response.Body.Bytes(), &result); err != nil {
+			t.Fatal(err)
+		}
+		storedName := filepath.Base(result.FilePath)
+		validOpaqueName := len(storedName) == 36 && strings.HasSuffix(storedName, ".png")
+		for _, ch := range storedName[:min(len(storedName), 32)] {
+			validOpaqueName = validOpaqueName && (ch >= '0' && ch <= '9' || ch >= 'a' && ch <= 'f')
+		}
+		if !validOpaqueName || strings.Contains(result.FilePath, "x.png") || strings.Contains(result.FilePath, "double") {
+			t.Fatalf("client filename affected storage path: %q", result.FilePath)
+		}
+	}
+	var count int
+	if err := db.QueryRow(`SELECT count(*) FROM media`).Scan(&count); err != nil || count != 2 {
+		t.Fatalf("stored row count=%d err=%v want=2", count, err)
+	}
+}
 func TestVolunteerContributionHoursPreserved(t *testing.T) {
 	db, q, r := authTestApp(t)
 	adminID := createAuthUser(t, q, "Volunteer Admin", "hours-admin@example.org", "a-long-test-password", "admin")

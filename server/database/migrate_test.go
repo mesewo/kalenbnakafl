@@ -182,3 +182,52 @@ func TestMigration0002BackfillsRowsCreatedBy0001(t *testing.T) {
 		t.Fatalf("read %d migrated posts, want 3", index)
 	}
 }
+
+func TestMigration0003BackfillsMediaKinds(t *testing.T) {
+	db := testDatabase(t)
+	ctx := context.Background()
+	provider, err := newMigrationProvider(db)
+	if err != nil {
+		t.Fatalf("create provider: %v", err)
+	}
+	if _, err := provider.UpTo(ctx, 2); err != nil {
+		t.Fatalf("apply migrations through 0002: %v", err)
+	}
+	if _, err := db.Exec(`INSERT INTO users(name,email,password,role) VALUES ('Media Author','media-migration@example.org','hash','admin')`); err != nil {
+		t.Fatalf("insert uploader: %v", err)
+	}
+	for _, mediaType := range []string{"image/png", "video/mp4", "audio/mpeg", "application/pdf", "application/vnd.legacy"} {
+		if _, err := db.Exec(`INSERT INTO media(title,file_path,media_type,uploaded_by) VALUES ($1,$2,$3,1)`, mediaType, "/uploads/legacy", mediaType); err != nil {
+			t.Fatalf("insert legacy media %q: %v", mediaType, err)
+		}
+	}
+	if _, err := provider.Up(ctx); err != nil {
+		t.Fatalf("apply media kind migration: %v", err)
+	}
+	rows, err := db.Query(`SELECT media_type,kind FROM media ORDER BY id`)
+	if err != nil {
+		t.Fatalf("read migrated media: %v", err)
+	}
+	defer func() {
+		if err := rows.Close(); err != nil {
+			t.Errorf("close migrated media rows: %v", err)
+		}
+	}()
+	want := map[string]string{"image/png": "image", "video/mp4": "video", "audio/mpeg": "audio", "application/pdf": "document", "application/vnd.legacy": "document"}
+	for rows.Next() {
+		var mediaType, kind string
+		if err := rows.Scan(&mediaType, &kind); err != nil {
+			t.Fatalf("scan migrated media: %v", err)
+		}
+		if kind != want[mediaType] {
+			t.Errorf("kind for %s=%s want=%s", mediaType, kind, want[mediaType])
+		}
+		delete(want, mediaType)
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatalf("iterate migrated media: %v", err)
+	}
+	if len(want) != 0 {
+		t.Errorf("migration did not return rows for %v", want)
+	}
+}

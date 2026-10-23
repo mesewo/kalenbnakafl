@@ -6,9 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"mime"
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -18,6 +20,7 @@ import (
 	"kalenbnakafl/dbgen"
 	"kalenbnakafl/internal/config"
 	"kalenbnakafl/internal/httpx"
+	"kalenbnakafl/internal/storage"
 	"kalenbnakafl/routes"
 )
 
@@ -54,7 +57,7 @@ func newRouter(cfg config.Config, db *sql.DB, q *dbgen.Queries) (*gin.Engine, er
 		gin.SetMode(gin.ReleaseMode)
 	}
 	r := gin.New()
-	r.Use(httpx.RequestID(), httpx.AccessLog(), httpx.Recovery(), httpx.BodyLimit(1<<20, cfg.MaxUploadBytes+(1<<20)))
+	r.Use(httpx.RequestID(), httpx.AccessLog(), httpx.Recovery(), httpx.BodyLimit(1<<20, cfg.MediaMaxMB*1024*1024+(1<<20)))
 	if err := r.SetTrustedProxies(cfg.TrustedProxies); err != nil {
 		return nil, fmt.Errorf("configure trusted proxies: %w", err)
 	}
@@ -76,11 +79,39 @@ func newRouter(cfg config.Config, db *sql.DB, q *dbgen.Queries) (*gin.Engine, er
 	if err := os.MkdirAll(cfg.UploadDir, 0755); err != nil {
 		return nil, fmt.Errorf("create upload directory: %w", err)
 	}
-	r.Static("/uploads", cfg.UploadDir)
+	r.GET("/uploads/*filepath", uploadFileHandler(storage.NewLocal(cfg.UploadDir)))
+	r.HEAD("/uploads/*filepath", uploadFileHandler(storage.NewLocal(cfg.UploadDir)))
 	routes.SetupRoutes(r, q, db, cfg)
 	return r, nil
 }
 
+func uploadFileHandler(store storage.Storage) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Header("X-Content-Type-Options", "nosniff")
+		c.Header("Content-Security-Policy", "default-src 'none'; sandbox")
+		c.Header("Cache-Control", "public, max-age=86400, immutable")
+		name := strings.TrimPrefix(c.Param("filepath"), "/")
+		file, err := store.Open(c.Request.Context(), name)
+		if err != nil {
+			http.NotFound(c.Writer, c.Request)
+			return
+		}
+		defer func() {
+			if err := file.Close(); err != nil {
+				httpx.Logger(c).Error("close served media file", "error_type", fmt.Sprintf("%T", err))
+			}
+		}()
+		info, err := file.Stat()
+		if err != nil || info.IsDir() {
+			http.NotFound(c.Writer, c.Request)
+			return
+		}
+		if contentType := mime.TypeByExtension(filepath.Ext(name)); contentType != "" {
+			c.Header("Content-Type", contentType)
+		}
+		http.ServeContent(c.Writer, c.Request, name, info.ModTime(), file)
+	}
+}
 func configureLogger(appEnv string) {
 	if strings.EqualFold(appEnv, "production") {
 		slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))

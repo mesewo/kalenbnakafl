@@ -37,6 +37,7 @@ type Media struct {
 	UploadedBy   sql.NullInt32  `json:"uploaded_by"`
 	CreatedAt    time.Time      `json:"created_at"`
 	UpdatedAt    time.Time      `json:"updated_at"`
+	Kind         string         `json:"kind"`
 }
 
 type Post struct {

@@ -11,10 +11,22 @@ import (
 	"time"
 )
 
+const countMedia = `-- name: CountMedia :one
+SELECT count(*)::bigint FROM media
+WHERE $1::text IS NULL OR kind = $1::text
+`
+
+func (q *Queries) CountMedia(ctx context.Context, kind sql.NullString) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countMedia, kind)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const createMedia = `-- name: CreateMedia :exec
-INSERT INTO media (title, file_path, media_type, original_name, size_bytes, uploaded_by)
+INSERT INTO media (title, file_path, media_type, original_name, size_bytes, kind, uploaded_by)
 VALUES ($1, $2, $3,
-        $4, $5, $6)
+        $4, $5, $6, $7)
 `
 
 type CreateMediaParams struct {
@@ -23,6 +35,7 @@ type CreateMediaParams struct {
 	MediaType    sql.NullString `json:"media_type"`
 	OriginalName sql.NullString `json:"original_name"`
 	SizeBytes    int64          `json:"size_bytes"`
+	Kind         string         `json:"kind"`
 	UploadedBy   sql.NullInt32  `json:"uploaded_by"`
 }
 
@@ -33,6 +46,7 @@ func (q *Queries) CreateMedia(ctx context.Context, arg CreateMediaParams) error 
 		arg.MediaType,
 		arg.OriginalName,
 		arg.SizeBytes,
+		arg.Kind,
 		arg.UploadedBy,
 	)
 	return err
@@ -64,10 +78,18 @@ func (q *Queries) GetMediaFilePath(ctx context.Context, id int32) (string, error
 const listMedia = `-- name: ListMedia :many
 SELECT id, title, file_path, COALESCE(media_type, '') AS media_type,
        COALESCE(original_name, '') AS original_name,
-       COALESCE(size_bytes, 0) AS size_bytes, created_at
+       COALESCE(size_bytes, 0) AS size_bytes, kind, created_at
 FROM media
+WHERE ($1::text IS NULL OR kind = $1::text)
 ORDER BY created_at DESC
+LIMIT $3::integer OFFSET $2::integer
 `
+
+type ListMediaParams struct {
+	Kind      sql.NullString `json:"kind"`
+	RowOffset int32          `json:"row_offset"`
+	PageSize  int32          `json:"page_size"`
+}
 
 type ListMediaRow struct {
 	ID           int32     `json:"id"`
@@ -76,11 +98,12 @@ type ListMediaRow struct {
 	MediaType    string    `json:"media_type"`
 	OriginalName string    `json:"original_name"`
 	SizeBytes    int64     `json:"size_bytes"`
+	Kind         string    `json:"kind"`
 	CreatedAt    time.Time `json:"created_at"`
 }
 
-func (q *Queries) ListMedia(ctx context.Context) ([]ListMediaRow, error) {
-	rows, err := q.db.QueryContext(ctx, listMedia)
+func (q *Queries) ListMedia(ctx context.Context, arg ListMediaParams) ([]ListMediaRow, error) {
+	rows, err := q.db.QueryContext(ctx, listMedia, arg.Kind, arg.RowOffset, arg.PageSize)
 	if err != nil {
 		return nil, err
 	}
@@ -95,6 +118,7 @@ func (q *Queries) ListMedia(ctx context.Context) ([]ListMediaRow, error) {
 			&i.MediaType,
 			&i.OriginalName,
 			&i.SizeBytes,
+			&i.Kind,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
