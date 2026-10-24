@@ -87,6 +87,10 @@ func (a *API) UpdateContactMessageStatus(c *gin.Context) {
 	if !ok {
 		return
 	}
+	if int64(id) > int64(1<<31-1) {
+		httpx.Fail(c, http.StatusNotFound, "Contact message not found")
+		return
+	}
 	var input struct {
 		Status string `json:"status"`
 	}

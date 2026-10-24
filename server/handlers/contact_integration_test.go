@@ -113,6 +113,16 @@ func TestContactInboxStatusPaginationAndTokenOwnership(t *testing.T) {
 	if missing.Code != http.StatusNotFound {
 		t.Fatalf("missing message status=%d want=404 body=%s", missing.Code, missing.Body)
 	}
+	overflow := authRequest(r, http.MethodPatch, "/api/staff/contact-messages/4294967297", "{\"status\":\"read\"}", editorCookie)
+	if overflow.Code != http.StatusNotFound {
+		t.Fatalf("overflow message ID status=%d want=404 body=%s", overflow.Code, overflow.Body)
+	}
+	if err := db.QueryRow(`SELECT status,handled_by FROM contact_messages WHERE id=$1`, messageID).Scan(&status, &handledBy); err != nil {
+		t.Fatalf("confirm overflow did not modify a row: %v", err)
+	}
+	if status != "replied" || handledBy != adminID {
+		t.Fatalf("overflow ID changed another message: status=%q handled_by=%d", status, handledBy)
+	}
 
 	clamped := authRequest(r, http.MethodGet, "/api/staff/contact-messages?status=replied&page=0&limit=500", "", editorCookie)
 	if clamped.Code != http.StatusOK {
