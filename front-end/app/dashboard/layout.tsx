@@ -63,6 +63,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 aria-current={pathname.startsWith("/dashboard/media") ? "page" : undefined}
               >
                 Media
+              </Link>{" "}
+              <Link
+                href="/dashboard/messages"
+                aria-current={pathname.startsWith("/dashboard/messages") ? "page" : undefined}
+              >
+                Messages
               </Link>
             </>
           )}

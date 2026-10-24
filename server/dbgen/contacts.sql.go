@@ -7,10 +7,25 @@ package dbgen
 
 import (
 	"context"
+	"database/sql"
+	"time"
 )
 
+const countContactMessages = `-- name: CountContactMessages :one
+SELECT count(*)::bigint
+FROM contact_messages AS cm
+WHERE ($1::text IS NULL OR cm.status = $1::text)
+`
+
+func (q *Queries) CountContactMessages(ctx context.Context, status sql.NullString) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countContactMessages, status)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const createContact = `-- name: CreateContact :exec
-INSERT INTO contacts (name, email, message)
+INSERT INTO contact_messages (name, email, message)
 VALUES ($1, $2, $3)
 `
 
@@ -23,4 +38,85 @@ type CreateContactParams struct {
 func (q *Queries) CreateContact(ctx context.Context, arg CreateContactParams) error {
 	_, err := q.db.ExecContext(ctx, createContact, arg.Name, arg.Email, arg.Message)
 	return err
+}
+
+const listContactMessages = `-- name: ListContactMessages :many
+SELECT cm.id, cm.name, cm.email, cm.message, cm.status, cm.created_at,
+       cm.handled_at, COALESCE(u.name, '') AS handled_by_name
+FROM contact_messages AS cm
+LEFT JOIN users AS u ON u.id = cm.handled_by
+WHERE ($1::text IS NULL OR cm.status = $1::text)
+ORDER BY cm.created_at DESC, cm.id DESC
+LIMIT $3::integer OFFSET $2::integer
+`
+
+type ListContactMessagesParams struct {
+	Status    sql.NullString `json:"status"`
+	RowOffset int32          `json:"row_offset"`
+	PageSize  int32          `json:"page_size"`
+}
+
+type ListContactMessagesRow struct {
+	ID            int32        `json:"id"`
+	Name          string       `json:"name"`
+	Email         string       `json:"email"`
+	Message       string       `json:"message"`
+	Status        string       `json:"status"`
+	CreatedAt     time.Time    `json:"created_at"`
+	HandledAt     sql.NullTime `json:"handled_at"`
+	HandledByName string       `json:"handled_by_name"`
+}
+
+func (q *Queries) ListContactMessages(ctx context.Context, arg ListContactMessagesParams) ([]ListContactMessagesRow, error) {
+	rows, err := q.db.QueryContext(ctx, listContactMessages, arg.Status, arg.RowOffset, arg.PageSize)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListContactMessagesRow{}
+	for rows.Next() {
+		var i ListContactMessagesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Email,
+			&i.Message,
+			&i.Status,
+			&i.CreatedAt,
+			&i.HandledAt,
+			&i.HandledByName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updateContactMessageStatus = `-- name: UpdateContactMessageStatus :execrows
+UPDATE contact_messages
+SET status = $1,
+    handled_by = $2,
+    handled_at = CURRENT_TIMESTAMP
+WHERE id = $3
+`
+
+type UpdateContactMessageStatusParams struct {
+	Status    string        `json:"status"`
+	HandledBy sql.NullInt32 `json:"handled_by"`
+	ID        int32         `json:"id"`
+}
+
+func (q *Queries) UpdateContactMessageStatus(ctx context.Context, arg UpdateContactMessageStatusParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateContactMessageStatus, arg.Status, arg.HandledBy, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

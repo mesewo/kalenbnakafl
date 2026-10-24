@@ -26,7 +26,7 @@ func TestRegisteredRouteRoleMatrix(t *testing.T) {
 	table := map[string][5]int{
 		"POST /api/register": {created, created, created, created, created}, "POST /api/login": {allow, allow, allow, allow, allow},
 		"POST /api/refresh": {guest, allow, allow, allow, allow}, "POST /api/logout": {allow, allow, allow, allow, allow},
-		"POST /api/contact": {created, created, created, created, created}, "GET /api/posts": {allow, allow, allow, allow, allow},
+		"POST /api/contact": {created, created, created, created, created}, "GET /api/staff/contact-messages": {guest, denied, denied, allow, allow}, "PATCH /api/staff/contact-messages/:id": {guest, denied, denied, allow, allow}, "GET /api/posts": {allow, allow, allow, allow, allow},
 		"GET /api/posts/:slug": {allow, allow, allow, allow, allow}, "GET /api/events": {allow, allow, allow, allow, allow},
 		"GET /api/events/:id": {allow, allow, allow, allow, allow}, "GET /api/media": {allow, allow, allow, allow, allow},
 		"GET /api/staff/posts": {guest, denied, denied, allow, allow}, "POST /api/staff/posts": {guest, denied, denied, created, created},
@@ -62,6 +62,10 @@ func TestRegisteredRouteRoleMatrix(t *testing.T) {
 	postID := insertTestPost(t, db, postAuthor, true)
 	eventID := insertTestEvent(t, db)
 	mediaID := insertMatrixMedia(t, db, postAuthor)
+	var contactID int32
+	if err := db.QueryRowContext(t.Context(), `INSERT INTO contact_messages (name, email, message) VALUES ('Matrix', 'matrix@example.org', 'Inbox fixture') RETURNING id`).Scan(&contactID); err != nil {
+		t.Fatalf("insert contact fixture: %v", err)
+	}
 	const detailSlug = "matrix-detail-post"
 	if _, err := db.ExecContext(t.Context(), `INSERT INTO posts (slug, title, content, author_id, published, published_at) VALUES ($1, $2, $3, $4, true, CURRENT_TIMESTAMP)`, detailSlug, "Detail", "Body", postAuthor); err != nil {
 		t.Fatal(err)
@@ -76,6 +80,7 @@ func TestRegisteredRouteRoleMatrix(t *testing.T) {
 			path = strings.ReplaceAll(path, "/events/:id", "/events/"+fmt.Sprint(eventID))
 			path = strings.ReplaceAll(path, "/posts/:id", "/posts/"+fmt.Sprint(postID))
 			path = strings.ReplaceAll(path, "/media/:id", "/media/"+fmt.Sprint(mediaID))
+			path = strings.ReplaceAll(path, "/contact-messages/:id", "/contact-messages/"+fmt.Sprint(contactID))
 			path = strings.ReplaceAll(path, "/volunteers/:id", "/volunteers/"+fmt.Sprint(ids["volunteer"]))
 			body := matrixRequestBody(key, role, ri, date)
 			cookie := cookies[role]
@@ -139,6 +144,8 @@ func matrixRequestBody(key, role string, index int, date string) string {
 			who = "user"
 		}
 		return fmt.Sprintf(`{"email":%q,"password":"a-long-test-password"}`, who+"-login@matrix-all.example.org")
+	case "PATCH /api/staff/contact-messages/:id":
+		return `{"status":"replied"}`
 	case "POST /api/contact":
 		return fmt.Sprintf(`{"name":"Contact","email":"contact-%s@example.org","message":"Hello"}`, role)
 	case "POST /api/staff/posts":

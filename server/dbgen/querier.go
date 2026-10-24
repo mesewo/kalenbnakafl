@@ -12,6 +12,7 @@ import (
 type Querier interface {
 	AddVolunteerContribution(ctx context.Context, arg AddVolunteerContributionParams) error
 	CountAdmins(ctx context.Context) (int64, error)
+	CountContactMessages(ctx context.Context, status sql.NullString) (int64, error)
 	CountEvents(ctx context.Context, upcoming bool) (int64, error)
 	CountMedia(ctx context.Context, kind sql.NullString) (int64, error)
 	CountPosts(ctx context.Context, arg CountPostsParams) (int64, error)
@@ -32,6 +33,7 @@ type Querier interface {
 	GetRoleByUserID(ctx context.Context, id int32) (string, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id int32) (User, error)
+	ListContactMessages(ctx context.Context, arg ListContactMessagesParams) ([]ListContactMessagesRow, error)
 	ListEvents(ctx context.Context, arg ListEventsParams) ([]ListEventsRow, error)
 	ListMedia(ctx context.Context, arg ListMediaParams) ([]ListMediaRow, error)
 	ListPosts(ctx context.Context, arg ListPostsParams) ([]ListPostsRow, error)
@@ -42,6 +44,7 @@ type Querier interface {
 	RegisterUser(ctx context.Context, arg RegisterUserParams) error
 	RevokeRefreshToken(ctx context.Context, tokenHash string) error
 	RevokeRefreshTokenByHash(ctx context.Context, tokenHash string) error
+	UpdateContactMessageStatus(ctx context.Context, arg UpdateContactMessageStatusParams) (int64, error)
 	UpdateEvent(ctx context.Context, arg UpdateEventParams) (int64, error)
 	UpdateManagedUser(ctx context.Context, arg UpdateManagedUserParams) (int64, error)
 	UpdatePost(ctx context.Context, arg UpdatePostParams) (int64, error)
