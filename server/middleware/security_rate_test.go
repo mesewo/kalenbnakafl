@@ -139,3 +139,28 @@ func TestMemoryLimiterEvictsExpiredEntriesAndCapsSize(t *testing.T) {
 		t.Fatalf("entries=%d want=1", len(limiter.entries))
 	}
 }
+func TestMemoryLimiterSweepsExpiredEntriesAtMostEveryThirtySeconds(t *testing.T) {
+	limiter := NewMemoryLimiter(2)
+	now := time.Now()
+	limiter.now = func() time.Time { return now }
+	if allowed, _ := limiter.Allow("expired", 1, time.Minute); !allowed {
+		t.Fatal("initial key rejected")
+	}
+	now = now.Add(29 * time.Second)
+	if allowed, _ := limiter.Allow("active", 1, time.Minute); !allowed {
+		t.Fatal("active key rejected")
+	}
+	now = now.Add(32 * time.Second)
+	if allowed, _ := limiter.Allow("replacement", 1, time.Minute); !allowed {
+		t.Fatal("expired entry was not swept")
+	}
+	if _, exists := limiter.entries["expired"]; exists {
+		t.Fatal("expired entry remains after sweep")
+	}
+	if allowed, _ := limiter.Allow("over-capacity", 1, time.Minute); allowed {
+		t.Fatal("capacity was not enforced after sweeping")
+	}
+	if len(limiter.entries) != 2 {
+		t.Fatalf("entries=%d want=2", len(limiter.entries))
+	}
+}
