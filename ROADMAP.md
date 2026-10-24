@@ -34,7 +34,8 @@
 ## Phase 1 — Backend foundation (≈ 2 sessions)
 
 - [x] `internal/config`: typed env config, fail-fast validation (`JWT_SECRET` ≥ 32 bytes, `DATABASE_URL`)
-- [ ] DB: connect with retry/backoff, pool settings, `Ping` with context; optional pgx migration (ADR-003)
+- [x] DB: connect with retry/backoff, pool settings, and `Ping` with context.
+- [ ] Optional pgx migration (ADR-003).
 - [x] Migrations with Goose: embedded numbered migrations under `server/db/migrations/`, serialized by a Postgres session lock; run before serving when `MIGRATE_ON_START=true`
 - [x] Bootstrap admin from env; dev-only `server/db/seed/dev.sql` behind the `seed` Compose profile
 - [x] `http.Server` with timeouts, graceful shutdown, Gin release mode in production, `/healthz` + `/readyz`
@@ -83,7 +84,8 @@
 ## Phase 4 — Front-end rebuild (≈ 3 sessions)
 
 - [ ] **Fix Tailwind v4 setup** (`@theme` tokens, remove v3 directives and `tailwind.config.ts`, `bg-black/50`), confirm visually
-- [ ] Design system: tokens (yellow brand + neutral scale), typography (self-hosted via `next/font`), `ui/` primitives (Button, Input, Dialog, Card, Badge, Table, Toast), light/dark
+- [ ] Design system: tokens (yellow brand + neutral scale), `ui/` primitives (Button, Input, Dialog, Card, Badge, Table, Toast), light/dark
+- [x] Typography: DM Sans and Fraunces use `next/font` in `front-end/app/layout.tsx` (verified by production build).
 - [ ] Layout: responsive Navbar (mobile drawer), Footer with real content, logo via `next/image`
 - [ ] Public pages as Server Components + ISR: Home (hero, upcoming events, latest news), Blog list + `/blog/[slug]`, Events, Media library (video/audio/docs), About, Volunteer (working form), Contact
 - [ ] SEO: `generateMetadata`, Open Graph images, `sitemap.ts`, `robots.ts`, JSON-LD (`Organization`, `Event`, `Article`), `not-found`/`error` pages
@@ -186,6 +188,10 @@
 | `cd server && go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0 run --path-mode=abs` (Phase 3 auth/rate limits) | Passed: 0 issues. | 2026-10-24 |
 | `cd server && gofmt -l . && go vet ./... && go test ./...` (Prompt V, Phase 3) | Passed; PostgreSQL-backed run passed all packages using Compose PostgreSQL, including middleware origin/proxy/rate-limit tests and auth cookie test. | 2026-10-24 |
 | `docker compose down && docker compose up --build -d`; `/healthz`, `/readyz`; Next-proxy login and staff post create/delete | Passed; Compose required container/network recreation after subnet pinning; all services healthy, login 200, create 201, cleanup 200. | 2026-10-24 |
+| `cd server && go build ./... && go vet ./... && go test ./...` (housekeeping) | Passed; PostgreSQL integration tests skipped because `DATABASE_URL_TEST` was unset. | 2026-10-24 |
+| `cd server && gofmt -l .` (Prompt V) | Passed; no files listed. `golangci-lint` was not installed. | 2026-10-24 |
+| `cd front-end && npm run lint && npx tsc --noEmit && npm run format:check && npm run build` (housekeeping) | Passed; lint reported 7 existing warnings and 0 errors; TypeScript, format check, and build passed. Next.js warned that Baseline browser data is stale. | 2026-10-24 |
+
 ### Phase 0 baseline run — 2026-10-20
 
 | Command | Exact result |
