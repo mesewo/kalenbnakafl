@@ -97,8 +97,8 @@ func TestContactInboxStatusPaginationAndTokenOwnership(t *testing.T) {
 	if err := json.Unmarshal(handledPayload.Items[0]["handled_by_name"], &handledByName); err != nil {
 		t.Fatalf("decode handled_by_name: %v", err)
 	}
-	if handledByName != "Inbox Admin" {
-		t.Fatalf("handled_by_name=%q want Inbox Admin", handledByName)
+	if handledByName != "Administrator" {
+		t.Fatalf("handled_by_name=%q want Administrator", handledByName)
 	}
 
 	invalidFilter := authRequest(r, http.MethodGet, "/api/staff/contact-messages?status=archived", "", editorCookie)
