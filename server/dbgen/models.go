@@ -30,6 +30,12 @@ type Event struct {
 	EndsAt      sql.NullTime `json:"ends_at"`
 }
 
+type EventSignup struct {
+	EventID   int32     `json:"event_id"`
+	UserID    int32     `json:"user_id"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 type Media struct {
 	ID           int32          `json:"id"`
 	Title        string         `json:"title"`
@@ -74,6 +80,18 @@ type User struct {
 	Role      string    `json:"role"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type VolunteerApplication struct {
+	ID           int32         `json:"id"`
+	UserID       int32         `json:"user_id"`
+	Skills       string        `json:"skills"`
+	Availability string        `json:"availability"`
+	Message      string        `json:"message"`
+	Status       string        `json:"status"`
+	ReviewedBy   sql.NullInt32 `json:"reviewed_by"`
+	ReviewedAt   sql.NullTime  `json:"reviewed_at"`
+	CreatedAt    time.Time     `json:"created_at"`
 }
 
 type VolunteerContribution struct {

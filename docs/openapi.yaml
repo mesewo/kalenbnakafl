@@ -1,0 +1,187 @@
+﻿openapi: 3.0.3
+info:
+  title: Kalenbnakafl Volunteer Workflows
+  version: 1.0.0
+  description: API paths added for volunteer applications and event sign-ups. All paths are prefixed with /api.
+servers:
+  - url: /api
+paths:
+  /me/volunteer-application:
+    get:
+      summary: Read the authenticated user's volunteer application
+      security: [{ sessionCookie: [] }]
+      responses:
+        '200':
+          description: Existing application
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VolunteerApplication' }
+        '401': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+    post:
+      summary: Submit a volunteer application
+      security: [{ sessionCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [skills, availability]
+              properties:
+                skills: { type: string, maxLength: 2000 }
+                availability: { type: string, maxLength: 1000 }
+                message: { type: string, maxLength: 5000 }
+      responses:
+        '201': { description: Application submitted }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+  /me/signups:
+    get:
+      summary: List the authenticated user's event sign-ups
+      security: [{ sessionCookie: [] }]
+      parameters: [{ $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Limit' }]
+      responses:
+        '200':
+          description: Paginated event list
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Page' }
+        '401': { $ref: '#/components/responses/Error' }
+  /events/{id}/signup:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer, minimum: 1 }
+    post:
+      summary: Sign up for a future event
+      security: [{ sessionCookie: [] }]
+      responses:
+        '201': { description: Sign-up created }
+        '401': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+    delete:
+      summary: Cancel the authenticated user's event sign-up
+      security: [{ sessionCookie: [] }]
+      responses:
+        '200': { description: Sign-up cancelled }
+        '401': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+  /admin/volunteer-applications:
+    get:
+      summary: List volunteer applications
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [pending, approved, declined] }
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+      responses:
+        '200':
+          description: Paginated application list
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Page' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+  /admin/volunteer-applications/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer, minimum: 1 }
+    patch:
+      summary: Approve or decline an application
+      security: [{ sessionCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [approved, declined] }
+      responses:
+        '200': { description: Application reviewed }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+  /admin/events/{id}/signups:
+    get:
+      summary: List event attendees
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+      responses:
+        '200':
+          description: Paginated attendee name and email list
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Page' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: access_token
+  parameters:
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 50, default: 10 }
+  responses:
+    Error:
+      description: Standard API error envelope
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          required: [code, message, details]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: { type: object }
+    Page:
+      type: object
+      required: [items, page, limit, total]
+      properties:
+        items: { type: array, items: { type: object } }
+        page: { type: integer }
+        limit: { type: integer }
+        total: { type: integer, format: int64 }
+    VolunteerApplication:
+      type: object
+      required: [id, skills, availability, message, status, created_at]
+      properties:
+        id: { type: integer }
+        skills: { type: string }
+        availability: { type: string }
+        message: { type: string }
+        status: { type: string, enum: [pending, approved, declined] }
+        created_at: { type: string, format: date-time }
+        reviewed_at: { type: string, format: date-time, nullable: true }

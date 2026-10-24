@@ -86,6 +86,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               >
                 Volunteers
               </Link>
+              <Link
+                href="/dashboard/volunteer-applications"
+                aria-current={
+                  pathname.startsWith("/dashboard/volunteer-applications") ? "page" : undefined
+                }
+              >
+                Volunteer applications
+              </Link>
             </>
           )}
           <Link
