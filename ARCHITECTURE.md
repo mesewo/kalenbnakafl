@@ -28,7 +28,7 @@ The API configures `log/slog` with a text handler in development and JSON in pro
 
 All API errors use `{"error":{"code":"...","message":"...","details":{}}}`. Stable codes are `invalid_json`, `validation_failed`, `unauthorized`, `forbidden`, `not_found`, `conflict`, `rate_limited`, `payload_too_large`, and `internal`. Unexpected failures are logged with the request ID and return a generic message. The default request body limit is 1 MiB; media upload routes allow the configured file limit plus 1 MiB for multipart framing. The frontend API client extracts the nested message, safely handles non-JSON proxy errors, applies a 15-second request timeout (120 seconds for uploads), and signals session expiry on protected-route 401 responses.
 
-Access JWTs use a typed claim structure and accept only HS256. Parsing requires issuer, issue time, expiry, positive user ID, and a recognized role; malformed claims return unauthorized. Session cookies are `HttpOnly; SameSite=Lax` in every environment and `Secure` except in development. For POST, PUT, PATCH, and DELETE requests carrying an access or refresh cookie, the API requires an allowed `Origin`, or an allowed `Referer` when `Origin` is absent. Login, registration, and contact are exempt because they do not read or rely on an existing session. Login attempts use a fixed-window key of trusted client IP plus lowercased email; register and contact use client IP. Rejections include `Retry-After`. The in-memory limiter sweeps expired entries on each attempt and caps its map at 10,000 keys.
+Access JWTs use a typed claim structure and accept only HS256. Parsing requires issuer, issue time, expiry, positive user ID, and a recognized role; malformed claims return unauthorized. Session cookies are `HttpOnly; SameSite=Lax` in every environment and `Secure` except in development. For POST, PUT, PATCH, and DELETE requests carrying an access or refresh cookie, the API requires an allowed `Origin`, or an allowed `Referer` when `Origin` is absent. Login, registration, and contact are exempt because they do not read or rely on an existing session. Login attempts use a fixed-window key of trusted client IP plus lowercased email; register and contact use client IP. Rejections include `Retry-After`. The in-memory limiter sweeps expired entries at most every 30 seconds and caps its map at 10,000 keys.
 
 ## 1. Current state
 
@@ -49,7 +49,9 @@ flowchart LR
 | POST | `/register` | none | role forced to `user`; validates name, email, password |
 | POST | `/login` | none | sets access + refresh cookies; access 15 min, refresh 7 d |
 | POST | `/refresh` · `/logout` | refresh cookie / none | rotates or revokes refresh session |
-| POST | `/contact` | none | validates and stores row; IP limited |
+| POST | `/contact` | none | validates and stores a new message; IP limited |
+| GET | `/staff/contact-messages?status&page&limit` | admin/editor | filtered newest-first inbox; paginated; invalid status returns 422; handler is returned by name only |
+| PATCH | `/staff/contact-messages/{id}` | admin/editor | sets status to read/replied and handler from the authenticated token; missing IDs return 404; no delete route |
 | GET | `/posts?page&limit&q` | none | published posts only; paginated; simple-config full-text search; newest published first |
 | GET | `/posts/{slug}` | none | returns a published post; drafts return 404 |
 | GET | `/media?kind&page&limit` | none | filtered, paginated media; returns `{items,page,limit,total}` |
@@ -69,15 +71,15 @@ Auth, refresh-token, profile, admin user, post, event, media, contact, and volun
 
 ### Current data model
 
-`users(id, name, email, password, role, created_at, updated_at)` with a unique lower(email) index · `posts(id, slug UNIQUE, title, content, author_id→users, published, published_at, cover_media_id→media ON DELETE SET NULL, search_vector GIN, created_at, updated_at)` · `events(id, title, description, event_date, ends_at nullable and after event_date, location, created_at)` · `media(id, title, file_path, media_type, kind CHECK image|video|audio|document with kind/created_at index, original_name, size_bytes, uploaded_by→users, created_at)` · `contacts(id, name, email, message, created_at)` · `refresh_tokens(id, user_id, token_hash, expires_at, revoked_at)` · `volunteer_contributions(...)`
+`users(id, name, email, password, role, created_at, updated_at)` with a unique lower(email) index · `posts(id, slug UNIQUE, title, content, author_id→users, published, published_at, cover_media_id→media ON DELETE SET NULL, search_vector GIN, created_at, updated_at)` · `events(id, title, description, event_date, ends_at nullable and after event_date, location, created_at)` · `media(id, title, file_path, media_type, kind CHECK image|video|audio|document with kind/created_at index, original_name, size_bytes, uploaded_by→users, created_at)` · `contact_messages(id, name, email, message, status CHECK new|read|replied, handled_by→users ON DELETE SET NULL, handled_at, created_at; status/created_at index)` · `refresh_tokens(id, user_id, token_hash, expires_at, revoked_at)` · `volunteer_contributions(...)`
 
 ### Migration and sqlc workflow
 
-- The canonical Goose SQL migrations live in `server/db/migrations/`; `server/db/migrations_embed.go` embeds them into the API binary. The migration directory contains SQL files only. Schema migrations contain no sample rows. Dev sample rows live in `server/db/seed/dev.sql` and load only through the `seed` Compose profile.
+- The canonical Goose SQL migrations live in `server/db/migrations/`; `server/db/migrations_embed.go` embeds them into the API binary. The migration directory contains SQL files only. Schema migrations contain no sample rows. Migration `0004_contact_messages.sql` renames `contacts` in place to preserve existing messages, then adds workflow status and handler metadata. Dev sample rows live in `server/db/seed/dev.sql` and load only through the `seed` Compose profile.
 - `MIGRATE_ON_START=true` makes the API create a Goose provider and apply pending migrations before bootstrapping the admin or serving requests. The provider uses a PostgreSQL session advisory lock so concurrent API starts serialize. Development Compose sets this to true by default; set it explicitly in `.env` for other environments.
 - Tool versions are pinned in `server/go.mod` using Go's `tool` directive: `go tool sqlc` v1.29.0 and `go tool goose` v3.24.3. Generate with `make sqlc`; enforce generated-code parity with `make sqlc-check` (`go tool sqlc diff`).
 - `sqlc.yaml` reads schema from `server/db/migrations` and query sources from `server/db/query`. Generated code is committed under `server/dbgen`. All handler and middleware queries use the existing injected `*dbgen.Queries`; handlers use `*sql.DB` only where transactions are needed. Refresh rotation uses `WithTx` and locks the active token row with `SELECT ... FOR UPDATE`. PostgreSQL NUMERIC volunteer hours are generated as strings by sqlc; handlers pass decimal text to writes and convert the aggregate to the existing numeric JSON field.
-- `DATABASE_URL_TEST` enables real-Postgres integration tests. Tests create an isolated temporary schema and cover migration up/down/up, BootstrapAdmin idempotence, auth/user/session flows including concurrent refresh, duplicate emails, admin guards, and role re-checks, post/event behavior including draft visibility, author ownership, role authorization, missing IDs, and event validation, and B3 behavior including contact rate limiting, media/file cleanup, volunteer NUMERIC hours, and route-role authorization; they skip when the variable is unset.
+- `DATABASE_URL_TEST` enables real-Postgres integration tests. Tests create an isolated temporary schema and cover migration up/down/up, BootstrapAdmin idempotence, auth/user/session flows including concurrent refresh, duplicate emails, admin guards, and role re-checks, post/event behavior including draft visibility, author ownership, role authorization, missing IDs, and event validation, B3 behavior including contact rate limiting and new-status storage, media/file cleanup, volunteer NUMERIC hours, and route-role authorization; contact inbox behavior covers migration row preservation, status ownership/filtering, pagination, invalid status, missing IDs, and route-role authorization. They skip when the variable is unset.
 
 ## 2. Target architecture
 
@@ -228,7 +230,7 @@ Posts/events are `translations`-ready: if multi-language content (not just UI) i
 | Public content | `GET /posts?page&limit&q` `GET /posts/{slug}` `GET /events?upcoming=true` `GET /events/{id}` `GET /media?kind=` |
 | Contact | `POST /contact` |
 | Member | `PATCH /me` `POST /me/volunteer-application` `POST /events/{id}/signup` `DELETE /events/{id}/signup` |
-| Staff (admin, editor) | `POST/PATCH/DELETE /posts` `…/events` `…/media` (multipart upload), `GET /contact-messages`, `PATCH /contact-messages/{id}` |
+| Staff (admin, editor) | `POST/PATCH/DELETE /posts` `…/events` `…/media` (multipart upload), `GET /contact-messages?status&page&limit`, `PATCH /contact-messages/{id}` |
 | Admin | `GET /users` `PATCH /users/{id}/role` `DELETE /users/{id}` `GET /volunteers` `PATCH /volunteers/{id}` `GET /memberships` |
 | Ops | `GET /healthz` `GET /readyz` `GET /metrics` (internal only) |
 

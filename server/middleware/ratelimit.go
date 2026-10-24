@@ -26,10 +26,11 @@ type bucket struct {
 }
 
 type MemoryLimiter struct {
-	mu       sync.Mutex
-	entries  map[string]bucket
-	capacity int
-	now      func() time.Time
+	mu        sync.Mutex
+	entries   map[string]bucket
+	capacity  int
+	now       func() time.Time
+	lastSweep time.Time
 }
 
 func NewMemoryLimiter(capacity int) *MemoryLimiter {
@@ -43,10 +44,13 @@ func (l *MemoryLimiter) Allow(key string, limit int, window time.Duration) (bool
 	now := l.now()
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	for existingKey, value := range l.entries {
-		if now.Sub(value.started) >= window {
-			delete(l.entries, existingKey)
+	if now.Sub(l.lastSweep) >= 30*time.Second {
+		for existingKey, value := range l.entries {
+			if now.Sub(value.started) >= window {
+				delete(l.entries, existingKey)
+			}
 		}
+		l.lastSweep = now
 	}
 	current, exists := l.entries[key]
 	if !exists || now.Sub(current.started) >= window {

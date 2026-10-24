@@ -9,12 +9,15 @@ import (
 	"time"
 )
 
-type Contact struct {
-	ID        int32     `json:"id"`
-	Name      string    `json:"name"`
-	Email     string    `json:"email"`
-	Message   string    `json:"message"`
-	CreatedAt time.Time `json:"created_at"`
+type ContactMessage struct {
+	ID        int32         `json:"id"`
+	Name      string        `json:"name"`
+	Email     string        `json:"email"`
+	Message   string        `json:"message"`
+	CreatedAt time.Time     `json:"created_at"`
+	Status    string        `json:"status"`
+	HandledBy sql.NullInt32 `json:"handled_by"`
+	HandledAt sql.NullTime  `json:"handled_at"`
 }
 
 type Event struct {

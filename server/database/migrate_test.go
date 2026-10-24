@@ -231,3 +231,35 @@ func TestMigration0003BackfillsMediaKinds(t *testing.T) {
 		t.Errorf("migration did not return rows for %v", want)
 	}
 }
+func TestMigration0004PreservesExistingContactRows(t *testing.T) {
+	db := testDatabase(t)
+	ctx := context.Background()
+	provider, err := newMigrationProvider(db)
+	if err != nil {
+		t.Fatalf("create provider: %v", err)
+	}
+	if _, err := provider.UpTo(ctx, 3); err != nil {
+		t.Fatalf("apply migrations through 0003: %v", err)
+	}
+	if _, err := db.ExecContext(ctx, `INSERT INTO contacts(name,email,message) VALUES ('Legacy Contact','legacy-contact@example.org','Existing message')`); err != nil {
+		t.Fatalf("insert legacy contact: %v", err)
+	}
+	if _, err := provider.Up(ctx); err != nil {
+		t.Fatalf("apply contact inbox migration: %v", err)
+	}
+	var id int32
+	var name, email, message, status string
+	if err := db.QueryRowContext(ctx, `SELECT id,name,email,message,status FROM contact_messages WHERE email=$1`, "legacy-contact@example.org").Scan(&id, &name, &email, &message, &status); err != nil {
+		t.Fatalf("read preserved contact: %v", err)
+	}
+	if id < 1 || name != "Legacy Contact" || message != "Existing message" || status != "new" {
+		t.Fatalf("migrated contact id=%d name=%q email=%q message=%q status=%q", id, name, email, message, status)
+	}
+	var oldTable sql.NullString
+	if err := db.QueryRowContext(ctx, `SELECT to_regclass('contacts')::text`).Scan(&oldTable); err != nil {
+		t.Fatalf("check old contacts table: %v", err)
+	}
+	if oldTable.Valid {
+		t.Fatalf("old contacts table remains after rename: %s", oldTable.String)
+	}
+}

@@ -82,8 +82,15 @@ func TestContactSubmitStoresRowAndRateLimitStillApplies(t *testing.T) {
 		t.Fatalf("31st contact status=%d want=429 body=%s", limited.Code, limited.Body)
 	}
 	var count int
-	if err := db.QueryRow(`SELECT count(*) FROM contacts WHERE email = 'sender@example.org'`).Scan(&count); err != nil {
+	if err := db.QueryRow(`SELECT count(*) FROM contact_messages WHERE email = 'sender@example.org'`).Scan(&count); err != nil {
 		t.Fatalf("count contact messages: %v", err)
+	}
+	var status string
+	if err := db.QueryRow(`SELECT status FROM contact_messages WHERE email = 'sender@example.org' ORDER BY id LIMIT 1`).Scan(&status); err != nil {
+		t.Fatalf("read contact status: %v", err)
+	}
+	if status != "new" {
+		t.Fatalf("new contact status=%q want=new", status)
 	}
 	if count != 30 {
 		t.Fatalf("stored contact count=%d want=30", count)
