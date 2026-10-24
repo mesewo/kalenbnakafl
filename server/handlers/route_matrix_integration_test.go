@@ -38,7 +38,11 @@ func TestRegisteredRouteRoleMatrix(t *testing.T) {
 		"GET /api/admin/users": {guest, denied, denied, denied, allow}, "POST /api/admin/users": {guest, denied, denied, denied, created},
 		"PATCH /api/admin/users/:id": {guest, denied, denied, denied, allow}, "DELETE /api/admin/users/:id": {guest, denied, denied, denied, allow},
 		"GET /api/admin/volunteers": {guest, denied, denied, denied, allow}, "POST /api/admin/volunteers/:id/contributions": {guest, denied, denied, denied, created},
-		"GET /api/me": {guest, allow, allow, allow, allow}, "GET /api/profile": {guest, allow, allow, allow, allow},
+		"GET /api/admin/volunteer-applications": {guest, denied, denied, denied, allow}, "PATCH /api/admin/volunteer-applications/:id": {guest, denied, denied, denied, allow},
+		"GET /api/admin/events/:id/signups": {guest, denied, denied, denied, allow},
+		"GET /api/me":                       {guest, allow, allow, allow, allow}, "POST /api/me/volunteer-application": {guest, http.StatusConflict, http.StatusConflict, http.StatusConflict, http.StatusConflict},
+		"GET /api/me/volunteer-application": {guest, allow, allow, allow, allow}, "GET /api/me/signups": {guest, allow, allow, allow, allow},
+		"POST /api/events/:id/signup": {guest, created, created, created, created}, "DELETE /api/events/:id/signup": {guest, allow, allow, allow, allow}, "GET /api/profile": {guest, allow, allow, allow, allow},
 		"PUT /api/profile": {guest, allow, allow, allow, allow},
 	}
 	registered := map[string]bool{}
@@ -70,6 +74,17 @@ func TestRegisteredRouteRoleMatrix(t *testing.T) {
 	if _, err := db.ExecContext(t.Context(), `INSERT INTO posts (slug, title, content, author_id, published, published_at) VALUES ($1, $2, $3, $4, true, CURRENT_TIMESTAMP)`, detailSlug, "Detail", "Body", postAuthor); err != nil {
 		t.Fatal(err)
 	}
+	// Keep the self-application GET and duplicate POST route expectations stable while the route order is exercised.
+	for _, role := range []string{"user", "volunteer", "editor", "admin"} {
+		if _, err := db.ExecContext(t.Context(), `INSERT INTO volunteer_applications(user_id,skills,availability) VALUES($1,'matrix skills','weekends')`, ids[role]); err != nil {
+			t.Fatalf("insert %s application fixture: %v", role, err)
+		}
+	}
+	reviewCandidate := createAuthUser(t, q, "Review Candidate", "review-candidate@matrix-all.example.org", "a-long-test-password", "user")
+	var applicationID int32
+	if err := db.QueryRowContext(t.Context(), `INSERT INTO volunteer_applications(user_id,skills,availability) VALUES($1,'matrix skills','weekends') RETURNING id`, reviewCandidate).Scan(&applicationID); err != nil {
+		t.Fatalf("insert review application fixture: %v", err)
+	}
 	date := time.Now().Add(72 * time.Hour).UTC().Format(time.RFC3339)
 	roles := []string{"guest", "user", "volunteer", "editor", "admin"}
 	for ri, role := range roles {
@@ -81,6 +96,7 @@ func TestRegisteredRouteRoleMatrix(t *testing.T) {
 			path = strings.ReplaceAll(path, "/posts/:id", "/posts/"+fmt.Sprint(postID))
 			path = strings.ReplaceAll(path, "/media/:id", "/media/"+fmt.Sprint(mediaID))
 			path = strings.ReplaceAll(path, "/contact-messages/:id", "/contact-messages/"+fmt.Sprint(contactID))
+			path = strings.ReplaceAll(path, "/volunteer-applications/:id", "/volunteer-applications/"+fmt.Sprint(applicationID))
 			path = strings.ReplaceAll(path, "/volunteers/:id", "/volunteers/"+fmt.Sprint(ids["volunteer"]))
 			body := matrixRequestBody(key, role, ri, date)
 			cookie := cookies[role]
@@ -105,7 +121,7 @@ func TestRegisteredRouteRoleMatrix(t *testing.T) {
 				switch {
 				case strings.Contains(key, "/posts/"):
 					path = fmt.Sprintf("/api/staff/posts/%d", insertTestPost(t, db, ids[role], false))
-				case strings.Contains(key, "/events/"):
+				case strings.Contains(key, "/events/") && !strings.Contains(key, "/signup"):
 					path = fmt.Sprintf("/api/staff/events/%d", insertTestEvent(t, db))
 				case strings.Contains(key, "/media/"):
 					path = fmt.Sprintf("/api/staff/media/%d", insertMatrixMedia(t, db, ids[role]))
@@ -146,6 +162,10 @@ func matrixRequestBody(key, role string, index int, date string) string {
 		return fmt.Sprintf(`{"email":%q,"password":"a-long-test-password"}`, who+"-login@matrix-all.example.org")
 	case "PATCH /api/staff/contact-messages/:id":
 		return `{"status":"replied"}`
+	case "PATCH /api/admin/volunteer-applications/:id":
+		return `{"status":"approved"}`
+	case "POST /api/me/volunteer-application":
+		return `{"skills":"community organizing","availability":"weekends","message":"Interested"}`
 	case "POST /api/contact":
 		return fmt.Sprintf(`{"name":"Contact","email":"contact-%s@example.org","message":"Hello"}`, role)
 	case "POST /api/staff/posts":

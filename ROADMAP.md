@@ -197,6 +197,10 @@
 | `cd server && gofmt -l . && go build ./... && go vet ./... && go test ./...` (contact inbox) | Passed; no gofmt output. PostgreSQL integration tests skipped because `DATABASE_URL_TEST` was unset. | 2026-10-24 |
 | `cd front-end && npm run lint && npx tsc --noEmit && npm run format:check && npm run build` (contact inbox) | Passed; lint reported 7 warnings and 0 errors; TypeScript, format check, and build passed. Next.js reported stale Baseline browser data. | 2026-10-24 |
 | `docker compose up --build -d` (contact inbox smoke) | Failed before startup: Docker Engine named pipe was unavailable. Contact submission/dashboard smoke was not run. | 2026-10-24 |
+
+| `cd server && go tool sqlc diff -f ../sqlc.yaml && go tool goose -dir db/migrations validate && go build ./... && go vet ./... && go test ./...` (volunteer applications and event sign-ups) | Passed; PostgreSQL integration tests skipped because `DATABASE_URL_TEST` was unset. | 2026-10-24 |
+| `cd front-end && npm run lint && npx tsc --noEmit && npm run format:check && npm run build` (volunteer applications and event sign-ups) | Passed; lint reported 7 warnings and 0 errors; TypeScript, format check, and build passed. Next.js warned that Baseline browser data is stale. | 2026-10-24 |
+| `docker compose up --build -d` (volunteer applications and event sign-ups smoke) | Failed before startup: Docker Engine named pipe was unavailable. Register/apply/approve/sign-up smoke was not run. | 2026-10-24 |
 ### Phase 0 baseline run — 2026-10-20
 
 | Command | Exact result |

@@ -7,41 +7,56 @@ package dbgen
 import (
 	"context"
 	"database/sql"
+	"time"
 )
 
 type Querier interface {
 	AddVolunteerContribution(ctx context.Context, arg AddVolunteerContributionParams) error
 	CountAdmins(ctx context.Context) (int64, error)
 	CountContactMessages(ctx context.Context, status sql.NullString) (int64, error)
+	CountEventAttendees(ctx context.Context, eventID int32) (int64, error)
 	CountEvents(ctx context.Context, upcoming bool) (int64, error)
 	CountMedia(ctx context.Context, kind sql.NullString) (int64, error)
+	CountMyEventSignups(ctx context.Context, userID int32) (int64, error)
 	CountPosts(ctx context.Context, arg CountPostsParams) (int64, error)
+	CountVolunteerApplications(ctx context.Context, status sql.NullString) (int64, error)
 	CreateAdminIfMissing(ctx context.Context, arg CreateAdminIfMissingParams) error
 	CreateContact(ctx context.Context, arg CreateContactParams) error
 	CreateEvent(ctx context.Context, arg CreateEventParams) error
+	CreateEventSignup(ctx context.Context, arg CreateEventSignupParams) (int64, error)
 	CreateMedia(ctx context.Context, arg CreateMediaParams) error
 	CreatePost(ctx context.Context, arg CreatePostParams) error
 	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) error
 	CreateUser(ctx context.Context, arg CreateUserParams) error
+	CreateVolunteerApplication(ctx context.Context, arg CreateVolunteerApplicationParams) error
 	DeleteEvent(ctx context.Context, id int32) (int64, error)
+	DeleteEventSignup(ctx context.Context, arg DeleteEventSignupParams) (int64, error)
 	DeleteMedia(ctx context.Context, id int32) (int64, error)
 	DeletePost(ctx context.Context, id int32) (int64, error)
 	DeleteUser(ctx context.Context, id int32) (int64, error)
 	GetEventByID(ctx context.Context, id int32) (GetEventByIDRow, error)
+	GetEventDate(ctx context.Context, id int32) (time.Time, error)
 	GetMediaFilePath(ctx context.Context, id int32) (string, error)
+	GetMyVolunteerApplication(ctx context.Context, userID int32) (VolunteerApplication, error)
 	GetPostBySlug(ctx context.Context, slug string) (GetPostBySlugRow, error)
 	GetRoleByUserID(ctx context.Context, id int32) (string, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id int32) (User, error)
 	ListContactMessages(ctx context.Context, arg ListContactMessagesParams) ([]ListContactMessagesRow, error)
+	ListEventAttendees(ctx context.Context, arg ListEventAttendeesParams) ([]ListEventAttendeesRow, error)
 	ListEvents(ctx context.Context, arg ListEventsParams) ([]ListEventsRow, error)
 	ListMedia(ctx context.Context, arg ListMediaParams) ([]ListMediaRow, error)
+	ListMyEventSignups(ctx context.Context, arg ListMyEventSignupsParams) ([]ListMyEventSignupsRow, error)
 	ListPosts(ctx context.Context, arg ListPostsParams) ([]ListPostsRow, error)
 	ListUsers(ctx context.Context) ([]ListUsersRow, error)
+	ListVolunteerApplications(ctx context.Context, arg ListVolunteerApplicationsParams) ([]ListVolunteerApplicationsRow, error)
 	ListVolunteers(ctx context.Context) ([]ListVolunteersRow, error)
 	LockActiveRefreshToken(ctx context.Context, tokenHash string) (int32, error)
+	LockVolunteerApplication(ctx context.Context, id int32) (LockVolunteerApplicationRow, error)
+	PromoteApplicantIfUser(ctx context.Context, userID int32) (int64, error)
 	PublishPost(ctx context.Context, arg PublishPostParams) (int64, error)
 	RegisterUser(ctx context.Context, arg RegisterUserParams) error
+	ReviewVolunteerApplication(ctx context.Context, arg ReviewVolunteerApplicationParams) (int64, error)
 	RevokeRefreshToken(ctx context.Context, tokenHash string) error
 	RevokeRefreshTokenByHash(ctx context.Context, tokenHash string) error
 	UpdateContactMessageStatus(ctx context.Context, arg UpdateContactMessageStatusParams) (int64, error)

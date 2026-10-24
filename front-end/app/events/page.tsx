@@ -4,9 +4,14 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
+import { useAuth } from "@/context/AuthContext";
 import { apiFetch, formatDate, type EventItem, type PageResponse } from "@/lib/api";
 
 export default function EventsPage() {
+  const { user, isLoading: authLoading } = useAuth();
+  const [signedUp, setSignedUp] = useState<Set<number>>(new Set());
+  const [signupBusy, setSignupBusy] = useState<number | null>(null);
+  const [signupError, setSignupError] = useState("");
   const [result, setResult] = useState<PageResponse<EventItem>>({
     items: [],
     page: 1,
@@ -33,6 +38,44 @@ export default function EventsPage() {
       active = false;
     };
   }, [page]);
+
+  useEffect(() => {
+    if (!user) {
+      setSignedUp(new Set());
+      return;
+    }
+    let active = true;
+    apiFetch<PageResponse<EventItem>>("/me/signups?limit=50")
+      .then((data) => {
+        if (active) setSignedUp(new Set(data.items.map((event) => event.id)));
+      })
+      .catch((err: unknown) => {
+        if (active)
+          setError(err instanceof Error ? err.message : "Unable to load your event sign-ups");
+      });
+    return () => {
+      active = false;
+    };
+  }, [user]);
+
+  async function toggleSignup(eventID: number) {
+    setSignupBusy(eventID);
+    setSignupError("");
+    const cancel = signedUp.has(eventID);
+    try {
+      await apiFetch(`/events/${eventID}/signup`, { method: cancel ? "DELETE" : "POST" });
+      setSignedUp((current) => {
+        const next = new Set(current);
+        if (cancel) next.delete(eventID);
+        else next.add(eventID);
+        return next;
+      });
+    } catch (err) {
+      setSignupError(err instanceof Error ? err.message : "Unable to update your event sign-up");
+    } finally {
+      setSignupBusy(null);
+    }
+  }
 
   const hasNext = page * result.limit < result.total;
   return (
@@ -65,19 +108,43 @@ export default function EventsPage() {
                 </Link>
               </div>
             ) : (
-              <div className="grid-2">
-                {result.items.map((event) => (
-                  <article className="card" key={event.id}>
-                    <span className="eyebrow">{formatDate(event.event_date, true)}</span>
-                    <h2>{event.title}</h2>
-                    <p>{event.description}</p>
-                    {event.location && <p className="meta">{event.location}</p>}
-                    <Link className="btn btn-sun btn-small" href="/contact">
-                      Ask about this event
-                    </Link>
-                  </article>
-                ))}
-              </div>
+              <>
+                {signupError && (
+                  <div className="status status-error" role="alert">
+                    {signupError}
+                  </div>
+                )}
+                <div className="grid-2">
+                  {result.items.map((event) => (
+                    <article className="card" key={event.id}>
+                      <span className="eyebrow">{formatDate(event.event_date, true)}</span>
+                      <h2>{event.title}</h2>
+                      <p>{event.description}</p>
+                      {event.location && <p className="meta">{event.location}</p>}
+                      {user && !authLoading ? (
+                        <button
+                          className="btn btn-sun btn-small"
+                          onClick={() => void toggleSignup(event.id)}
+                          disabled={signupBusy === event.id}
+                        >
+                          {signupBusy === event.id
+                            ? "Saving?"
+                            : signedUp.has(event.id)
+                              ? "Cancel sign-up"
+                              : "Sign up"}
+                        </button>
+                      ) : (
+                        <Link
+                          className="btn btn-sun btn-small"
+                          href={authLoading ? "/auth/login" : "/auth/login?next=%2Fevents"}
+                        >
+                          {authLoading ? "Log in to sign up" : "Log in to sign up"}
+                        </Link>
+                      )}
+                    </article>
+                  ))}
+                </div>
+              </>
             )}
             <nav
               className="form-actions"

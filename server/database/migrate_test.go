@@ -263,3 +263,35 @@ func TestMigration0004PreservesExistingContactRows(t *testing.T) {
 		t.Fatalf("old contacts table remains after rename: %s", oldTable.String)
 	}
 }
+
+func TestMigration0005CreatesVolunteerWorkflowsWithExistingData(t *testing.T) {
+	db := testDatabase(t)
+	ctx := context.Background()
+	provider, err := newMigrationProvider(db)
+	if err != nil {
+		t.Fatalf("create provider: %v", err)
+	}
+	if _, err := provider.UpTo(ctx, 4); err != nil {
+		t.Fatalf("apply migrations through 0004: %v", err)
+	}
+	if _, err := db.ExecContext(ctx, `INSERT INTO users(name,email,password,role) VALUES ('Workflow User','workflow-migration@example.org','hash','user')`); err != nil {
+		t.Fatalf("insert pre-migration user: %v", err)
+	}
+	if _, err := db.ExecContext(ctx, `INSERT INTO events(title,description,event_date) VALUES ('Existing event','Existing data',CURRENT_TIMESTAMP + INTERVAL '3 days')`); err != nil {
+		t.Fatalf("insert pre-migration event: %v", err)
+	}
+	if _, err := provider.Up(ctx); err != nil {
+		t.Fatalf("apply migration 0005: %v", err)
+	}
+	var usersTable, signupsTable sql.NullString
+	if err := db.QueryRowContext(ctx, `SELECT to_regclass('volunteer_applications')::text, to_regclass('event_signups')::text`).Scan(&usersTable, &signupsTable); err != nil {
+		t.Fatalf("check workflow tables: %v", err)
+	}
+	if !usersTable.Valid || !signupsTable.Valid {
+		t.Fatalf("workflow tables missing: applications=%v signups=%v", usersTable, signupsTable)
+	}
+	var preserved int
+	if err := db.QueryRowContext(ctx, `SELECT count(*) FROM events WHERE title='Existing event'`).Scan(&preserved); err != nil || preserved != 1 {
+		t.Fatalf("pre-existing event data not preserved: count=%d err=%v", preserved, err)
+	}
+}
