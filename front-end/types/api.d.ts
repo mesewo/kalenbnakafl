@@ -4,2202 +4,2202 @@
  */
 
 export interface paths {
-    "/api/register": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Register a new user account
-         * @description Creates a new account with role `user`. Rate-limited to 10 requests/minute per IP.
-         */
-        post: operations["register"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+  "/api/register": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/login": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Log in and receive session cookies
-         * @description Verifies credentials and sets two `HttpOnly` cookies:
-         *     - `access_token`: JWT, 15-minute TTL
-         *     - `refresh_token`: opaque token, 7-day TTL
-         *
-         *     Rate-limited to 10 requests/minute per IP+email.
-         */
-        post: operations["login"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /**
+     * Register a new user account
+     * @description Creates a new account with role `user`. Rate-limited to 10 requests/minute per IP.
+     */
+    post: operations["register"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/login": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/refresh": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Rotate session cookies using the refresh token
-         * @description Requires the `refresh_token` cookie. Issues a new access token and rotates the refresh
-         *     token (old one is revoked). Rate-limited to 10 requests/minute per IP.
-         */
-        post: operations["refresh"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /**
+     * Log in and receive session cookies
+     * @description Verifies credentials and sets two `HttpOnly` cookies:
+     *     - `access_token`: JWT, 15-minute TTL
+     *     - `refresh_token`: opaque token, 7-day TTL
+     *
+     *     Rate-limited to 10 requests/minute per IP+email.
+     */
+    post: operations["login"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/refresh": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/logout": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Revoke the refresh token and clear cookies */
-        post: operations["logout"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /**
+     * Rotate session cookies using the refresh token
+     * @description Requires the `refresh_token` cookie. Issues a new access token and rotates the refresh
+     *     token (old one is revoked). Rate-limited to 10 requests/minute per IP.
+     */
+    post: operations["refresh"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/logout": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/contact": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Submit a contact message
-         * @description Rate-limited to 30 requests/minute per IP.
-         */
-        post: operations["createContact"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /** Revoke the refresh token and clear cookies */
+    post: operations["logout"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/contact": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/posts": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List published posts
-         * @description Returns published posts paginated, newest first. Supports full-text search.
-         */
-        get: operations["getPosts"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /**
+     * Submit a contact message
+     * @description Rate-limited to 30 requests/minute per IP.
+     */
+    post: operations["createContact"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/posts": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/posts/{slug}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get a published post by slug
-         * @description Drafts return 404.
-         */
-        get: operations["getPostBySlug"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * List published posts
+     * @description Returns published posts paginated, newest first. Supports full-text search.
+     */
+    get: operations["getPosts"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/posts/{slug}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/events": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List events
-         * @description Returns paginated events. When `upcoming=true`, returns future events ascending by date;
-         *     otherwise newest-created first.
-         */
-        get: operations["getEvents"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * Get a published post by slug
+     * @description Drafts return 404.
+     */
+    get: operations["getPostBySlug"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/events": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/events/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get an event by ID */
-        get: operations["getEventByID"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * List events
+     * @description Returns paginated events. When `upcoming=true`, returns future events ascending by date;
+     *     otherwise newest-created first.
+     */
+    get: operations["getEvents"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/events/{id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/media": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List media
-         * @description Filtered, paginated media items.
-         */
-        get: operations["getMedia"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** Get an event by ID */
+    get: operations["getEventByID"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/media": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/me": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get the currently authenticated user */
-        get: operations["me"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * List media
+     * @description Filtered, paginated media items.
+     */
+    get: operations["getMedia"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/me": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/profile": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get the authenticated user's profile */
-        get: operations["getProfile"];
-        /** Update the authenticated user's profile */
-        put: operations["updateProfile"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** Get the currently authenticated user */
+    get: operations["me"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/profile": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/me/volunteer-application": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get the current user's volunteer application */
-        get: operations["getMyVolunteerApplication"];
-        put?: never;
-        /**
-         * Submit a volunteer application
-         * @description A user may only submit one application; subsequent attempts return 409.
-         */
-        post: operations["createVolunteerApplication"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** Get the authenticated user's profile */
+    get: operations["getProfile"];
+    /** Update the authenticated user's profile */
+    put: operations["updateProfile"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/me/volunteer-application": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/me/signups": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List the current user's event sign-ups */
-        get: operations["listMyEventSignups"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** Get the current user's volunteer application */
+    get: operations["getMyVolunteerApplication"];
+    put?: never;
+    /**
+     * Submit a volunteer application
+     * @description A user may only submit one application; subsequent attempts return 409.
+     */
+    post: operations["createVolunteerApplication"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/me/signups": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/events/{id}/signup": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Sign up for an event
-         * @description Returns 409 if already signed up, 422 if the event is in the past.
-         */
-        post: operations["signupForEvent"];
-        /** Cancel an event sign-up */
-        delete: operations["cancelEventSignup"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** List the current user's event sign-ups */
+    get: operations["listMyEventSignups"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/events/{id}/signup": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/staff/posts": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List all posts (including drafts) */
-        get: operations["staffGetPosts"];
-        put?: never;
-        /** Create a new post (draft) */
-        post: operations["createPost"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /**
+     * Sign up for an event
+     * @description Returns 409 if already signed up, 422 if the event is in the past.
+     */
+    post: operations["signupForEvent"];
+    /** Cancel an event sign-up */
+    delete: operations["cancelEventSignup"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/staff/posts": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/staff/posts/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Delete a post */
-        delete: operations["deletePost"];
-        options?: never;
-        head?: never;
-        /** Update an existing post */
-        patch: operations["updatePost"];
-        trace?: never;
+    /** List all posts (including drafts) */
+    get: operations["staffGetPosts"];
+    put?: never;
+    /** Create a new post (draft) */
+    post: operations["createPost"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/staff/posts/{id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/staff/posts/{id}/publish": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Publish or unpublish a post */
-        patch: operations["publishPost"];
-        trace?: never;
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Delete a post */
+    delete: operations["deletePost"];
+    options?: never;
+    head?: never;
+    /** Update an existing post */
+    patch: operations["updatePost"];
+    trace?: never;
+  };
+  "/api/staff/posts/{id}/publish": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/staff/events": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List all events (staff view) */
-        get: operations["staffGetEvents"];
-        put?: never;
-        /** Create an event */
-        post: operations["createEvent"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Publish or unpublish a post */
+    patch: operations["publishPost"];
+    trace?: never;
+  };
+  "/api/staff/events": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/staff/events/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Delete an event */
-        delete: operations["deleteEvent"];
-        options?: never;
-        head?: never;
-        /** Update an event */
-        patch: operations["updateEvent"];
-        trace?: never;
+    /** List all events (staff view) */
+    get: operations["staffGetEvents"];
+    put?: never;
+    /** Create an event */
+    post: operations["createEvent"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/staff/events/{id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/staff/media": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List media (staff view) */
-        get: operations["staffGetMedia"];
-        put?: never;
-        /**
-         * Upload a media file
-         * @description Multipart upload. Accepted MIME types: PNG, JPEG, WebP, PDF, MP4, WebM, MP3, OGG.
-         *     Maximum size configured by `MEDIA_MAX_MB` (default 50 MB).
-         */
-        post: operations["uploadMedia"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Delete an event */
+    delete: operations["deleteEvent"];
+    options?: never;
+    head?: never;
+    /** Update an event */
+    patch: operations["updateEvent"];
+    trace?: never;
+  };
+  "/api/staff/media": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/staff/media/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Delete a media item */
-        delete: operations["deleteMedia"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** List media (staff view) */
+    get: operations["staffGetMedia"];
+    put?: never;
+    /**
+     * Upload a media file
+     * @description Multipart upload. Accepted MIME types: PNG, JPEG, WebP, PDF, MP4, WebM, MP3, OGG.
+     *     Maximum size configured by `MEDIA_MAX_MB` (default 50 MB).
+     */
+    post: operations["uploadMedia"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/staff/media/{id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/staff/contact-messages": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List contact messages (staff inbox)
-         * @description Filtered by status, paginated, newest first.
-         */
-        get: operations["listContactMessages"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Delete a media item */
+    delete: operations["deleteMedia"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/staff/contact-messages": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/staff/contact-messages/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Update a contact message status */
-        patch: operations["updateContactMessageStatus"];
-        trace?: never;
+    /**
+     * List contact messages (staff inbox)
+     * @description Filtered by status, paginated, newest first.
+     */
+    get: operations["listContactMessages"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/staff/contact-messages/{id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/admin/users": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List all users */
-        get: operations["adminGetUsers"];
-        put?: never;
-        /** Create a user account (admin) */
-        post: operations["adminCreateUser"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Update a contact message status */
+    patch: operations["updateContactMessageStatus"];
+    trace?: never;
+  };
+  "/api/admin/users": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/admin/users/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Delete a user account
-         * @description Returns 400 if attempting self-deletion, 409 if deleting the last admin account.
-         */
-        delete: operations["adminDeleteUser"];
-        options?: never;
-        head?: never;
-        /** Update a user account */
-        patch: operations["adminUpdateUser"];
-        trace?: never;
+    /** List all users */
+    get: operations["adminGetUsers"];
+    put?: never;
+    /** Create a user account (admin) */
+    post: operations["adminCreateUser"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/admin/users/{id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/admin/volunteers": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List volunteers with total contribution hours */
-        get: operations["adminGetVolunteers"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Delete a user account
+     * @description Returns 400 if attempting self-deletion, 409 if deleting the last admin account.
+     */
+    delete: operations["adminDeleteUser"];
+    options?: never;
+    head?: never;
+    /** Update a user account */
+    patch: operations["adminUpdateUser"];
+    trace?: never;
+  };
+  "/api/admin/volunteers": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/admin/volunteers/{id}/contributions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Record volunteer contribution hours */
-        post: operations["adminAddContribution"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** List volunteers with total contribution hours */
+    get: operations["adminGetVolunteers"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/admin/volunteers/{id}/contributions": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/admin/volunteer-applications": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List volunteer applications (admin) */
-        get: operations["adminListVolunteerApplications"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /** Record volunteer contribution hours */
+    post: operations["adminAddContribution"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/admin/volunteer-applications": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/admin/volunteer-applications/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * Approve or decline a volunteer application
-         * @description Approval promotes a `user` account to `volunteer` role in the same transaction.
-         */
-        patch: operations["adminReviewVolunteerApplication"];
-        trace?: never;
+    /** List volunteer applications (admin) */
+    get: operations["adminListVolunteerApplications"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/admin/volunteer-applications/{id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/admin/events/{id}/signups": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List attendees for an event */
-        get: operations["adminListEventAttendees"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Approve or decline a volunteer application
+     * @description Approval promotes a `user` account to `volunteer` role in the same transaction.
+     */
+    patch: operations["adminReviewVolunteerApplication"];
+    trace?: never;
+  };
+  "/api/admin/events/{id}/signups": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
+    /** List attendees for an event */
+    get: operations["adminListEventAttendees"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
-    schemas: {
-        /** @enum {string} */
-        UserRole: "admin" | "editor" | "user" | "volunteer";
-        ErrorDetail: {
-            code: string;
-            message: string;
-            details: {
-                [key: string]: unknown;
-            };
-        };
-        ErrorEnvelope: {
-            error: components["schemas"]["ErrorDetail"];
-        };
-        User: {
-            /** Format: int64 */
-            id: number;
-            name: string;
-            /** Format: email */
-            email: string;
-            role: components["schemas"]["UserRole"];
-            /** Format: date-time */
-            created_at?: string;
-        };
-        Post: {
-            /** Format: int64 */
-            id: number;
-            slug: string;
-            title: string;
-            content: string;
-            /** Format: int64 */
-            author_id?: number;
-            author_name?: string;
-            published?: boolean;
-            /** Format: date-time */
-            published_at?: string;
-            /** Format: int64 */
-            cover_media_id?: number;
-            /** Format: date-time */
-            created_at?: string;
-            /** Format: date-time */
-            updated_at?: string;
-        };
-        Event: {
-            /** Format: int64 */
-            id: number;
-            title: string;
-            description: string;
-            /** Format: date-time */
-            event_date: string;
-            /** Format: date-time */
-            ends_at?: string;
-            location: string;
-            /** Format: date-time */
-            created_at?: string;
-        };
-        Media: {
-            /** Format: int64 */
-            id: number;
-            title: string;
-            file_path: string;
-            media_type?: string;
-            original_name?: string;
-            /** Format: int64 */
-            size_bytes?: number;
-            /** @enum {string} */
-            kind: "image" | "video" | "audio" | "document";
-            /** Format: date-time */
-            created_at?: string;
-        };
-        /** @description Contact message as returned to staff */
-        ContactMessage: {
-            /** Format: int64 */
-            id: number;
-            name: string;
-            /** Format: email */
-            email: string;
-            message: string;
-            /** @enum {string} */
-            status: "new" | "read" | "replied";
-            /** Format: date-time */
-            created_at: string;
-            handled_by_name?: string;
-            /** Format: date-time */
-            handled_at?: string;
-        };
-        /** @description Own volunteer application (returned to the applicant) */
-        VolunteerApplicationDTO: {
-            /** Format: int64 */
-            id: number;
-            skills: string;
-            availability: string;
-            message?: string;
-            /** @enum {string} */
-            status: "pending" | "approved" | "declined";
-            /** Format: date-time */
-            created_at: string;
-            /** Format: date-time */
-            reviewed_at?: string;
-        };
-        /** @description Volunteer application as returned to admins (includes applicant identity) */
-        VolunteerApplicationReviewDTO: {
-            /** Format: int64 */
-            id: number;
-            name: string;
-            /** Format: email */
-            email: string;
-            skills: string;
-            availability: string;
-            message?: string;
-            /** @enum {string} */
-            status: "pending" | "approved" | "declined";
-            /** Format: date-time */
-            created_at: string;
-            /** Format: date-time */
-            reviewed_at?: string;
-            reviewer_name?: string;
-        };
-        EventAttendeeDTO: {
-            name: string;
-            /** Format: email */
-            email: string;
-            /** Format: date-time */
-            created_at: string;
-        };
-        /** @description Volunteer user with total contribution hours */
-        Volunteer: {
-            /** Format: int64 */
-            id: number;
-            name: string;
-            /** Format: email */
-            email: string;
-            role: components["schemas"]["UserRole"];
-            /** Format: date-time */
-            created_at?: string;
-            /** Format: double */
-            total_hours: number;
-        };
-        PagePost: {
-            items: components["schemas"]["Post"][];
-            page: number;
-            limit: number;
-            /** Format: int64 */
-            total: number;
-        };
-        PageEvent: {
-            items: components["schemas"]["Event"][];
-            page: number;
-            limit: number;
-            /** Format: int64 */
-            total: number;
-        };
-        PageMedia: {
-            items: components["schemas"]["Media"][];
-            page: number;
-            limit: number;
-            /** Format: int64 */
-            total: number;
-        };
-        PageContactMessage: {
-            items: components["schemas"]["ContactMessage"][];
-            page: number;
-            limit: number;
-            /** Format: int64 */
-            total: number;
-        };
-        PageVolunteerApplicationReview: {
-            items: components["schemas"]["VolunteerApplicationReviewDTO"][];
-            page: number;
-            limit: number;
-            /** Format: int64 */
-            total: number;
-        };
-        PageEventAttendee: {
-            items: components["schemas"]["EventAttendeeDTO"][];
-            page: number;
-            limit: number;
-            /** Format: int64 */
-            total: number;
-        };
-        RegisterRequest: {
-            name: string;
-            /** Format: email */
-            email: string;
-            password: string;
-        };
-        LoginRequest: {
-            /** Format: email */
-            email: string;
-            password: string;
-        };
-        ContactRequest: {
-            name: string;
-            /** Format: email */
-            email: string;
-            message: string;
-        };
-        CreatePostRequest: {
-            title: string;
-            content: string;
-            slug?: string;
-            /** Format: int64 */
-            cover_media_id?: number;
-        };
-        UpdatePostRequest: {
-            title: string;
-            content: string;
-            slug: string;
-            /** Format: int64 */
-            cover_media_id?: number;
-        };
-        PublishPostRequest: {
-            published: boolean;
-        };
-        CreateEventRequest: {
-            title: string;
-            description: string;
-            /**
-             * Format: date-time
-             * @description RFC3339 datetime
-             */
-            event_date: string;
-            /**
-             * Format: date-time
-             * @description Optional; must be after event_date
-             */
-            ends_at?: string;
-            location?: string;
-        };
-        UpdateEventRequest: {
-            title: string;
-            description: string;
-            /** Format: date-time */
-            event_date: string;
-            /** Format: date-time */
-            ends_at?: string;
-            location?: string;
-        };
-        UpdateProfileRequest: {
-            name: string;
-            /** Format: email */
-            email: string;
-            /** @description Optional; when provided, updates the password */
-            password?: string;
-        };
-        CreateUserRequest: {
-            name: string;
-            /** Format: email */
-            email: string;
-            password: string;
-            role: components["schemas"]["UserRole"];
-        };
-        UpdateUserRequest: {
-            name: string;
-            /** Format: email */
-            email: string;
-            role: components["schemas"]["UserRole"];
-        };
-        AddContributionRequest: {
-            /** Format: double */
-            hours: number;
-            /** Format: date */
-            contribution_date: string;
-        };
-        VolunteerApplicationRequest: {
-            skills: string;
-            availability: string;
-            message?: string;
-        };
-        ReviewVolunteerApplicationRequest: {
-            /** @enum {string} */
-            status: "approved" | "declined";
-        };
-        UpdateContactMessageStatusRequest: {
-            /** @enum {string} */
-            status: "read" | "replied";
-        };
-        MessageResponse: {
-            message: string;
-        };
-        UploadMediaResponse: {
-            message: string;
-            file_path: string;
-        };
+  schemas: {
+    /** @enum {string} */
+    UserRole: "admin" | "editor" | "user" | "volunteer";
+    ErrorDetail: {
+      code: string;
+      message: string;
+      details: {
+        [key: string]: unknown;
+      };
     };
-    responses: {
-        /** @description Missing or invalid access token */
-        Unauthorized: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/json": components["schemas"]["ErrorEnvelope"];
-            };
-        };
-        /** @description Authenticated but insufficient role */
-        Forbidden: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/json": components["schemas"]["ErrorEnvelope"];
-            };
-        };
-        /** @description Resource not found */
-        NotFound: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/json": components["schemas"]["ErrorEnvelope"];
-            };
-        };
-        /** @description Uniqueness constraint violated (e.g. duplicate email or slug) */
-        Conflict: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/json": components["schemas"]["ErrorEnvelope"];
-            };
-        };
-        /** @description Malformed JSON or validation failure */
-        BadRequest: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/json": components["schemas"]["ErrorEnvelope"];
-            };
-        };
-        /** @description Semantic validation failure (e.g. invalid enum value, ends_at before event_date) */
-        UnprocessableEntity: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/json": components["schemas"]["ErrorEnvelope"];
-            };
-        };
-        /** @description Unexpected server error */
-        InternalServerError: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/json": components["schemas"]["ErrorEnvelope"];
-            };
-        };
+    ErrorEnvelope: {
+      error: components["schemas"]["ErrorDetail"];
     };
-    parameters: {
-        PageParam: number;
-        LimitParam: number;
+    User: {
+      /** Format: int64 */
+      id: number;
+      name: string;
+      /** Format: email */
+      email: string;
+      role: components["schemas"]["UserRole"];
+      /** Format: date-time */
+      created_at?: string;
     };
-    requestBodies: never;
-    headers: never;
-    pathItems: never;
+    Post: {
+      /** Format: int64 */
+      id: number;
+      slug: string;
+      title: string;
+      content: string;
+      /** Format: int64 */
+      author_id?: number;
+      author_name?: string;
+      published?: boolean;
+      /** Format: date-time */
+      published_at?: string;
+      /** Format: int64 */
+      cover_media_id?: number;
+      /** Format: date-time */
+      created_at?: string;
+      /** Format: date-time */
+      updated_at?: string;
+    };
+    Event: {
+      /** Format: int64 */
+      id: number;
+      title: string;
+      description: string;
+      /** Format: date-time */
+      event_date: string;
+      /** Format: date-time */
+      ends_at?: string;
+      location: string;
+      /** Format: date-time */
+      created_at?: string;
+    };
+    Media: {
+      /** Format: int64 */
+      id: number;
+      title: string;
+      file_path: string;
+      media_type?: string;
+      original_name?: string;
+      /** Format: int64 */
+      size_bytes?: number;
+      /** @enum {string} */
+      kind: "image" | "video" | "audio" | "document";
+      /** Format: date-time */
+      created_at?: string;
+    };
+    /** @description Contact message as returned to staff */
+    ContactMessage: {
+      /** Format: int64 */
+      id: number;
+      name: string;
+      /** Format: email */
+      email: string;
+      message: string;
+      /** @enum {string} */
+      status: "new" | "read" | "replied";
+      /** Format: date-time */
+      created_at: string;
+      handled_by_name?: string;
+      /** Format: date-time */
+      handled_at?: string;
+    };
+    /** @description Own volunteer application (returned to the applicant) */
+    VolunteerApplicationDTO: {
+      /** Format: int64 */
+      id: number;
+      skills: string;
+      availability: string;
+      message?: string;
+      /** @enum {string} */
+      status: "pending" | "approved" | "declined";
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      reviewed_at?: string;
+    };
+    /** @description Volunteer application as returned to admins (includes applicant identity) */
+    VolunteerApplicationReviewDTO: {
+      /** Format: int64 */
+      id: number;
+      name: string;
+      /** Format: email */
+      email: string;
+      skills: string;
+      availability: string;
+      message?: string;
+      /** @enum {string} */
+      status: "pending" | "approved" | "declined";
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      reviewed_at?: string;
+      reviewer_name?: string;
+    };
+    EventAttendeeDTO: {
+      name: string;
+      /** Format: email */
+      email: string;
+      /** Format: date-time */
+      created_at: string;
+    };
+    /** @description Volunteer user with total contribution hours */
+    Volunteer: {
+      /** Format: int64 */
+      id: number;
+      name: string;
+      /** Format: email */
+      email: string;
+      role: components["schemas"]["UserRole"];
+      /** Format: date-time */
+      created_at?: string;
+      /** Format: double */
+      total_hours: number;
+    };
+    PagePost: {
+      items: components["schemas"]["Post"][];
+      page: number;
+      limit: number;
+      /** Format: int64 */
+      total: number;
+    };
+    PageEvent: {
+      items: components["schemas"]["Event"][];
+      page: number;
+      limit: number;
+      /** Format: int64 */
+      total: number;
+    };
+    PageMedia: {
+      items: components["schemas"]["Media"][];
+      page: number;
+      limit: number;
+      /** Format: int64 */
+      total: number;
+    };
+    PageContactMessage: {
+      items: components["schemas"]["ContactMessage"][];
+      page: number;
+      limit: number;
+      /** Format: int64 */
+      total: number;
+    };
+    PageVolunteerApplicationReview: {
+      items: components["schemas"]["VolunteerApplicationReviewDTO"][];
+      page: number;
+      limit: number;
+      /** Format: int64 */
+      total: number;
+    };
+    PageEventAttendee: {
+      items: components["schemas"]["EventAttendeeDTO"][];
+      page: number;
+      limit: number;
+      /** Format: int64 */
+      total: number;
+    };
+    RegisterRequest: {
+      name: string;
+      /** Format: email */
+      email: string;
+      password: string;
+    };
+    LoginRequest: {
+      /** Format: email */
+      email: string;
+      password: string;
+    };
+    ContactRequest: {
+      name: string;
+      /** Format: email */
+      email: string;
+      message: string;
+    };
+    CreatePostRequest: {
+      title: string;
+      content: string;
+      slug?: string;
+      /** Format: int64 */
+      cover_media_id?: number;
+    };
+    UpdatePostRequest: {
+      title: string;
+      content: string;
+      slug: string;
+      /** Format: int64 */
+      cover_media_id?: number;
+    };
+    PublishPostRequest: {
+      published: boolean;
+    };
+    CreateEventRequest: {
+      title: string;
+      description: string;
+      /**
+       * Format: date-time
+       * @description RFC3339 datetime
+       */
+      event_date: string;
+      /**
+       * Format: date-time
+       * @description Optional; must be after event_date
+       */
+      ends_at?: string;
+      location?: string;
+    };
+    UpdateEventRequest: {
+      title: string;
+      description: string;
+      /** Format: date-time */
+      event_date: string;
+      /** Format: date-time */
+      ends_at?: string;
+      location?: string;
+    };
+    UpdateProfileRequest: {
+      name: string;
+      /** Format: email */
+      email: string;
+      /** @description Optional; when provided, updates the password */
+      password?: string;
+    };
+    CreateUserRequest: {
+      name: string;
+      /** Format: email */
+      email: string;
+      password: string;
+      role: components["schemas"]["UserRole"];
+    };
+    UpdateUserRequest: {
+      name: string;
+      /** Format: email */
+      email: string;
+      role: components["schemas"]["UserRole"];
+    };
+    AddContributionRequest: {
+      /** Format: double */
+      hours: number;
+      /** Format: date */
+      contribution_date: string;
+    };
+    VolunteerApplicationRequest: {
+      skills: string;
+      availability: string;
+      message?: string;
+    };
+    ReviewVolunteerApplicationRequest: {
+      /** @enum {string} */
+      status: "approved" | "declined";
+    };
+    UpdateContactMessageStatusRequest: {
+      /** @enum {string} */
+      status: "read" | "replied";
+    };
+    MessageResponse: {
+      message: string;
+    };
+    UploadMediaResponse: {
+      message: string;
+      file_path: string;
+    };
+  };
+  responses: {
+    /** @description Missing or invalid access token */
+    Unauthorized: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        "application/json": components["schemas"]["ErrorEnvelope"];
+      };
+    };
+    /** @description Authenticated but insufficient role */
+    Forbidden: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        "application/json": components["schemas"]["ErrorEnvelope"];
+      };
+    };
+    /** @description Resource not found */
+    NotFound: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        "application/json": components["schemas"]["ErrorEnvelope"];
+      };
+    };
+    /** @description Uniqueness constraint violated (e.g. duplicate email or slug) */
+    Conflict: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        "application/json": components["schemas"]["ErrorEnvelope"];
+      };
+    };
+    /** @description Malformed JSON or validation failure */
+    BadRequest: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        "application/json": components["schemas"]["ErrorEnvelope"];
+      };
+    };
+    /** @description Semantic validation failure (e.g. invalid enum value, ends_at before event_date) */
+    UnprocessableEntity: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        "application/json": components["schemas"]["ErrorEnvelope"];
+      };
+    };
+    /** @description Unexpected server error */
+    InternalServerError: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        "application/json": components["schemas"]["ErrorEnvelope"];
+      };
+    };
+  };
+  parameters: {
+    PageParam: number;
+    LimitParam: number;
+  };
+  requestBodies: never;
+  headers: never;
+  pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    register: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RegisterRequest"];
-            };
-        };
-        responses: {
-            /** @description Account created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["User"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            /** @description Email already registered */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            500: components["responses"]["InternalServerError"];
-        };
+  register: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    login: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LoginRequest"];
-            };
-        };
-        responses: {
-            /** @description Login successful; cookies set */
-            200: {
-                headers: {
-                    /** @description access_token and refresh_token HttpOnly cookies */
-                    "Set-Cookie"?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["User"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            /** @description Invalid credentials */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            500: components["responses"]["InternalServerError"];
-        };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RegisterRequest"];
+      };
     };
-    refresh: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    responses: {
+      /** @description Account created */
+      201: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Tokens rotated; new cookies set */
-            200: {
-                headers: {
-                    /** @description New access_token and refresh_token cookies */
-                    "Set-Cookie"?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessageResponse"];
-                };
-            };
-            /** @description Missing or expired refresh token */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            500: components["responses"]["InternalServerError"];
+        content: {
+          "application/json": components["schemas"]["User"];
         };
+      };
+      400: components["responses"]["BadRequest"];
+      /** @description Email already registered */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+      500: components["responses"]["InternalServerError"];
     };
-    logout: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Logged out; cookies cleared */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessageResponse"];
-                };
-            };
-        };
+  };
+  login: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    createContact: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ContactRequest"];
-            };
-        };
-        responses: {
-            /** @description Message stored */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessageResponse"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            500: components["responses"]["InternalServerError"];
-        };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["LoginRequest"];
+      };
     };
-    getPosts: {
-        parameters: {
-            query?: {
-                page?: components["parameters"]["PageParam"];
-                limit?: components["parameters"]["LimitParam"];
-                /** @description Full-text search query */
-                q?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
+    responses: {
+      /** @description Login successful; cookies set */
+      200: {
+        headers: {
+          /** @description access_token and refresh_token HttpOnly cookies */
+          "Set-Cookie"?: string;
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Paginated published posts */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PagePost"];
-                };
-            };
-            500: components["responses"]["InternalServerError"];
+        content: {
+          "application/json": components["schemas"]["User"];
         };
+      };
+      400: components["responses"]["BadRequest"];
+      /** @description Invalid credentials */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+      500: components["responses"]["InternalServerError"];
     };
-    getPostBySlug: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                slug: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Post found */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Post"];
-                };
-            };
-            404: components["responses"]["NotFound"];
-            500: components["responses"]["InternalServerError"];
-        };
+  };
+  refresh: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    getEvents: {
-        parameters: {
-            query?: {
-                page?: components["parameters"]["PageParam"];
-                limit?: components["parameters"]["LimitParam"];
-                /** @description When "true", return only future events sorted ascending */
-                upcoming?: "true" | "false";
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description Tokens rotated; new cookies set */
+      200: {
+        headers: {
+          /** @description New access_token and refresh_token cookies */
+          "Set-Cookie"?: string;
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Paginated events */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PageEvent"];
-                };
-            };
-            500: components["responses"]["InternalServerError"];
+        content: {
+          "application/json": components["schemas"]["MessageResponse"];
         };
+      };
+      /** @description Missing or expired refresh token */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+      500: components["responses"]["InternalServerError"];
     };
-    getEventByID: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Event found */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Event"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            404: components["responses"]["NotFound"];
-            500: components["responses"]["InternalServerError"];
-        };
+  };
+  logout: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    getMedia: {
-        parameters: {
-            query?: {
-                page?: components["parameters"]["PageParam"];
-                limit?: components["parameters"]["LimitParam"];
-                /** @description Filter by media kind */
-                kind?: "image" | "video" | "audio" | "document";
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description Logged out; cookies cleared */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Paginated media */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PageMedia"];
-                };
-            };
-            /** @description Invalid kind value */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            500: components["responses"]["InternalServerError"];
+        content: {
+          "application/json": components["schemas"]["MessageResponse"];
         };
+      };
     };
-    me: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Current user */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["User"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-        };
+  };
+  createContact: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    getProfile: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Profile data */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["User"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-            500: components["responses"]["InternalServerError"];
-        };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ContactRequest"];
+      };
     };
-    updateProfile: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    responses: {
+      /** @description Message stored */
+      201: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateProfileRequest"];
-            };
+        content: {
+          "application/json": components["schemas"]["MessageResponse"];
         };
-        responses: {
-            /** @description Profile updated */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["User"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-            /** @description Email already used by another account */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            500: components["responses"]["InternalServerError"];
-        };
+      };
+      400: components["responses"]["BadRequest"];
+      500: components["responses"]["InternalServerError"];
     };
-    getMyVolunteerApplication: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Own application */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VolunteerApplicationDTO"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-            500: components["responses"]["InternalServerError"];
-        };
+  };
+  getPosts: {
+    parameters: {
+      query?: {
+        page?: components["parameters"]["PageParam"];
+        limit?: components["parameters"]["LimitParam"];
+        /** @description Full-text search query */
+        q?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    createVolunteerApplication: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description Paginated published posts */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["VolunteerApplicationRequest"];
-            };
+        content: {
+          "application/json": components["schemas"]["PagePost"];
         };
-        responses: {
-            /** @description Application submitted */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VolunteerApplicationDTO"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            /** @description Application already exists or role not eligible */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            500: components["responses"]["InternalServerError"];
-        };
+      };
+      500: components["responses"]["InternalServerError"];
     };
-    listMyEventSignups: {
-        parameters: {
-            query?: {
-                page?: components["parameters"]["PageParam"];
-                limit?: components["parameters"]["LimitParam"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Paginated events the user has signed up for */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PageEvent"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            500: components["responses"]["InternalServerError"];
-        };
+  };
+  getPostBySlug: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        slug: string;
+      };
+      cookie?: never;
     };
-    signupForEvent: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description Post found */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Signed up */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessageResponse"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-            /** @description Already signed up */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Event is in the past */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            500: components["responses"]["InternalServerError"];
+        content: {
+          "application/json": components["schemas"]["Post"];
         };
+      };
+      404: components["responses"]["NotFound"];
+      500: components["responses"]["InternalServerError"];
     };
-    cancelEventSignup: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Sign-up cancelled */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessageResponse"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-            500: components["responses"]["InternalServerError"];
-        };
+  };
+  getEvents: {
+    parameters: {
+      query?: {
+        page?: components["parameters"]["PageParam"];
+        limit?: components["parameters"]["LimitParam"];
+        /** @description When "true", return only future events sorted ascending */
+        upcoming?: "true" | "false";
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    staffGetPosts: {
-        parameters: {
-            query?: {
-                page?: components["parameters"]["PageParam"];
-                limit?: components["parameters"]["LimitParam"];
-                q?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description Paginated events */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Paginated posts (published and draft) */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PagePost"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            500: components["responses"]["InternalServerError"];
+        content: {
+          "application/json": components["schemas"]["PageEvent"];
         };
+      };
+      500: components["responses"]["InternalServerError"];
     };
-    createPost: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreatePostRequest"];
-            };
-        };
-        responses: {
-            /** @description Post created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Post"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            /** @description Slug already exists */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            500: components["responses"]["InternalServerError"];
-        };
+  };
+  getEventByID: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: number;
+      };
+      cookie?: never;
     };
-    deletePost: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description Event found */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Post deleted */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessageResponse"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            500: components["responses"]["InternalServerError"];
+        content: {
+          "application/json": components["schemas"]["Event"];
         };
+      };
+      400: components["responses"]["BadRequest"];
+      404: components["responses"]["NotFound"];
+      500: components["responses"]["InternalServerError"];
     };
-    updatePost: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdatePostRequest"];
-            };
-        };
-        responses: {
-            /** @description Post updated */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Post"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            /** @description Slug conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            422: components["responses"]["UnprocessableEntity"];
-            500: components["responses"]["InternalServerError"];
-        };
+  };
+  getMedia: {
+    parameters: {
+      query?: {
+        page?: components["parameters"]["PageParam"];
+        limit?: components["parameters"]["LimitParam"];
+        /** @description Filter by media kind */
+        kind?: "image" | "video" | "audio" | "document";
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    publishPost: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description Paginated media */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PublishPostRequest"];
-            };
+        content: {
+          "application/json": components["schemas"]["PageMedia"];
         };
-        responses: {
-            /** @description Publish state updated */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Post"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            500: components["responses"]["InternalServerError"];
+      };
+      /** @description Invalid kind value */
+      422: {
+        headers: {
+          [name: string]: unknown;
         };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+      500: components["responses"]["InternalServerError"];
     };
-    staffGetEvents: {
-        parameters: {
-            query?: {
-                page?: components["parameters"]["PageParam"];
-                limit?: components["parameters"]["LimitParam"];
-                upcoming?: "true" | "false";
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Paginated events */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PageEvent"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            500: components["responses"]["InternalServerError"];
-        };
+  };
+  me: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    createEvent: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description Current user */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateEventRequest"];
-            };
+        content: {
+          "application/json": components["schemas"]["User"];
         };
-        responses: {
-            /** @description Event created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Event"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            /** @description ends_at is before event_date */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            500: components["responses"]["InternalServerError"];
-        };
+      };
+      401: components["responses"]["Unauthorized"];
     };
-    deleteEvent: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Event deleted */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessageResponse"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            500: components["responses"]["InternalServerError"];
-        };
+  };
+  getProfile: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    updateEvent: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description Profile data */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateEventRequest"];
-            };
+        content: {
+          "application/json": components["schemas"]["User"];
         };
-        responses: {
-            /** @description Event updated */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Event"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            422: components["responses"]["UnprocessableEntity"];
-            500: components["responses"]["InternalServerError"];
-        };
+      };
+      401: components["responses"]["Unauthorized"];
+      404: components["responses"]["NotFound"];
+      500: components["responses"]["InternalServerError"];
     };
-    staffGetMedia: {
-        parameters: {
-            query?: {
-                page?: components["parameters"]["PageParam"];
-                limit?: components["parameters"]["LimitParam"];
-                kind?: "image" | "video" | "audio" | "document";
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Paginated media */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PageMedia"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            500: components["responses"]["InternalServerError"];
-        };
+  };
+  updateProfile: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    uploadMedia: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": {
-                    /** Format: binary */
-                    file: string;
-                    title?: string;
-                };
-            };
-        };
-        responses: {
-            /** @description File uploaded */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UploadMediaResponse"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            /** @description Payload too large */
-            413: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description File type not supported */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            500: components["responses"]["InternalServerError"];
-        };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["UpdateProfileRequest"];
+      };
     };
-    deleteMedia: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
+    responses: {
+      /** @description Profile updated */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Media deleted */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessageResponse"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            500: components["responses"]["InternalServerError"];
+        content: {
+          "application/json": components["schemas"]["User"];
         };
+      };
+      400: components["responses"]["BadRequest"];
+      401: components["responses"]["Unauthorized"];
+      404: components["responses"]["NotFound"];
+      /** @description Email already used by another account */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+      500: components["responses"]["InternalServerError"];
     };
-    listContactMessages: {
-        parameters: {
-            query?: {
-                page?: components["parameters"]["PageParam"];
-                limit?: components["parameters"]["LimitParam"];
-                /** @description Filter by message status */
-                status?: "new" | "read" | "replied";
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Paginated contact messages */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PageContactMessage"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            /** @description Invalid status filter value */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            500: components["responses"]["InternalServerError"];
-        };
+  };
+  getMyVolunteerApplication: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    updateContactMessageStatus: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description Own application */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateContactMessageStatusRequest"];
-            };
+        content: {
+          "application/json": components["schemas"]["VolunteerApplicationDTO"];
         };
-        responses: {
-            /** @description Status updated */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ContactMessage"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            422: components["responses"]["UnprocessableEntity"];
-            500: components["responses"]["InternalServerError"];
-        };
+      };
+      401: components["responses"]["Unauthorized"];
+      404: components["responses"]["NotFound"];
+      500: components["responses"]["InternalServerError"];
     };
-    adminGetUsers: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Array of users */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["User"][];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            500: components["responses"]["InternalServerError"];
-        };
+  };
+  createVolunteerApplication: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    adminCreateUser: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateUserRequest"];
-            };
-        };
-        responses: {
-            /** @description User created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["User"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            409: components["responses"]["Conflict"];
-            500: components["responses"]["InternalServerError"];
-        };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["VolunteerApplicationRequest"];
+      };
     };
-    adminDeleteUser: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
+    responses: {
+      /** @description Application submitted */
+      201: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description User deleted */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessageResponse"];
-                };
-            };
-            /** @description Cannot delete own account */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            /** @description Cannot delete the last admin */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            500: components["responses"]["InternalServerError"];
+        content: {
+          "application/json": components["schemas"]["VolunteerApplicationDTO"];
         };
+      };
+      400: components["responses"]["BadRequest"];
+      401: components["responses"]["Unauthorized"];
+      /** @description Application already exists or role not eligible */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+      500: components["responses"]["InternalServerError"];
     };
-    adminUpdateUser: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateUserRequest"];
-            };
-        };
-        responses: {
-            /** @description User updated */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["User"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-            500: components["responses"]["InternalServerError"];
-        };
+  };
+  listMyEventSignups: {
+    parameters: {
+      query?: {
+        page?: components["parameters"]["PageParam"];
+        limit?: components["parameters"]["LimitParam"];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    adminGetVolunteers: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description Paginated events the user has signed up for */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Array of volunteers */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Volunteer"][];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            500: components["responses"]["InternalServerError"];
+        content: {
+          "application/json": components["schemas"]["PageEvent"];
         };
+      };
+      401: components["responses"]["Unauthorized"];
+      500: components["responses"]["InternalServerError"];
     };
-    adminAddContribution: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Volunteer user ID */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AddContributionRequest"];
-            };
-        };
-        responses: {
-            /** @description Contribution recorded */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessageResponse"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            500: components["responses"]["InternalServerError"];
-        };
+  };
+  signupForEvent: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: number;
+      };
+      cookie?: never;
     };
-    adminListVolunteerApplications: {
-        parameters: {
-            query?: {
-                page?: components["parameters"]["PageParam"];
-                limit?: components["parameters"]["LimitParam"];
-                status?: "pending" | "approved" | "declined";
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description Signed up */
+      201: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Paginated volunteer applications */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PageVolunteerApplicationReview"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            422: components["responses"]["UnprocessableEntity"];
-            500: components["responses"]["InternalServerError"];
+        content: {
+          "application/json": components["schemas"]["MessageResponse"];
         };
+      };
+      400: components["responses"]["BadRequest"];
+      401: components["responses"]["Unauthorized"];
+      404: components["responses"]["NotFound"];
+      /** @description Already signed up */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+      /** @description Event is in the past */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+      500: components["responses"]["InternalServerError"];
     };
-    adminReviewVolunteerApplication: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ReviewVolunteerApplicationRequest"];
-            };
-        };
-        responses: {
-            /** @description Application reviewed */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VolunteerApplicationReviewDTO"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            422: components["responses"]["UnprocessableEntity"];
-            500: components["responses"]["InternalServerError"];
-        };
+  };
+  cancelEventSignup: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: number;
+      };
+      cookie?: never;
     };
-    adminListEventAttendees: {
-        parameters: {
-            query?: {
-                page?: components["parameters"]["PageParam"];
-                limit?: components["parameters"]["LimitParam"];
-            };
-            header?: never;
-            path: {
-                /** @description Event ID */
-                id: number;
-            };
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description Sign-up cancelled */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Paginated event attendees */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PageEventAttendee"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            500: components["responses"]["InternalServerError"];
+        content: {
+          "application/json": components["schemas"]["MessageResponse"];
         };
+      };
+      400: components["responses"]["BadRequest"];
+      401: components["responses"]["Unauthorized"];
+      404: components["responses"]["NotFound"];
+      500: components["responses"]["InternalServerError"];
     };
+  };
+  staffGetPosts: {
+    parameters: {
+      query?: {
+        page?: components["parameters"]["PageParam"];
+        limit?: components["parameters"]["LimitParam"];
+        q?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Paginated posts (published and draft) */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PagePost"];
+        };
+      };
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+      500: components["responses"]["InternalServerError"];
+    };
+  };
+  createPost: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CreatePostRequest"];
+      };
+    };
+    responses: {
+      /** @description Post created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Post"];
+        };
+      };
+      400: components["responses"]["BadRequest"];
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+      /** @description Slug already exists */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+      500: components["responses"]["InternalServerError"];
+    };
+  };
+  deletePost: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Post deleted */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["MessageResponse"];
+        };
+      };
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+      404: components["responses"]["NotFound"];
+      500: components["responses"]["InternalServerError"];
+    };
+  };
+  updatePost: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["UpdatePostRequest"];
+      };
+    };
+    responses: {
+      /** @description Post updated */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Post"];
+        };
+      };
+      400: components["responses"]["BadRequest"];
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+      404: components["responses"]["NotFound"];
+      /** @description Slug conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+      422: components["responses"]["UnprocessableEntity"];
+      500: components["responses"]["InternalServerError"];
+    };
+  };
+  publishPost: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PublishPostRequest"];
+      };
+    };
+    responses: {
+      /** @description Publish state updated */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Post"];
+        };
+      };
+      400: components["responses"]["BadRequest"];
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+      404: components["responses"]["NotFound"];
+      500: components["responses"]["InternalServerError"];
+    };
+  };
+  staffGetEvents: {
+    parameters: {
+      query?: {
+        page?: components["parameters"]["PageParam"];
+        limit?: components["parameters"]["LimitParam"];
+        upcoming?: "true" | "false";
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Paginated events */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PageEvent"];
+        };
+      };
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+      500: components["responses"]["InternalServerError"];
+    };
+  };
+  createEvent: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CreateEventRequest"];
+      };
+    };
+    responses: {
+      /** @description Event created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Event"];
+        };
+      };
+      400: components["responses"]["BadRequest"];
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+      /** @description ends_at is before event_date */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+      500: components["responses"]["InternalServerError"];
+    };
+  };
+  deleteEvent: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Event deleted */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["MessageResponse"];
+        };
+      };
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+      404: components["responses"]["NotFound"];
+      500: components["responses"]["InternalServerError"];
+    };
+  };
+  updateEvent: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["UpdateEventRequest"];
+      };
+    };
+    responses: {
+      /** @description Event updated */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Event"];
+        };
+      };
+      400: components["responses"]["BadRequest"];
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+      404: components["responses"]["NotFound"];
+      422: components["responses"]["UnprocessableEntity"];
+      500: components["responses"]["InternalServerError"];
+    };
+  };
+  staffGetMedia: {
+    parameters: {
+      query?: {
+        page?: components["parameters"]["PageParam"];
+        limit?: components["parameters"]["LimitParam"];
+        kind?: "image" | "video" | "audio" | "document";
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Paginated media */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PageMedia"];
+        };
+      };
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+      500: components["responses"]["InternalServerError"];
+    };
+  };
+  uploadMedia: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "multipart/form-data": {
+          /** Format: binary */
+          file: string;
+          title?: string;
+        };
+      };
+    };
+    responses: {
+      /** @description File uploaded */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["UploadMediaResponse"];
+        };
+      };
+      400: components["responses"]["BadRequest"];
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+      /** @description Payload too large */
+      413: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+      /** @description File type not supported */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+      500: components["responses"]["InternalServerError"];
+    };
+  };
+  deleteMedia: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Media deleted */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["MessageResponse"];
+        };
+      };
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+      404: components["responses"]["NotFound"];
+      500: components["responses"]["InternalServerError"];
+    };
+  };
+  listContactMessages: {
+    parameters: {
+      query?: {
+        page?: components["parameters"]["PageParam"];
+        limit?: components["parameters"]["LimitParam"];
+        /** @description Filter by message status */
+        status?: "new" | "read" | "replied";
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Paginated contact messages */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PageContactMessage"];
+        };
+      };
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+      /** @description Invalid status filter value */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+      500: components["responses"]["InternalServerError"];
+    };
+  };
+  updateContactMessageStatus: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["UpdateContactMessageStatusRequest"];
+      };
+    };
+    responses: {
+      /** @description Status updated */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ContactMessage"];
+        };
+      };
+      400: components["responses"]["BadRequest"];
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+      404: components["responses"]["NotFound"];
+      422: components["responses"]["UnprocessableEntity"];
+      500: components["responses"]["InternalServerError"];
+    };
+  };
+  adminGetUsers: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Array of users */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["User"][];
+        };
+      };
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+      500: components["responses"]["InternalServerError"];
+    };
+  };
+  adminCreateUser: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CreateUserRequest"];
+      };
+    };
+    responses: {
+      /** @description User created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["User"];
+        };
+      };
+      400: components["responses"]["BadRequest"];
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+      409: components["responses"]["Conflict"];
+      500: components["responses"]["InternalServerError"];
+    };
+  };
+  adminDeleteUser: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description User deleted */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["MessageResponse"];
+        };
+      };
+      /** @description Cannot delete own account */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+      404: components["responses"]["NotFound"];
+      /** @description Cannot delete the last admin */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+      500: components["responses"]["InternalServerError"];
+    };
+  };
+  adminUpdateUser: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["UpdateUserRequest"];
+      };
+    };
+    responses: {
+      /** @description User updated */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["User"];
+        };
+      };
+      400: components["responses"]["BadRequest"];
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+      404: components["responses"]["NotFound"];
+      409: components["responses"]["Conflict"];
+      500: components["responses"]["InternalServerError"];
+    };
+  };
+  adminGetVolunteers: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Array of volunteers */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Volunteer"][];
+        };
+      };
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+      500: components["responses"]["InternalServerError"];
+    };
+  };
+  adminAddContribution: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Volunteer user ID */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AddContributionRequest"];
+      };
+    };
+    responses: {
+      /** @description Contribution recorded */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["MessageResponse"];
+        };
+      };
+      400: components["responses"]["BadRequest"];
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+      500: components["responses"]["InternalServerError"];
+    };
+  };
+  adminListVolunteerApplications: {
+    parameters: {
+      query?: {
+        page?: components["parameters"]["PageParam"];
+        limit?: components["parameters"]["LimitParam"];
+        status?: "pending" | "approved" | "declined";
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Paginated volunteer applications */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PageVolunteerApplicationReview"];
+        };
+      };
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+      422: components["responses"]["UnprocessableEntity"];
+      500: components["responses"]["InternalServerError"];
+    };
+  };
+  adminReviewVolunteerApplication: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ReviewVolunteerApplicationRequest"];
+      };
+    };
+    responses: {
+      /** @description Application reviewed */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["VolunteerApplicationReviewDTO"];
+        };
+      };
+      400: components["responses"]["BadRequest"];
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+      404: components["responses"]["NotFound"];
+      422: components["responses"]["UnprocessableEntity"];
+      500: components["responses"]["InternalServerError"];
+    };
+  };
+  adminListEventAttendees: {
+    parameters: {
+      query?: {
+        page?: components["parameters"]["PageParam"];
+        limit?: components["parameters"]["LimitParam"];
+      };
+      header?: never;
+      path: {
+        /** @description Event ID */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Paginated event attendees */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PageEventAttendee"];
+        };
+      };
+      400: components["responses"]["BadRequest"];
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+      404: components["responses"]["NotFound"];
+      500: components["responses"]["InternalServerError"];
+    };
+  };
 }
