@@ -4,10 +4,12 @@ on:
   push:
     paths:
       - "front-end/**"
+      - "docs/openapi.yaml"
       - ".github/workflows/frontend.yml"
   pull_request:
     paths:
       - "front-end/**"
+      - "docs/openapi.yaml"
       - ".github/workflows/frontend.yml"
 
 jobs:
@@ -24,6 +26,8 @@ jobs:
           cache: npm
           cache-dependency-path: front-end/package-lock.json
       - run: npm ci
+      - run: npm run gen:api
+      - run: git diff --exit-code types/api.d.ts
       - run: npm run lint
       - run: npx tsc --noEmit
       - run: npm run format:check

@@ -279,13 +279,12 @@ components:
       required: [id, name, email, role, total_hours]
 
     # ──────────── page envelopes ────────────
-    PagePost:
+    Page:
       type: object
       properties:
         items:
           type: array
-          items:
-            $ref: "#/components/schemas/Post"
+          items: {}
         page:
           type: integer
         limit:
@@ -294,6 +293,17 @@ components:
           type: integer
           format: int64
       required: [items, page, limit, total]
+
+    PagePost:
+      allOf:
+        - $ref: "#/components/schemas/Page"
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/Post"
+          required: [items]
 
     PageEvent:
       type: object
@@ -1914,7 +1924,7 @@ paths:
     patch:
       operationId: adminReviewVolunteerApplication
       summary: Approve or decline a volunteer application
-      description: Approval promotes a `user` account to `volunteer` role in the same transaction.
+      description: Applications may only be reviewed while pending. A second review returns 409. Approval promotes a `user` account to `volunteer` role in the same transaction.
       x-roles: [admin]
       tags: [admin, volunteers]
       security:
@@ -1947,6 +1957,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
         "422":
           $ref: "#/components/responses/UnprocessableEntity"
         "500":

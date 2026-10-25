@@ -21,7 +21,7 @@ func TestRegisteredRouteRoleMatrix(t *testing.T) {
 		loginEmails[role] = role + "-login@matrix-all.example.org"
 		createAuthUser(t, q, role+" login", loginEmails[role], "a-long-test-password", role)
 	}
-	const guest, denied, allow, created = http.StatusUnauthorized, http.StatusForbidden, http.StatusOK, http.StatusCreated
+	const guest, denied, allow, created, conflict = http.StatusUnauthorized, http.StatusForbidden, http.StatusOK, http.StatusCreated, http.StatusConflict
 	// Status order: guest, user, volunteer, editor, admin.
 	table := map[string][5]int{
 		"POST /api/register": {created, created, created, created, created}, "POST /api/login": {allow, allow, allow, allow, allow},
@@ -38,7 +38,7 @@ func TestRegisteredRouteRoleMatrix(t *testing.T) {
 		"GET /api/admin/users": {guest, denied, denied, denied, allow}, "POST /api/admin/users": {guest, denied, denied, denied, created},
 		"PATCH /api/admin/users/:id": {guest, denied, denied, denied, allow}, "DELETE /api/admin/users/:id": {guest, denied, denied, denied, allow},
 		"GET /api/admin/volunteers": {guest, denied, denied, denied, allow}, "POST /api/admin/volunteers/:id/contributions": {guest, denied, denied, denied, created},
-		"GET /api/admin/volunteer-applications": {guest, denied, denied, denied, allow}, "PATCH /api/admin/volunteer-applications/:id": {guest, denied, denied, denied, allow},
+		"GET /api/admin/volunteer-applications": {guest, denied, denied, denied, allow}, "PATCH /api/admin/volunteer-applications/:id": {guest, denied, denied, denied, conflict},
 		"GET /api/admin/events/:id/signups": {guest, denied, denied, denied, allow},
 		"GET /api/me":                       {guest, allow, allow, allow, allow}, "POST /api/me/volunteer-application": {guest, http.StatusConflict, http.StatusConflict, http.StatusConflict, http.StatusConflict},
 		"GET /api/me/volunteer-application": {guest, allow, allow, allow, allow}, "GET /api/me/signups": {guest, allow, allow, allow, allow},
@@ -82,7 +82,7 @@ func TestRegisteredRouteRoleMatrix(t *testing.T) {
 	}
 	reviewCandidate := createAuthUser(t, q, "Review Candidate", "review-candidate@matrix-all.example.org", "a-long-test-password", "user")
 	var applicationID int32
-	if err := db.QueryRowContext(t.Context(), `INSERT INTO volunteer_applications(user_id,skills,availability) VALUES($1,'matrix skills','weekends') RETURNING id`, reviewCandidate).Scan(&applicationID); err != nil {
+	if err := db.QueryRowContext(t.Context(), `INSERT INTO volunteer_applications(user_id,skills,availability,status,reviewed_at) VALUES($1,'matrix skills','weekends','declined',CURRENT_TIMESTAMP) RETURNING id`, reviewCandidate).Scan(&applicationID); err != nil {
 		t.Fatalf("insert review application fixture: %v", err)
 	}
 	date := time.Now().Add(72 * time.Hour).UTC().Format(time.RFC3339)

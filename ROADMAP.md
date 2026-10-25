@@ -1,5 +1,12 @@
 # ROADMAP.md — from working skeleton to portfolio-grade
 
+### Current state / next step
+
+- Verification guidance and Copilot instructions are in place; generated API types are reproducible and frontend checks pass.
+- Volunteer applications now accept only one review; repeat reviews return the standard 409 conflict envelope.
+- Backend build, formatting, vet, tests, and sqlc diff pass; PostgreSQL integration tests skipped because `DATABASE_URL_TEST` is unset.
+- Next: rerun integration tests and Compose smoke when the test database and Docker Engine are available.
+
 **Goal:** a repo and a live demo that survive a 10-minute recruiter/hiring-manager review for a *senior full-stack* role: one-command startup, real security, real tests, CI, docs, and a polished, working UI.
 
 **Rhythm:** each phase = 1–3 focused sessions (≈2–4 h each) with Gemini. Finish a phase's *Exit criteria* before starting the next. Total ≈ 3–4 weeks part-time.
@@ -92,7 +99,7 @@
 - [ ] i18n with `next-intl` (`/[locale]`), language switcher, `lang`/`hreflang`
 - [ ] Auth UI on cookie session: `/auth/me`, route protection in `middleware`/proxy, 401 handling
 - [ ] Dashboard: TanStack Query + react-hook-form + zod; full CRUD tables for posts/events/media/users/volunteers/messages with optimistic updates, confirm dialogs, toasts, empty/loading/error states
-- [ ] Generated API types from OpenAPI; zero `any`
+- [x] Generated API types from OpenAPI; zero `any`
 - [ ] Accessibility pass: labels, focus management, keyboard, contrast; Lighthouse ≥ 95 (a11y, SEO, best practices), ≥ 90 performance on mobile
 
 **Exit:** a stranger can use every visible control; Lighthouse targets met; no dead buttons.
@@ -148,6 +155,9 @@
 
 | Command | Result | Date |
 |---------|--------|------|
+| `cd server && go build ./... && gofmt -l . && go vet ./... && go test -count=1 ./... && go tool sqlc diff -f ../sqlc.yaml` (single-review volunteer workflow) | Passed; `gofmt -l .` listed no files and sqlc diff was clean. PostgreSQL integration tests skipped because `DATABASE_URL_TEST` was unset. | 2026-10-25 |
+| `cd front-end && npm run gen:api && npm run lint && npx tsc --noEmit && npm run format:check && npm run build` (single-review volunteer workflow) | Passed; lint reported 7 pre-existing warnings and 0 errors; TypeScript, format check, and build passed. Next.js reported stale Baseline browser data. | 2026-10-25 |
+| `docker compose up --build -d` (single-review volunteer workflow smoke) | Not run: Docker Engine named pipe was unavailable; Compose could not connect to the daemon. | 2026-10-25 |
 | `docker compose up --build` (clean clone) | Failed before start: required `.env` values missing; Docker config access denied. | 2026-10-20 |
 | `cd server && gofmt -l . && go vet ./... && go test ./...` (exhaustive registered-route matrix) | Passed; PostgreSQL integration tests ran against the configured test database, including every registered API route × guest/user/volunteer/editor/admin and removed route checks. `gofmt -l .` listed no files. | 2026-10-24 |
 | `golangci-lint run` (Prompt V, exhaustive route matrix) | Not run: `golangci-lint` is not installed in the local environment. | 2026-10-24 |

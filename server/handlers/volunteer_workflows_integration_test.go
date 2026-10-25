@@ -130,6 +130,54 @@ func TestVolunteerApplicationRoleConflictsDeclineAndNoDowngrade(t *testing.T) {
 	}
 }
 
+func TestVolunteerApplicationCannotBeReviewedTwice(t *testing.T) {
+	db, q, r := authTestApp(t)
+	adminID := createAuthUser(t, q, "Review Admin", "review-repeat-admin@example.org", "a-long-test-password", "admin")
+	admin := adminCookie(t, int(adminID), "admin")
+	cases := []struct {
+		name         string
+		first, again string
+		initialRole  string
+		finalRole    string
+	}{
+		{name: "approve twice", first: "approved", again: "approved", initialRole: "user", finalRole: "volunteer"},
+		{name: "decline then approve", first: "declined", again: "approved", initialRole: "user", finalRole: "user"},
+		{name: "approve then decline", first: "approved", again: "declined", initialRole: "user", finalRole: "volunteer"},
+	}
+	for i, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			userID := createAuthUser(t, q, "Applicant", fmt.Sprintf("repeat-applicant-%d@example.org", i), "a-long-test-password", tc.initialRole)
+			var applicationID int32
+			if err := db.QueryRow(`INSERT INTO volunteer_applications(user_id,skills,availability) VALUES($1,'skills','weekends') RETURNING id`, userID).Scan(&applicationID); err != nil {
+				t.Fatal(err)
+			}
+			path := fmt.Sprintf("/api/admin/volunteer-applications/%d", applicationID)
+			first := authRequest(r, http.MethodPatch, path, fmt.Sprintf(`{"status":%q}`, tc.first), admin)
+			if first.Code != http.StatusOK {
+				t.Fatalf("first review status=%d body=%s", first.Code, first.Body)
+			}
+			again := authRequest(r, http.MethodPatch, path, fmt.Sprintf(`{"status":%q}`, tc.again), admin)
+			var envelope struct {
+				Error struct {
+					Code    string         `json:"code"`
+					Message string         `json:"message"`
+					Details map[string]any `json:"details"`
+				} `json:"error"`
+			}
+			if again.Code != http.StatusConflict || json.Unmarshal(again.Body.Bytes(), &envelope) != nil || envelope.Error.Code != "conflict" || envelope.Error.Message == "" || envelope.Error.Details == nil {
+				t.Fatalf("repeat review status=%d envelope=%+v body=%s", again.Code, envelope, again.Body)
+			}
+			var status, role string
+			if err := db.QueryRow(`SELECT va.status,u.role FROM volunteer_applications va JOIN users u ON u.id=va.user_id WHERE va.id=$1`, applicationID).Scan(&status, &role); err != nil {
+				t.Fatal(err)
+			}
+			if status != tc.first || role != tc.finalRole {
+				t.Fatalf("repeat review changed state: status=%s role=%s want status=%s role=%s", status, role, tc.first, tc.finalRole)
+			}
+		})
+	}
+}
+
 func TestEventSignupsAndAttendees(t *testing.T) {
 	db, q, r := authTestApp(t)
 	userID := createAuthUser(t, q, "Signup User", "signup-user@example.org", "a-long-test-password", "user")

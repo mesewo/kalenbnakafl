@@ -196,6 +196,10 @@ func (a *API) ReviewVolunteerApplication(c *gin.Context) {
 		httpx.Fail(c, http.StatusInternalServerError, "Could not review volunteer application")
 		return
 	}
+	if application.Status != "pending" {
+		httpx.Fail(c, http.StatusConflict, "Volunteer application has already been reviewed")
+		return
+	}
 	_, err = queries.ReviewVolunteerApplication(ctx, dbgen.ReviewVolunteerApplicationParams{Status: input.Status, ReviewedBy: sql.NullInt32{Int32: reviewerID, Valid: true}, ID: int32(id)})
 	if err != nil {
 		httpx.Fail(c, http.StatusInternalServerError, "Could not review volunteer application")
