@@ -144,7 +144,7 @@ func TestMigration0002BackfillsRowsCreatedBy0001(t *testing.T) {
 	if _, err := db.Exec(`INSERT INTO posts(title,content,author_id,published) VALUES ('Hello, World!','body',1,true),('Hello World','body',1,false),('አማርኛ','body',1,false)`); err != nil {
 		t.Fatalf("insert pre-0002 posts: %v", err)
 	}
-	if _, err := provider.Up(ctx); err != nil {
+	if _, err := provider.UpTo(ctx, 2); err != nil {
 		t.Fatalf("apply migration 0002 over existing rows: %v", err)
 	}
 	rows, err := db.Query(`SELECT title,slug,published_at FROM posts ORDER BY id`)
@@ -201,7 +201,7 @@ func TestMigration0003BackfillsMediaKinds(t *testing.T) {
 			t.Fatalf("insert legacy media %q: %v", mediaType, err)
 		}
 	}
-	if _, err := provider.Up(ctx); err != nil {
+	if _, err := provider.UpTo(ctx, 3); err != nil {
 		t.Fatalf("apply media kind migration: %v", err)
 	}
 	rows, err := db.Query(`SELECT media_type,kind FROM media ORDER BY id`)
@@ -244,7 +244,7 @@ func TestMigration0004PreservesExistingContactRows(t *testing.T) {
 	if _, err := db.ExecContext(ctx, `INSERT INTO contacts(name,email,message) VALUES ('Legacy Contact','legacy-contact@example.org','Existing message')`); err != nil {
 		t.Fatalf("insert legacy contact: %v", err)
 	}
-	if _, err := provider.Up(ctx); err != nil {
+	if _, err := provider.UpTo(ctx, 4); err != nil {
 		t.Fatalf("apply contact inbox migration: %v", err)
 	}
 	var id int32
@@ -280,7 +280,7 @@ func TestMigration0005CreatesVolunteerWorkflowsWithExistingData(t *testing.T) {
 	if _, err := db.ExecContext(ctx, `INSERT INTO events(title,description,event_date) VALUES ('Existing event','Existing data',CURRENT_TIMESTAMP + INTERVAL '3 days')`); err != nil {
 		t.Fatalf("insert pre-migration event: %v", err)
 	}
-	if _, err := provider.Up(ctx); err != nil {
+	if _, err := provider.UpTo(ctx, 5); err != nil {
 		t.Fatalf("apply migration 0005: %v", err)
 	}
 	var usersTable, signupsTable sql.NullString
