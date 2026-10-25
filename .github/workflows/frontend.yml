@@ -35,3 +35,54 @@ jobs:
       - name: Audit production dependencies (informational)
         run: npm audit --omit=dev
         continue-on-error: true
+
+  content-smoke:
+    runs-on: ubuntu-latest
+    env:
+      CI: true
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
+    defaults:
+      run:
+        working-directory: front-end
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: front-end/package-lock.json
+      - name: Create ephemeral Compose credentials
+        shell: bash
+        run: |
+          {
+            echo "POSTGRES_USER=smoke"
+            echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)"
+            echo "POSTGRES_DB=kalenbnakafl_smoke"
+            echo "JWT_SECRET=$(openssl rand -hex 32)"
+            echo "CORS_ORIGINS=http://127.0.0.1:3000"
+            echo "ADMIN_EMAIL=smoke-admin@example.invalid"
+            echo "ADMIN_PASSWORD=$(openssl rand -hex 24)"
+          } >> "$GITHUB_ENV"
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Build and start Compose stack
+        run: docker compose -f ../docker-compose.yaml up --build -d
+      - name: Wait for API and frontend
+        shell: bash
+        run: |
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:8080/readyz >/dev/null && curl --fail --silent http://127.0.0.1:3000/ >/dev/null; then
+              exit 0
+            fi
+            sleep 5
+          done
+          docker compose -f ../docker-compose.yaml logs
+          exit 1
+      - run: npx playwright test
+      - name: Upload Playwright traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: front-end/test-results/
+          if-no-files-found: ignore

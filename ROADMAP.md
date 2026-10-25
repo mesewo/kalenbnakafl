@@ -2,10 +2,10 @@
 
 ### Current state / next step
 
-- Bilingual backend content is implemented with `en`/`am` translations, localized message keys, and migrations 0006/0007.
-- Verification: backend Go tests/build/vet, sqlc drift, OpenAPI route parity, generated frontend types, lint, TypeScript, format check, and production build pass. `go test ./...` also passes with PostgreSQL-backed tests enabled after updating the locale fallback fixture to publish its post first.
-- Not verified: Compose smoke could not connect to the Docker Engine.
-- Next: complete the Compose smoke before checking off bilingual delivery.
+- Bilingual backend content and the staff dashboard editors/uploads now use the `en`/`am` translation request maps; edits preserve the API's one-locale-per-update and at-least-one-translation rules.
+- Verification passed: Go formatting, build, vet, tests, sqlc diff; frontend lint (5 existing warnings, no errors), TypeScript, format check, and production build. Playwright discovers the single content smoke test.
+- Not verified: the Playwright browser smoke and Compose startup; Docker Engine is unavailable in this environment.
+- Next: run the Playwright content smoke in CI against Compose and review Amharic UI strings with a native speaker.
 
 **Goal:** a repo and a live demo that survive a 10-minute recruiter/hiring-manager review for a *senior full-stack* role: one-command startup, real security, real tests, CI, docs, and a polished, working UI.
 

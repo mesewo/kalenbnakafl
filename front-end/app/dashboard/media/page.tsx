@@ -2,10 +2,14 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch, formatDate, type MediaItem, type PageResponse } from "@/lib/api";
+import type { components } from "@/types/api.d.ts";
+type Locale = "en" | "am";
+type MediaTranslations = components["schemas"]["MediaTranslations"];
 export default function MediaPage() {
   const { user } = useAuth();
   const [media, setMedia] = useState<MediaItem[]>([]);
-  const [title, setTitle] = useState("");
+  const [titles, setTitles] = useState<Record<Locale, string>>({ en: "", am: "" });
+  const [locale, setLocale] = useState<Locale>("en");
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -30,18 +34,23 @@ export default function MediaPage() {
   }, [user, user?.role]);
   async function upload(e: React.FormEvent) {
     e.preventDefault();
-    if (!file || !title.trim()) {
-      setError("Add a title and choose a file.");
+    const translations: MediaTranslations = {};
+    for (const language of ["en", "am"] as const) {
+      const value = titles[language].trim();
+      if (value) translations[language] = { title: value };
+    }
+    if (!file || !Object.keys(translations).length) {
+      setError("Add at least one language title and choose a file.");
       return;
     }
     const body = new FormData();
-    body.append("title", title);
+    body.append("translations", JSON.stringify(translations));
     body.append("file", file);
     setUploading(true);
     setError("");
     try {
       await apiFetch(`${prefix}/media`, { method: "POST", body });
-      setTitle("");
+      setTitles({ en: "", am: "" });
       setFile(null);
       const input = document.getElementById("media-file") as HTMLInputElement | null;
       if (input) input.value = "";
@@ -71,13 +80,32 @@ export default function MediaPage() {
       </div>
       <div className="form-card" style={{ marginBottom: "1.5rem" }}>
         <form onSubmit={upload}>
+          <div role="tablist" aria-label="Media title language">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={locale === "en"}
+              onClick={() => setLocale("en")}
+            >
+              English
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={locale === "am"}
+              onClick={() => setLocale("am")}
+            >
+              አማርኛ
+            </button>
+          </div>
           <div className="grid-2">
             <div className="field">
-              <label htmlFor="media-title">Title</label>
+              <label htmlFor="media-title">Title ({locale === "en" ? "English" : "አማርኛ"})</label>
               <input
                 id="media-title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                value={titles[locale]}
+                maxLength={180}
+                onChange={(e) => setTitles((current) => ({ ...current, [locale]: e.target.value }))}
                 placeholder="Community photo"
               />
             </div>
@@ -91,6 +119,7 @@ export default function MediaPage() {
               />
             </div>
           </div>
+          <p className="meta">Add a title in at least one language.</p>
           <button className="btn btn-primary" disabled={uploading}>
             {uploading ? "Uploading…" : "Upload media"}
           </button>
