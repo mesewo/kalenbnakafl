@@ -1,6 +1,10 @@
 import Image from "next/image";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
+
 export default function Footer() {
+  const t = useTranslations("footer");
+  const common = useTranslations("common");
   return (
     <footer className="site-footer">
       <div className="container footer-grid">
@@ -8,35 +12,33 @@ export default function Footer() {
           <div className="brand">
             <Image src="/kalenbnakafl-logo.jpg" alt="" width={42} height={42} />
             <span className="brand-copy">
-              <strong>Kalen Benakafil</strong>
-              <span>Community NGO</span>
+              <strong>{common("brand")}</strong>
+              <span>{common("community")}</span>
             </span>
           </div>
-          <p className="lede">
-            A practical community organization helping people turn care into useful local action.
-          </p>
+          <p className="lede">{t("description")}</p>
         </div>
         <div>
-          <h3>Explore</h3>
+          <h3>{t("explore")}</h3>
           <div className="footer-links">
-            <Link href="/about">Our story</Link>
-            <Link href="/events">Upcoming events</Link>
-            <Link href="/blog">Community news</Link>
-            <Link href="/volunteer">Volunteer</Link>
+            <Link href="/about">{t("story")}</Link>
+            <Link href="/events">{t("upcoming")}</Link>
+            <Link href="/blog">{t("news")}</Link>
+            <Link href="/volunteer">{common("volunteer")}</Link>
           </div>
         </div>
         <div>
-          <h3>Connect</h3>
+          <h3>{t("connect")}</h3>
           <div className="footer-links">
-            <Link href="/contact">Send a message</Link>
-            <a href="mailto:hello@kalenbnakafl.org">hello@kalenbnakafl.org</a>
-            <span>We respond as soon as we can.</span>
+            <Link href="/contact">{t("send")}</Link>
+            <a href="mailto:hello@kalenbnakafl.org">{t("email")}</a>
+            <span>{t("respond")}</span>
           </div>
         </div>
       </div>
       <div className="container footer-bottom">
-        <span>© {new Date().getFullYear()} Kalen Benakafil. All rights reserved.</span>
-        <span>Built for community action.</span>
+        <span>{common("copyright", { year: new Date().getFullYear() })}</span>
+        <span>{common("footer")}</span>
       </div>
     </footer>
   );

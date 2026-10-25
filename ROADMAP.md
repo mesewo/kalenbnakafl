@@ -2,11 +2,11 @@
 
 ### Current state / next step
 
-- Bilingual backend content and the staff dashboard editors/uploads now use the `en`/`am` translation request maps; edits preserve the API's one-locale-per-update and at-least-one-translation rules.
-- Verification passed: Go formatting, build, vet, tests, sqlc diff; frontend lint (5 warnings, no errors), TypeScript, format check, and production build. After the locator fix, frontend lint, TypeScript, format check, and Playwright test discovery pass.
-- The first CI browser run exposed an ambiguous Playwright label match (`Date and time` also matched the end-time label); the locator now requires an exact label.
-- Not verified locally: full browser smoke and Compose startup; Docker Engine is unavailable in this environment.
-- Next: rerun the Playwright content smoke in CI against Compose and review Amharic UI strings with a native speaker.
+- Bilingual public routing/catalogs are implemented; Amharic brand display now uses `ካለን ብናካፍል` in the header, footer, and localized copy.
+- Updated the Amharic review catalog and added a browser-flow assertion for the switched header brand.
+- Verified: 202 bilingual messages and review parity, ESLint on the touched frontend files, TypeScript, Playwright test discovery, and `git diff --check`.
+- Browser flows and full Compose build remain unverified; the earlier Docker attempt failed with containerd I/O errors and critically low host disk space.
+- Next: restore Docker/host storage, run the Compose and Playwright smoke checks, and have a native Amharic speaker review `docs/i18n-review.md`.
 
 **Goal:** a repo and a live demo that survive a 10-minute recruiter/hiring-manager review for a *senior full-stack* role: one-command startup, real security, real tests, CI, docs, and a polished, working UI.
 
@@ -215,7 +215,12 @@
 | `docker compose up --build -d` (volunteer applications and event sign-ups smoke) | Failed before startup: Docker Engine named pipe was unavailable. Register/apply/approve/sign-up smoke was not run. | 2026-10-24 |
 | `cd server && gofmt -l . && go build ./... && go vet ./... && go test -count=1 ./... && go tool sqlc diff -f ../sqlc.yaml && go tool goose -dir db/migrations validate` (bilingual content) | Passed with no gofmt output or sqlc diff; PostgreSQL-backed migration/content cases skipped because `DATABASE_URL_TEST` was unset. | 2026-10-25 |
 | `cd front-end && npm run gen:api && npm run lint && npx tsc --noEmit && npm run format:check && npm run build` (bilingual content) | Passed; API generation was idempotent; lint reported 7 warnings and 0 errors; TypeScript, format check, and production build passed. Next warned Baseline browser data is stale. | 2026-10-25 |
-| `docker compose up --build -d` (bilingual content smoke) | Failed before startup: Docker Engine named pipe was unavailable. | 2026-10-25 |### Phase 0 baseline run — 2026-10-20
+| `docker compose up --build -d` (bilingual content smoke) | Failed before startup: Docker Engine named pipe was unavailable. | 2026-10-25 |
+| `cd server && gofmt -l . && go build ./... && go vet ./... && go test ./... && go tool sqlc diff -f ../sqlc.yaml` (bilingual frontend) | Passed; gofmt listed no files and sqlc diff was clean. | 2026-10-25 |
+| `cd front-end && npm run check:i18n && npm run lint && npx tsc --noEmit && npm run format:check && npm run build && npm run test:e2e -- --list` (bilingual frontend) | Passed; 202 catalog keys validated; lint had 5 existing dashboard warnings and no errors; TypeScript, formatting, production build, and Playwright test discovery passed. Build ran outside the sandbox to permit the SWC cache. | 2026-10-25 |
+| `docker compose up --build -d` (bilingual frontend smoke) | Failed before startup: Docker Engine named pipe was unavailable; full Playwright flows were not run. | 2026-10-25 |
+
+### Phase 0 baseline run — 2026-10-20
 
 | Command | Exact result |
 |---------|--------------|

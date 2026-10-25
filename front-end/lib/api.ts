@@ -1,4 +1,5 @@
 import type { components } from "../types/api.d.ts";
+import { intlLocale } from "@/i18n/locale";
 
 export type UserRole = components["schemas"]["User"]["role"];
 export type User = components["schemas"]["User"];
@@ -42,6 +43,9 @@ export async function apiFetch<T = unknown>(
   options: RequestInit = {},
 ): Promise<T> {
   const headers = new Headers(options.headers);
+  const locale =
+    typeof document !== "undefined" && document.documentElement.lang === "am" ? "am" : "en";
+  headers.set("Accept-Language", locale);
   const isUpload = typeof FormData !== "undefined" && options.body instanceof FormData;
   if (!isUpload && options.body !== undefined && !headers.has("Content-Type"))
     headers.set("Content-Type", "application/json");
@@ -59,7 +63,12 @@ export async function apiFetch<T = unknown>(
   };
   let response: Response;
   try {
-    response = await fetch(getUrl(endpoint), {
+    const requested = new URL(
+      getUrl(endpoint),
+      typeof window === "undefined" ? "http://localhost" : window.location.origin,
+    );
+    requested.searchParams.set("lang", locale);
+    response = await fetch(requested.toString(), {
       ...options,
       headers,
       credentials: "include",
@@ -121,14 +130,17 @@ export async function apiFetch<T = unknown>(
     cleanup();
   }
 }
-export function formatDate(value?: string, withTime = false) {
+export function formatDate(value?: string, withTime = false, locale = "en") {
   if (!value) return "Date to be announced";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat(intlLocale(locale), {
     dateStyle: "medium",
     ...(withTime ? { timeStyle: "short" as const } : {}),
   }).format(date);
+}
+export function formatNumber(value: number, locale = "en") {
+  return new Intl.NumberFormat(intlLocale(locale)).format(value);
 }
 export function excerpt(value: string, length = 150) {
   const clean = value.replace(/\s+/g, " ").trim();

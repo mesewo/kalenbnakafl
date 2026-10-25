@@ -757,3 +757,30 @@ button {
     animation: none !important;
   }
 }
+
+html[lang="am"] body,
+html[lang="am"] button,
+html[lang="am"] input,
+html[lang="am"] textarea,
+html[lang="am"] select {
+  font-family: var(--font-noto-sans), sans-serif;
+  letter-spacing: normal;
+  line-height: 1.65;
+}
+html[lang="am"] h1,
+html[lang="am"] h2,
+html[lang="am"] h3,
+html[lang="am"] .display {
+  font-family: var(--font-noto-serif), serif;
+  letter-spacing: normal;
+  line-height: 1.35;
+}
+html[lang="am"] .btn,
+html[lang="am"] .nav-links a,
+html[lang="am"] .mobile-nav a,
+html[lang="am"] .card,
+html[lang="am"] .brand-copy {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  letter-spacing: normal;
+}

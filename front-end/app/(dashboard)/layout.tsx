@@ -1,7 +1,6 @@
-import type { Metadata } from "next";
 import { DM_Sans, Fraunces } from "next/font/google";
 import { AuthProvider } from "@/context/AuthContext";
-import "./globals.css";
+import "../globals.css";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -16,13 +15,7 @@ const fraunces = Fraunces({
   weight: "variable",
 });
 
-export const metadata: Metadata = {
-  title: "Kalen Benakafil | Community NGO",
-  description:
-    "A community NGO connecting people with practical ways to serve, learn, and make a difference.",
-};
-
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function DashboardRootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
       <body className={`${dmSans.variable} ${fraunces.variable}`}>
