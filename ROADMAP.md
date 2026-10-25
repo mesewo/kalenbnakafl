@@ -4,6 +4,7 @@
 
 - Dashboard translations and Amharic content/inbox/volunteer E2E flows are in place; responsive overflow coverage spans both locales.
 - Fixed E2E selectors and publication synchronization, added the missing Amharic contact validation, and made public-content checks tolerate the 60-second ISR cache.
+- Corrected the English event-submit selector to match the catalog label, “Create an event.”
 - Focused checks passed: Go localization tests, Playwright lint/format/TypeScript, catalog validation (411 messages), test discovery (7 tests), and `git diff --check`.
 - The authenticated Compose E2E suite was not run locally because it mutates persistent data; CI provides an ephemeral database.
 - Next: rerun authenticated Playwright tests in CI and get native review of `docs/i18n-review.md`.

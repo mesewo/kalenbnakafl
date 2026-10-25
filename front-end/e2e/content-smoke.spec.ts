@@ -90,7 +90,7 @@ test("admin content and public bilingual flows", async ({ page }) => {
   await dialog.getByLabel("Title (አማርኛ)").fill(amEventTitle);
   await dialog.getByLabel("Description (አማርኛ)").fill(`የአማርኛ ዝግጅት ${suffix}`);
   await dialog.getByLabel("Location (አማርኛ)").fill("የሙከራ ቦታ");
-  await dialog.getByRole("button", { name: "Create event" }).click();
+  await dialog.getByRole("button", { name: "Create an event" }).click();
 
   let eventRow = page.getByRole("row").filter({ hasText: eventTitle });
   await expect(eventRow).toBeVisible();
