@@ -2,7 +2,7 @@
 import { Link } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
 import AuthCard from "@/components/AuthCard";
 import { useAuth } from "@/context/AuthContext";
 export default function LoginPage() {

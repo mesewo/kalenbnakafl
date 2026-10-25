@@ -1,11 +1,14 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch, formatDate, type MediaItem, type PageResponse } from "@/lib/api";
 import type { components } from "@/types/api.d.ts";
 type Locale = "en" | "am";
 type MediaTranslations = components["schemas"]["MediaTranslations"];
 export default function MediaPage() {
+  const displayLocale = useLocale();
+  const t = useTranslations("dashboard");
   const { user } = useAuth();
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [titles, setTitles] = useState<Record<Locale, string>>({ en: "", am: "" });
@@ -24,7 +27,7 @@ export default function MediaPage() {
           [],
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load media.");
+      setError(err instanceof Error ? err.message : t("loadMediaFailed"));
     } finally {
       setLoading(false);
     }
@@ -40,7 +43,7 @@ export default function MediaPage() {
       if (value) translations[language] = { title: value };
     }
     if (!file || !Object.keys(translations).length) {
-      setError("Add at least one language title and choose a file.");
+      setError(t("mediaTitleAndFileRequired"));
       return;
     }
     const body = new FormData();
@@ -56,38 +59,38 @@ export default function MediaPage() {
       if (input) input.value = "";
       load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not upload the file.");
+      setError(err instanceof Error ? err.message : t("uploadMediaFailed"));
     } finally {
       setUploading(false);
     }
   }
   async function remove(item: MediaItem) {
-    if (!window.confirm(`Delete “${item.title}”?`)) return;
+    if (!window.confirm(t("confirmDeleteMedia", { title: item.title }))) return;
     try {
       await apiFetch(`${prefix}/media/${item.id}`, { method: "DELETE" });
       load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not delete media.");
+      setError(err instanceof Error ? err.message : t("deleteMediaFailed"));
     }
   }
   return (
     <div>
       <div className="dashboard-title">
         <div>
-          <span className="eyebrow">Shared resources</span>
-          <h1>Media library</h1>
+          <span className="eyebrow">{t("mediaEyebrow")}</span>
+          <h1>{t("mediaTitle")}</h1>
         </div>
       </div>
       <div className="form-card" style={{ marginBottom: "1.5rem" }}>
         <form onSubmit={upload}>
-          <div role="tablist" aria-label="Media title language">
+          <div role="tablist" aria-label={t("mediaLanguage")}>
             <button
               type="button"
               role="tab"
               aria-selected={locale === "en"}
               onClick={() => setLocale("en")}
             >
-              English
+              {t("english")}
             </button>
             <button
               type="button"
@@ -95,22 +98,26 @@ export default function MediaPage() {
               aria-selected={locale === "am"}
               onClick={() => setLocale("am")}
             >
-              አማርኛ
+              {t("amharic")}
             </button>
           </div>
           <div className="grid-2">
             <div className="field">
-              <label htmlFor="media-title">Title ({locale === "en" ? "English" : "አማርኛ"})</label>
+              <label htmlFor="media-title">
+                {t("title")} {"("}
+                {locale === "en" ? t("english") : t("amharic")}
+                {")"}
+              </label>
               <input
                 id="media-title"
                 value={titles[locale]}
                 maxLength={180}
                 onChange={(e) => setTitles((current) => ({ ...current, [locale]: e.target.value }))}
-                placeholder="Community photo"
+                placeholder={t("communityPhoto")}
               />
             </div>
             <div className="field">
-              <label htmlFor="media-file">File</label>
+              <label htmlFor="media-file">{t("file")}</label>
               <input
                 id="media-file"
                 type="file"
@@ -119,9 +126,9 @@ export default function MediaPage() {
               />
             </div>
           </div>
-          <p className="meta">Add a title in at least one language.</p>
+          <p className="meta">{t("addMediaTitle")}</p>
           <button className="btn btn-primary" disabled={uploading}>
-            {uploading ? "Uploading…" : "Upload media"}
+            {uploading ? t("uploading") : t("uploadMedia")}
           </button>
         </form>
       </div>
@@ -131,14 +138,14 @@ export default function MediaPage() {
         </div>
       )}
       {loading ? (
-        <div className="empty-state">Loading media…</div>
+        <div className="empty-state">{t("loadingMedia")}</div>
       ) : media.length === 0 ? (
-        <div className="empty-state">No media yet. Upload a useful file for the team.</div>
+        <div className="empty-state">{t("noMedia")}</div>
       ) : (
         <div className="grid-3">
           {media.map((item) => (
             <article className="card" key={item.id}>
-              <span className="meta">{formatDate(item.created_at)}</span>
+              <span className="meta">{formatDate(item.created_at, false, displayLocale)}</span>
               <h3>{item.title}</h3>
               <p>{item.original_name || item.file_path}</p>
               <div className="form-actions">
@@ -148,10 +155,10 @@ export default function MediaPage() {
                   target="_blank"
                   rel="noreferrer"
                 >
-                  Open
+                  {t("openFile")}
                 </a>
                 <button className="btn btn-danger btn-small" onClick={() => remove(item)}>
-                  Delete
+                  {t("delete")}
                 </button>
               </div>
             </article>

@@ -29,6 +29,8 @@ jobs:
       - run: npm run gen:api
       - run: git diff --exit-code types/api.d.ts
       - run: npm run check:i18n
+      - name: Report potentially unused catalog keys
+        run: npm run report:unused-messages
       - run: npm run lint
       - run: npx tsc --noEmit
       - run: npm run format:check

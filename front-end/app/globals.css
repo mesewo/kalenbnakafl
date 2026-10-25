@@ -583,7 +583,10 @@ button {
   font-size: clamp(2rem, 4vw, 3.2rem);
 }
 .table-wrap {
+  max-width: 100%;
+  min-width: 0;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
   border: 1px solid var(--line);
   border-radius: 18px;
   background: white;
@@ -611,6 +614,10 @@ button {
 }
 .badge {
   display: inline-flex;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
   padding: 0.25rem 0.55rem;
   border-radius: 999px;
   background: var(--sun-soft);
@@ -618,6 +625,36 @@ button {
   font-size: 0.75rem;
   font-weight: 800;
   text-transform: capitalize;
+}
+.status-pending {
+  background: #fff2cc;
+  color: #684f08;
+}
+.dashboard-topbar,
+.dashboard-topbar > div,
+.dashboard-title,
+.dashboard-title > div,
+.form-actions {
+  min-width: 0;
+}
+.dashboard-topbar > div {
+  flex-wrap: wrap;
+}
+.dashboard-brand,
+.dashboard-side a,
+.btn {
+  overflow-wrap: anywhere;
+}
+html[lang="am"] .dashboard-shell,
+html[lang="am"] .dashboard-shell button,
+html[lang="am"] .dashboard-shell a {
+  letter-spacing: normal;
+  line-height: 1.75;
+}
+html[lang="am"] .dashboard-title h1,
+html[lang="am"] .dashboard-shell h2,
+html[lang="am"] .dashboard-shell h3 {
+  line-height: 1.55;
 }
 .modal-backdrop {
   position: fixed;
@@ -656,6 +693,9 @@ button {
   border-radius: 50%;
   background: white;
 }
+.close-btn::before {
+  content: "×";
+}
 /* Responsive layouts */
 @media (max-width: 900px) {
   .hero-grid {
@@ -688,6 +728,16 @@ button {
   }
 }
 @media (max-width: 680px) {
+  .dashboard-topbar {
+    flex-wrap: wrap;
+  }
+  .dashboard-topbar > div {
+    flex-wrap: wrap;
+  }
+  .dashboard-brand {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
   .nav-links,
   .nav-actions {
     display: none;

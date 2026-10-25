@@ -76,7 +76,7 @@ flowchart LR
 
 Auth, refresh-token, profile, admin user, post, event, media, contact, and volunteer handlers use generated sqlc queries with request contexts and injected dependencies. Media is stored through a local-disk Storage interface using random content-derived extensions and atomic temporary-file renames; uploads are sniffed against the png/jpeg/webp/pdf/mp4/webm/mp3/ogg allowlist. `/uploads/*` sets nosniff, a restrictive CSP, immutable caching, and serves byte ranges without exposing directory listings. Media rows store a checked kind backfilled from existing media_type values. Handler and middleware database access no longer uses package-level database globals. Post and event public/staff lists use `{items,page,limit,total}` pagination (default 10, maximum 50). Post search uses the `simple` text-search configuration and a GIN index. Admin volunteer contribution recording remains under `/admin/volunteers`; applications use a separate review workflow, and event sign-ups are stored separately from volunteer status.
 
-The staff dashboard post and event modals edit English and Amharic translations from staff list responses and submit the OpenAPI `translations` request shapes. Locale changes are sent one at a time because update handlers accept one locale per request; at least one complete translation must remain. Media uploads submit a JSON `translations` multipart field with one or both language titles. The Playwright content smoke runs against the Compose stack with an environment-bootstrapped admin account.
+The staff dashboard post and event modals edit English and Amharic translations from staff list responses and submit the OpenAPI `translations` request shapes. Locale changes are sent one at a time because update handlers accept one locale per request; at least one complete translation must remain. Media uploads submit a JSON `translations` multipart field with one or both language titles. Dashboard pages use catalog labels for API roles and statuses, localized feedback, and locale aware controls; data tables scroll within their own wrappers and labels wrap for narrow screens. Playwright covers bilingual content editing, the contact inbox, volunteer sign-up, and dashboard viewport overflow against the Compose stack with an environment-bootstrapped admin account.
 
 The public frontend uses next-intl under `app/[locale]`, with `en` and `am`, `localePrefix: "always"`, and a `lang` cookie. Next.js 16 uses `proxy.ts` for locale detection; the first unprefixed visit uses the cookie or `Accept-Language` before redirecting to a prefixed URL. Public page entry points are Server Components with 60-second ISR, locale-aware API requests, canonical URLs, and hreflang alternates. Missing content translations display the API fallback note. Amharic dates use the shared `am-ET-u-ca-ethiopic` locale constant. Interface catalogs live in `front-end/messages/en.json` and `am.json`; drafted Amharic is recorded in `docs/i18n-review.md` for native review.
 
@@ -252,8 +252,8 @@ Conventions: JSON; errors `{ "error": { "code", "message", "details?" } }`; pagi
 ```
 front-end/
 ├── app/
-│   ├── [locale]/                  # localized public and auth routes
-│   ├── (dashboard)/dashboard/     # unprefixed staff workspace
+│   ├── [locale]/                  # locale providers; (site) pages and dashboard sibling
+│   ├── [locale]/dashboard/     # localized staff workspace
 │   ├── proxy.ts                   # locale detection (Next.js 16)
 │   ├── sitemap.ts  robots.ts
 ├── components/ ui/ (design system) · layout/ · features/
@@ -261,7 +261,7 @@ front-end/
 └── types/ api.ts (generated)
 ```
 
-Rendering rules: public page entry points = Server Components + ISR (`revalidate: 60`); interactive forms and signup controls are client components. Dashboard routes remain unprefixed and client rendered. Auth state comes from the cookie session via `/me`, never from `localStorage`.
+Rendering rules: public page entry points = Server Components + ISR (`revalidate: 60`); interactive forms and signup controls are client components. Dashboard routes use `/en/dashboard/*` and `/am/dashboard/*`, are client rendered, localized, and marked noindex. Public routes live under `[locale]/(site)` so the localized root layout can provide fonts and auth without the public header on staff pages. Auth state comes from the cookie session via `/me`, never from `localStorage`.
 
 ## 3. Configuration (env)
 

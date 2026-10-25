@@ -1,8 +1,16 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch, type User, type UserRole } from "@/lib/api";
 export default function UsersPage() {
+  const t = useTranslations("dashboard");
+  const roleLabels: Record<UserRole, string> = {
+    user: t("roleUser"),
+    volunteer: t("roleVolunteer"),
+    editor: t("roleEditor"),
+    admin: t("roleAdmin"),
+  };
   const { user } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [editing, setEditing] = useState<User | null>(null);
@@ -15,7 +23,7 @@ export default function UsersPage() {
     try {
       setUsers((await apiFetch<User[]>("/admin/users", {})) || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load users.");
+      setError(err instanceof Error ? err.message : t("loadUsersFailed"));
     } finally {
       setLoading(false);
     }
@@ -43,40 +51,40 @@ export default function UsersPage() {
       start();
       load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save user.");
+      setError(err instanceof Error ? err.message : t("saveUserFailed"));
     }
   }
   async function remove(userToRemove: User) {
     if (userToRemove.id === user?.id) {
-      setError("You cannot delete your own account from this screen.");
+      setError(t("cannotDeleteSelf"));
       return;
     }
-    if (!window.confirm(`Delete ${userToRemove.name}?`)) return;
+    if (!window.confirm(t("confirmDeleteUser", { name: userToRemove.name }))) return;
     try {
       await apiFetch(`/admin/users/${userToRemove.id}`, { method: "DELETE" });
       load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not delete user.");
+      setError(err instanceof Error ? err.message : t("deleteUserFailed"));
     }
   }
   return (
     <div>
       <div className="dashboard-title">
         <div>
-          <span className="eyebrow">People</span>
-          <h1>Users</h1>
+          <span className="eyebrow">{t("usersEyebrow")}</span>
+          <h1>{t("users")}</h1>
         </div>
         <button className="btn btn-primary" onClick={() => start()}>
-          New user
+          {t("newUser")}
         </button>
       </div>
       {(editing !== null || form.name || form.email || form.password) && (
         <div className="form-card" style={{ marginBottom: "1.5rem" }}>
-          <h2>{editing ? "Edit user" : "Create user"}</h2>
+          <h2>{editing ? t("editUser") : t("createUser")}</h2>
           <form onSubmit={submit}>
             <div className="grid-2">
               <div className="field">
-                <label htmlFor="user-name">Name</label>
+                <label htmlFor="user-name">{t("name")}</label>
                 <input
                   id="user-name"
                   value={form.name}
@@ -85,7 +93,7 @@ export default function UsersPage() {
                 />
               </div>
               <div className="field">
-                <label htmlFor="user-email">Email</label>
+                <label htmlFor="user-email">{t("email")}</label>
                 <input
                   id="user-email"
                   type="email"
@@ -95,21 +103,21 @@ export default function UsersPage() {
                 />
               </div>
               <div className="field">
-                <label htmlFor="user-role">Role</label>
+                <label htmlFor="user-role">{t("role")}</label>
                 <select
                   id="user-role"
                   value={form.role}
                   onChange={(e) => setForm({ ...form, role: e.target.value as UserRole })}
                 >
-                  <option value="user">User</option>
-                  <option value="volunteer">Volunteer</option>
-                  <option value="editor">Editor</option>
-                  <option value="admin">Admin</option>
+                  <option value="user">{roleLabels.user}</option>
+                  <option value="volunteer">{roleLabels.volunteer}</option>
+                  <option value="editor">{roleLabels.editor}</option>
+                  <option value="admin">{roleLabels.admin}</option>
                 </select>
               </div>
               <div className="field">
                 <label htmlFor="user-password">
-                  {editing ? "Reset password (optional)" : "Password"}
+                  {editing ? t("resetPassword") : t("password")}
                 </label>
                 <input
                   id="user-password"
@@ -123,10 +131,10 @@ export default function UsersPage() {
             </div>
             <div className="form-actions">
               <button className="btn btn-primary">
-                {editing ? "Save changes" : "Create user"}
+                {editing ? t("saveChanges") : t("createUser")}
               </button>
               <button type="button" className="btn btn-outline" onClick={() => start()}>
-                Cancel
+                {t("cancel")}
               </button>
             </div>
           </form>
@@ -138,16 +146,18 @@ export default function UsersPage() {
         </div>
       )}
       {loading ? (
-        <div className="empty-state">Loading users…</div>
+        <div className="empty-state">{t("loadingUsers")}</div>
+      ) : users.length === 0 ? (
+        <div className="empty-state">{t("noUsers")}</div>
       ) : (
         <div className="table-wrap">
           <table className="data-table">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Actions</th>
+                <th>{t("name")}</th>
+                <th>{t("email")}</th>
+                <th>{t("role")}</th>
+                <th>{t("actions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -156,15 +166,15 @@ export default function UsersPage() {
                   <td>{item.name}</td>
                   <td>{item.email}</td>
                   <td>
-                    <span className="badge">{item.role}</span>
+                    <span className="badge">{roleLabels[item.role]}</span>
                   </td>
                   <td>
                     <div className="form-actions">
                       <button className="btn btn-outline btn-small" onClick={() => start(item)}>
-                        Edit
+                        {t("edit")}
                       </button>
                       <button className="btn btn-danger btn-small" onClick={() => remove(item)}>
-                        Delete
+                        {t("delete")}
                       </button>
                     </div>
                   </td>

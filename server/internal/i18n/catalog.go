@@ -145,5 +145,6 @@ var catalogEn = map[string]string{
 var catalogAm = map[string]string{
 	"common.locale_invalid":                               "\u124b\u1295\u124b\u12cd en \u12c8\u12ed\u121d am \u1218\u1206\u1295 \u12a0\u1208\u1260\u1275",
 	"contact.name_valid_email_and_a_message_are_required": "\u1235\u121d \u12a5\u1293 \u1218\u120d\u12a5\u12ad\u1275 \u12eb\u1235\u1348\u120b\u1309",
+	"contact.status_must_be_read_or_replied":              "ሁኔታው የተነበበ ወይም መልስ የተሰጠው መሆን አለበት",
 	"posts.translations_are_required_and_must_be_valid":   "\u1262\u12eb\u1295\u1235 \u12a0\u1295\u12f5 \u1275\u12ad\u12ad\u1208\u129b \u12e8\u130d\u133d\u134d \u1275\u122d\u1309\u121d \u12eb\u1235\u1348\u120b\u1309",
 }

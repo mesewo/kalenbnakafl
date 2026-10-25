@@ -1,9 +1,11 @@
 import { expect, test } from "@playwright/test";
+import { waitForPublicContent } from "./helpers/public-content";
 
 const adminEmail = process.env.ADMIN_EMAIL;
 const adminPassword = process.env.ADMIN_PASSWORD;
 
 test("admin content and public bilingual flows", async ({ page }) => {
+  test.setTimeout(240_000);
   expect(adminEmail, "ADMIN_EMAIL must be set for the smoke test").toBeTruthy();
   expect(adminPassword, "ADMIN_PASSWORD must be set for the smoke test").toBeTruthy();
   const suffix = `${Date.now()}`;
@@ -18,10 +20,10 @@ test("admin content and public bilingual flows", async ({ page }) => {
   await page.getByLabel("Email address").fill(adminEmail!);
   await page.getByLabel("Password").fill(adminPassword!);
   await page.getByRole("button", { name: "Log in" }).click();
-  await expect(page).toHaveURL(/\/dashboard/);
+  await expect(page).toHaveURL(/\/en\/dashboard/);
 
-  await page.goto("/dashboard/posts");
-  await expect(page).toHaveURL(/\/dashboard\/posts$/);
+  await page.goto("/en/dashboard/posts");
+  await expect(page).toHaveURL(/\/en\/dashboard\/posts$/);
   await page.getByRole("button", { name: "New post" }).click();
   let dialog = page.getByRole("dialog", { name: "Create a post" });
   await dialog.getByLabel("Title (English)").fill(postTitle);
@@ -29,17 +31,16 @@ test("admin content and public bilingual flows", async ({ page }) => {
   await dialog.getByRole("tab", { name: "አማርኛ" }).click();
   await dialog.getByLabel("Title (አማርኛ)").fill(amPostTitle);
   await dialog.getByLabel("Content (አማርኛ)").fill(`የአማርኛ ይዘት ${suffix}`);
-  await dialog.getByRole("button", { name: "Create post" }).click();
+  await dialog.getByRole("button", { name: "Create a post" }).click();
 
   let postRow = page.getByRole("row").filter({ hasText: postTitle });
   await expect(postRow).toBeVisible();
   await postRow.getByRole("button", { name: "Publish" }).click();
-  await page.goto("/en/blog");
-  await expect(page.getByRole("heading", { name: postTitle })).toBeVisible();
+  await expect(postRow).toContainText("Published");
+  await waitForPublicContent(page, "/en/blog", page.getByRole("heading", { name: postTitle }));
   await page.getByRole("link", { name: "Read the full note →" }).first().click();
   await expect(page.getByText(`English body ${suffix}`)).toBeVisible();
-  await page.goto("/am/blog");
-  await expect(page.getByRole("heading", { name: amPostTitle })).toBeVisible();
+  await waitForPublicContent(page, "/am/blog", page.getByRole("heading", { name: amPostTitle }));
   await page.getByRole("link", { name: "ሙሉ ታሪኩን ያንብቡ →" }).first().click();
   await expect(page).toHaveURL(/\/am\/blog\//);
   await expect(page.getByText(`የአማርኛ ይዘት ${suffix}`)).toBeVisible();
@@ -65,7 +66,7 @@ test("admin content and public bilingual flows", async ({ page }) => {
       .toBe(true);
   }
 
-  await page.goto("/dashboard/posts");
+  await page.goto("/en/dashboard/posts");
   postRow = page.getByRole("row").filter({ hasText: postTitle });
   await postRow.getByRole("button", { name: "Edit" }).click();
   dialog = page.getByRole("dialog", { name: "Edit post" });
@@ -77,7 +78,7 @@ test("admin content and public bilingual flows", async ({ page }) => {
   await postRow.getByRole("button", { name: "Delete" }).click();
   await expect(page.getByRole("row").filter({ hasText: editedPostTitle })).toHaveCount(0);
 
-  await page.goto("/dashboard/events");
+  await page.goto("/en/dashboard/events");
   await page.getByRole("button", { name: "New event" }).click();
   dialog = page.getByRole("dialog", { name: "Create an event" });
   await dialog.getByLabel("Title (English)").fill(eventTitle);
@@ -89,12 +90,11 @@ test("admin content and public bilingual flows", async ({ page }) => {
   await dialog.getByLabel("Title (አማርኛ)").fill(amEventTitle);
   await dialog.getByLabel("Description (አማርኛ)").fill(`የአማርኛ ዝግጅት ${suffix}`);
   await dialog.getByLabel("Location (አማርኛ)").fill("የሙከራ ቦታ");
-  await dialog.getByRole("button", { name: "Create event" }).click();
+  await dialog.getByRole("button", { name: "Create an event" }).click();
 
   let eventRow = page.getByRole("row").filter({ hasText: eventTitle });
   await expect(eventRow).toBeVisible();
-  await page.goto("/am/events");
-  await expect(page.getByRole("heading", { name: amEventTitle })).toBeVisible();
+  await waitForPublicContent(page, "/am/events", page.getByRole("heading", { name: amEventTitle }));
   const eventCard = page.locator("article.card").filter({ hasText: amEventTitle });
   const ethiopianDate = await page.evaluate(
     (date) =>
@@ -117,7 +117,7 @@ test("admin content and public bilingual flows", async ({ page }) => {
       .toBe(true);
   }
 
-  await page.goto("/dashboard/events");
+  await page.goto("/en/dashboard/events");
   eventRow = page.getByRole("row").filter({ hasText: eventTitle });
   await eventRow.getByRole("button", { name: "Edit" }).click();
   dialog = page.getByRole("dialog", { name: "Edit event" });

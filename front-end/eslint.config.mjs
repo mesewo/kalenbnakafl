@@ -7,8 +7,10 @@ const eslintConfig = defineConfig([
   ...nextTs,
   {
     files: [
-      "app/[locale]/**/*.{ts,tsx}",
-      "components/{Navbar,Footer,AuthCard,ContactForm,EventSignup,LoginForm,RegisterForm,VolunteerClient}.tsx",
+      "app/**/*.{ts,tsx}",
+      "components/**/*.{ts,tsx}",
+      "context/**/*.{ts,tsx}",
+      "lib/**/*.{ts,tsx}",
     ],
     rules: {
       "no-restricted-syntax": [
@@ -20,6 +22,14 @@ const eslintConfig = defineConfig([
         {
           selector: "JSXAttribute[name.name='aria-label'] > Literal",
           message: "Public aria-label values must come from the locale message catalog.",
+        },
+        {
+          selector: "CallExpression[callee.name='setError'] > Literal[value!='']",
+          message: "User-facing errors must come from the locale message catalog.",
+        },
+        {
+          selector: "NewExpression[callee.name='Error'] > Literal[value!='']",
+          message: "User-facing errors must come from the locale message catalog.",
         },
       ],
     },

@@ -64,6 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 }
 export function useAuth() {
   const context = useContext(AuthContext);
+  // eslint-disable-next-line no-restricted-syntax -- developer-only provider invariant
   if (!context) throw new Error("useAuth must be used inside AuthProvider");
   return context;
 }

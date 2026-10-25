@@ -6,7 +6,7 @@ Every Amharic string below was drafted for this change and **needs native review
 |---|---|
 | `common.locale_invalid` | ቋንቋው en ወይም am መሆን አለበት |
 | `contact.name_valid_email_and_a_message_are_required` | ስም እና መልእክት ያስፈልጋል |
-| `posts.translations_are_required_and_must_be_valid` | ቢያንስ አንድ ትክክለኛ የልጥፍ ትርጉም ያስፈልጋል |
+| `posts.translations_are_required_and_must_be_valid` | ቢያንስ አንድ ትክክለኛ የግጽፍ ትርጉም ያስፈልጋል |
 | `e2e.smoke_post_title` | የሙከራ ጽሑፍ {suffix} |
 | `e2e.smoke_post_body` | የአማርኛ ይዘት {suffix} |
 | `e2e.smoke_event_title` | የሙከራ ዝግጅት {suffix} |
@@ -36,6 +36,8 @@ Every Amharic string below was drafted for this change and **needs native review
 | `common.loading` | በመጫን ላይ… |
 | `common.error` | ችግር ተፈጥሯል። እንደገና ይሞክሩ። |
 | `common.fallback` | ገና ወደዚህ ቋንቋ አልተተረጎመም፤ የእንግሊዝኛው እየታየ ነው |
+| `common.requestTimedOut` | ጥያቄው ለመጠናቀቅ ብዙ ጊዜ ወስዷል። እባክዎ እንደገና ይሞክሩ። |
+| `common.serviceUnavailable` | ከአገልግሎቱ ጋር መገናኘት አልቻልንም። እባክዎ ግንኙነትዎን ያረጋግጡና እንደገና ይሞክሩ። |
 | `metadata.title` | ካለን ብናካፍል \| የማኅበረሰብ ድርጅት |
 | `metadata.description` | ሰዎች ለማኅበረሰባቸው እንዲያገለግሉ፣ እንዲማሩና ለውጥ እንዲያመጡ የሚያገናኝ ድርጅት። |
 | `metadata.brand` | ካለን ብናካፍል |
@@ -53,7 +55,7 @@ Every Amharic string below was drafted for this change and **needs native review
 | `nav.close` | ምናሌውን ዝጋ |
 | `nav.hello` | ሰላም፣ {name} |
 | `footer.explore` | ይመልከቱ |
-| `footer.connect` | ያገናኙን |
+| `footer.connect` | ይገናኙ |
 | `footer.story` | ታሪካችን |
 | `footer.upcoming` | የሚመጡ ዝግጅቶች |
 | `footer.news` | የማኅበረሰብ ዜና |
@@ -103,7 +105,7 @@ Every Amharic string below was drafted for this change and **needs native review
 | `about.intro` | ካለን ብናካፍል ሰዎች እንዲገናኙ፣ እንዲያበረክቱና የበለጠ ደጋፊ የአካባቢ ወደፊት እንዲገነቡ ተግባራዊ መንገዶችን የሚፈጥር ድርጅት ነው። |
 | `about.guides` | የሚመሩን እሴቶች |
 | `about.shared` | እንክብካቤን ስንጋራ ወደ ጠቃሚ ተግባር ይለወጣል። |
-| `about.p1` | ጤናማ ማኅበረሰቦች በዕለት ተዕለት ተሳትፎ እንደሚገነቡ እናምናለን፤ ጎረቤቶች ዕውቀት ይጋራሉ፣ አዳዲስ ድምፆችን ይቀበላሉ፣ የፊታቸውን ሥራም ያከናውናሉ። |
+| `about.p1` | ጤናማ ማኅበረሰቦች በዕለት ተዕለት ተሳትፎ እንደሚገነቡ እናምናለን፤ ጎረቤቶች ዕውቀት ይጋራሉ፣ አዳዲስ ድምፆችን ይቀበላሉ፣ የየበኩላቸውንም ሥራ ያከናውናሉ። |
 | `about.p2` | ፕሮግራሞቻችንና ዝግጅቶቻችን ለሁሉም ተደራሽ፣ ተግባራዊና በማኅበረሰቡ ነባር ጥንካሬዎች ላይ የተመሠረቱ ናቸው። |
 | `about.gather` | እንዴት እንደምንሰበሰብ ይመልከቱ |
 | `about.approach` | አቀራረባችን |
@@ -158,7 +160,7 @@ Every Amharic string below was drafted for this change and **needs native review
 | `contact.name` | ስምዎ |
 | `contact.emailLabel` | ኢሜይል አድራሻ |
 | `contact.message` | እንዴት እንርዳዎ? |
-| `contact.help` | ጥያቄዎች፣ ሐሳቦች፣ የአጋርነት ማስታወሻዎችና የበጎ ፈቃደኝነት ፍላጎቶች በደስታ ይቀበላሉ። |
+| `contact.help` | ጥያቄዎችዎን፣ ሐሳቦችዎን፣ አጋርነትዎን እና የበጎ ፈቃደኝነት ፍላጎትዎን በደስታ እንቀበላለን። |
 | `contact.send` | መልእክት ይላኩ |
 | `contact.sending` | በመላክ ላይ… |
 | `contact.success` | መልእክትዎ ተልኳል። በቅርቡ እንመልስልዎታለን። |
@@ -173,7 +175,7 @@ Every Amharic string below was drafted for this change and **needs native review
 | `volunteer.register` | መለያ ይፍጠሩ |
 | `volunteer.checking` | ማመልከቻዎን በመፈተሽ ላይ… |
 | `volunteer.status` | የማመልከቻ ሁኔታ፦ {status} |
-| `volunteer.existing` | የበጎ ፈቃደኝነት ማመልከቻዎ ደርሶናል። አስተዳዳሪ እርምጃ ካልወሰደ ሌላ ማመልከቻ ማስገባት አይችሉም። |
+| `volunteer.existing` | የበጎ ፈቃደኝነት ማመልከቻዎ ደርሶናል። አስተዳዳሪው እስኪገመግመው ድረስ ሌላ ማመልከቻ ማስገባት አይችሉም። |
 | `volunteer.role` | መለያዎ የ{role} ሚና ስላለው ለበጎ ፈቃደኝነት ማመልከት አይችሉም። |
 | `volunteer.skills` | ችሎታዎችና ፍላጎቶች |
 | `volunteer.availability` | የሚገኙበት ጊዜ |
@@ -215,3 +217,210 @@ Every Amharic string below was drafted for this change and **needs native review
 | `errors.home` | ወደ ዋና ገጽ ይመለሱ |
 | `errors.generic` | ችግር ተፈጥሯል። እንደገና ይሞክሩ። |
 | `errors.retry` | እንደገና ይሞክሩ |
+| `dashboard.brand` | ካለን ብናካፍል / የሥራ ቦታ |
+| `dashboard.navigation` | የዳሽቦርድ ምናሌ |
+| `dashboard.publicSite` | ← የሕዝብ ገጽ |
+| `dashboard.overview` | አጠቃላይ እይታ |
+| `dashboard.posts` | ጽሑፎች |
+| `dashboard.events` | ዝግጅቶች |
+| `dashboard.media` | ሚዲያ |
+| `dashboard.messages` | መልእክቶች |
+| `dashboard.users` | ተጠቃሚዎች |
+| `dashboard.volunteers` | በጎ ፈቃደኞች |
+| `dashboard.applications` | የበጎ ፈቃደኝነት ማመልከቻዎች |
+| `dashboard.profile` | የእኔ መገለጫ |
+| `dashboard.logout` | ውጣ |
+| `dashboard.checkingAccess` | የመግቢያ ፈቃድዎን በመፈተሽ ላይ… |
+| `dashboard.accessDenied` | ይህን ገጽ የማየት ፈቃድ የለዎትም። |
+| `dashboard.roles.admin` | አስተዳዳሪ |
+| `dashboard.roles.editor` | አርታዒ |
+| `dashboard.roles.user` | አባል |
+| `dashboard.roles.volunteer` | በጎ ፈቃደኛ |
+| `dashboard.homeEyebrow` | የሥራ ቦታ አጠቃላይ እይታ |
+| `dashboard.greeting` | እንኳን ደህና መጡ፣ {name}። |
+| `dashboard.adminHeadline` | ሥራው እንዲቀጥል ሙሉ ፈቃድ አለዎት። |
+| `dashboard.editorHeadline` | ቀጣዩን የማኅበረሰብ ዝመና ማዘጋጀት ይችላሉ። |
+| `dashboard.memberHeadline` | የማኅበረሰቡ አካል ስለሆኑ እናመሰግናለን። |
+| `dashboard.adminDescription` | ሰዎችን ያስተዳድሩ፣ ታሪኮችን ያትሙ፣ ዝግጅቶችን ያዘጋጁ፣ የመረጃ ማዕከሉንም ጠቃሚ ያድርጉ። |
+| `dashboard.editorDescription` | ብዙ ሰዎች የሚሳተፉበትን መንገድ የሚያሳዩ ታሪኮችና ዝግጅቶች ያዘጋጁ። |
+| `dashboard.memberDescription` | ዝግጅቶችንና ዜናዎችን ይመልከቱ፣ ወይም ዝግጁ ሲሆኑ መገለጫዎን ያዘምኑ። |
+| `dashboard.loading` | የሥራ ቦታ መረጃ በመጫን ላይ… |
+| `dashboard.people` | ሰዎች |
+| `dashboard.open` | {label} ይክፈቱ → |
+| `dashboard.ready` | የሥራ ቦታዎ ዝግጁ ነው። የሕዝብ ገጹን ይመልከቱ ወይም መገለጫዎን ያዘምኑ። |
+| `dashboard.yourDetails` | የእርስዎ መረጃ |
+| `dashboard.name` | ስም |
+| `dashboard.email` | ኢሜይል |
+| `dashboard.newPassword` | አዲስ የይለፍ ቃል |
+| `dashboard.confirmPassword` | አዲሱን የይለፍ ቃል ያረጋግጡ |
+| `dashboard.passwordHint` | መቀየር ካልፈለጉ ባዶውን ይተዉት። |
+| `dashboard.passwordMismatch` | አዲሱ የይለፍ ቃልና ማረጋገጫው አይዛመዱም። |
+| `dashboard.profileUpdated` | መገለጫዎ ተዘምኗል። |
+| `dashboard.profileUpdateFailed` | መገለጫዎን ማዘመን አልተቻለም። |
+| `dashboard.saving` | በማስቀመጥ ላይ… |
+| `dashboard.saveProfile` | መገለጫውን ያስቀምጡ |
+| `dashboard.ethiopianDate` | በኢትዮጵያ የቀን አቆጣጠር፦ {date} |
+| `dashboard.received` | የደረሰበት ቀን፦ {date} |
+| `dashboard.receivedLabel` | የደረሰበት ቀን |
+| `dashboard.postsEyebrow` | የይዘት ማዕከል |
+| `dashboard.newPost` | አዲስ ጽሑፍ |
+| `dashboard.title` | ርዕስ |
+| `dashboard.status` | ሁኔታ |
+| `dashboard.updated` | የተዘመነበት |
+| `dashboard.actions` | ድርጊቶች |
+| `dashboard.loadingPosts` | ጽሑፎች በመጫን ላይ… |
+| `dashboard.noPosts` | ገና ጽሑፍ የለም። የመጀመሪያውን የማኅበረሰብ ዝመና ይፍጠሩ። |
+| `dashboard.published` | የታተመ |
+| `dashboard.draft` | ረቂቅ |
+| `dashboard.edit` | አርትዕ |
+| `dashboard.unpublish` | ህትመቱን አንሳ |
+| `dashboard.publish` | አትም |
+| `dashboard.delete` | ሰርዝ |
+| `dashboard.confirmDeletePost` | “{title}” ይሰረዝ? |
+| `dashboard.missingAmharic` | የአማርኛ ትርጉም የለም |
+| `dashboard.missingEnglish` | የእንግሊዝኛ ትርጉም የለም |
+| `dashboard.previewOtherLanguage` | በሌላው ቋንቋ ይመልከቱ |
+| `dashboard.previewEnglish` | በእንግሊዝኛ ይመልከቱ |
+| `dashboard.previewAmharic` | በአማርኛ ይመልከቱ |
+| `dashboard.eventsEyebrow` | ስብሰባዎች |
+| `dashboard.newEvent` | አዲስ ዝግጅት |
+| `dashboard.event` | ዝግጅት |
+| `dashboard.date` | ቀን |
+| `dashboard.loadingEvents` | ዝግጅቶች በመጫን ላይ… |
+| `dashboard.noEvents` | ገና ዝግጅት የለም። ቀጣዩን ስብሰባ ያክሉ። |
+| `dashboard.confirmDeleteEvent` | “{title}” ይሰረዝ? |
+| `dashboard.attendees` | ተመዝጋቢዎች |
+| `dashboard.attendeesFor` | የ{title} ተመዝጋቢዎች |
+| `dashboard.loadingAttendees` | ተመዝጋቢዎች በመጫን ላይ… |
+| `dashboard.noAttendees` | እስካሁን ማንም አልተመዘገበም። |
+| `dashboard.attendeePages` | የተመዝጋቢዎች ገጾች |
+| `dashboard.previous` | የቀድሞ |
+| `dashboard.next` | ቀጣይ |
+| `dashboard.pageOf` | ገጽ {page} ከ {total} |
+| `dashboard.mediaEyebrow` | የጋራ ሀብቶች |
+| `dashboard.mediaTitle` | የሚዲያ ማዕከል |
+| `dashboard.mediaLanguage` | የሚዲያ ርዕስ ቋንቋ |
+| `dashboard.english` | English |
+| `dashboard.amharic` | አማርኛ |
+| `dashboard.communityPhoto` | የማኅበረሰብ ፎቶ |
+| `dashboard.file` | ፋይል |
+| `dashboard.addMediaTitle` | ቢያንስ በአንድ ቋንቋ ርዕስ ያክሉ። |
+| `dashboard.uploadMedia` | ሚዲያ ይስቀሉ |
+| `dashboard.uploading` | በመስቀል ላይ… |
+| `dashboard.loadingMedia` | ሚዲያ በመጫን ላይ… |
+| `dashboard.noMedia` | ገና ሚዲያ የለም። ለቡድኑ ጠቃሚ ፋይል ይስቀሉ። |
+| `dashboard.confirmDeleteMedia` | “{title}” ይሰረዝ? |
+| `dashboard.mediaTitleAndFileRequired` | ቢያንስ በአንድ ቋንቋ ርዕስ ያክሉና ፋይል ይምረጡ። |
+| `dashboard.messagesEyebrow` | የማኅበረሰብ መልእክቶች |
+| `dashboard.inbox` | የግንኙነት መልእክቶች |
+| `dashboard.filterStatus` | በሁኔታ ያጣሩ |
+| `dashboard.allMessages` | ሁሉም መልእክቶች |
+| `dashboard.new` | አዲስ |
+| `dashboard.read` | የተነበበ |
+| `dashboard.replied` | ምላሽ የተሰጠ |
+| `dashboard.from` | ከ |
+| `dashboard.hideMessage` | መልእክቱን ደብቅ |
+| `dashboard.handledBy` | ያስተናገደው {name} |
+| `dashboard.markRead` | እንደተነበበ ምልክት አድርግ |
+| `dashboard.markReplied` | ምላሽ እንደተሰጠ ምልክት አድርግ |
+| `dashboard.messagePages` | የመልእክት ገጾች |
+| `dashboard.messageCount` | {count, plural, one {# መልእክት} other {# መልእክቶች}} |
+| `dashboard.noMessages` | ማጣሪያውን የሚያሟላ የግንኙነት መልእክት የለም። |
+| `dashboard.usersEyebrow` | ሰዎች |
+| `dashboard.newUser` | አዲስ ተጠቃሚ |
+| `dashboard.editUser` | ተጠቃሚን አርትዕ |
+| `dashboard.createUser` | ተጠቃሚ ይፍጠሩ |
+| `dashboard.role` | ሚና |
+| `dashboard.resetPassword` | የይለፍ ቃል ይቀይሩ (አማራጭ) |
+| `dashboard.password` | የይለፍ ቃል |
+| `dashboard.saveChanges` | ለውጦቹን ያስቀምጡ |
+| `dashboard.cancel` | ይቅር |
+| `dashboard.loadingUsers` | ተጠቃሚዎች በመጫን ላይ… |
+| `dashboard.confirmDeleteUser` | {name} ይሰረዝ? |
+| `dashboard.cannotDeleteSelf` | ከዚህ ገጽ የራስዎን መለያ መሰረዝ አይችሉም። |
+| `dashboard.volunteersEyebrow` | የማኅበረሰብ ተሳትፎ |
+| `dashboard.recordedHours` | {count} ሰዓት ተመዝግቧል |
+| `dashboard.noVolunteers` | ገና የበጎ ፈቃደኛ መገለጫ የለም። ሰዎች በሕዝብ ገጹ ላይ ለበጎ ፈቃደኝነት መመዝገብ ይችላሉ። |
+| `dashboard.recordContribution` | አስተዋጽኦ ይመዝግቡ |
+| `dashboard.recordTimeFor` | የ{name} ጊዜ ይመዝግቡ |
+| `dashboard.hours` | ሰዓታት |
+| `dashboard.notes` | ማስታወሻዎች |
+| `dashboard.saveContribution` | አስተዋጽኦውን ያስቀምጡ |
+| `dashboard.applicationsTitle` | የበጎ ፈቃደኝነት ማመልከቻዎች |
+| `dashboard.filterApplications` | በሁኔታ ያጣሩ |
+| `dashboard.pending` | በመጠባበቅ ላይ |
+| `dashboard.approved` | ጸድቋል |
+| `dashboard.declined` | ውድቅ ተደርጓል |
+| `dashboard.allStatuses` | ሁሉም ሁኔታዎች |
+| `dashboard.loadingApplications` | ማመልከቻዎች በመጫን ላይ… |
+| `dashboard.noApplications` | ማጣሪያውን የሚያሟላ ማመልከቻ የለም። |
+| `dashboard.skills` | ችሎታዎችና ፍላጎቶች |
+| `dashboard.availability` | የሚገኙበት ጊዜ |
+| `dashboard.applicationMessage` | ተጨማሪ መረጃ |
+| `dashboard.reviewedBy` | የገመገመው {name} |
+| `dashboard.reviewApplication` | ማመልከቻውን ይገምግሙ |
+| `dashboard.approve` | አጽድቅ |
+| `dashboard.decline` | ውድቅ አድርግ |
+| `dashboard.applicationPages` | የማመልከቻ ገጾች |
+| `dashboard.roleUser` | ተጠቃሚ |
+| `dashboard.roleVolunteer` | በጎ ፈቃደኛ |
+| `dashboard.roleEditor` | አርታዒ |
+| `dashboard.roleAdmin` | አስተዳዳሪ |
+| `dashboard.createPost` | ጽሑፍ ይፍጠሩ |
+| `dashboard.editPost` | ጽሑፍን አርትዕ |
+| `dashboard.postContent` | ይዘት |
+| `dashboard.postSlug` | Slug (አማራጭ) |
+| `dashboard.coverMediaId` | የሽፋን ሚዲያ መለያ (አማራጭ) |
+| `dashboard.createEvent` | ዝግጅት ይፍጠሩ |
+| `dashboard.editEvent` | ዝግጅትን አርትዕ |
+| `dashboard.description` | መግለጫ |
+| `dashboard.location` | ቦታ |
+| `dashboard.dateAndTime` | ቀንና ሰዓት |
+| `dashboard.endDateOptional` | የመጨረሻ ቀንና ሰዓት (አማራጭ) |
+| `dashboard.clearTranslationHelp` | ቋንቋን ለማስወገድ የትርጉሙን መስኮች ባዶ ያድርጉ። ቢያንስ አንድ ቋንቋ መቆየት አለበት። |
+| `dashboard.translationIncomplete` | የ{language} ርዕስና አስፈላጊ ጽሑፍ ያሟሉ ወይም መስኮቹን ባዶ ያድርጉ። |
+| `dashboard.translationRequired` | ቢያንስ አንድ ሙሉ ቋንቋ ያስፈልጋል። |
+| `dashboard.eventDateRequired` | የዝግጅት ቀን ያስፈልጋል። |
+| `dashboard.create` | ይፍጠሩ |
+| `dashboard.save` | ያስቀምጡ |
+| `dashboard.closeDialog` | መስኮቱን ዝጋ |
+| `dashboard.statusDraftLabel` | ረቂቅ |
+| `dashboard.statusPublishedLabel` | የታተመ |
+| `dashboard.statusNewLabel` | አዲስ |
+| `dashboard.statusReadLabel` | የተነበበ |
+| `dashboard.statusRepliedLabel` | ምላሽ የተሰጠ |
+| `dashboard.statusPendingLabel` | በመጠባበቅ ላይ |
+| `dashboard.statusApprovedLabel` | ጸድቋል |
+| `dashboard.statusDeclinedLabel` | ውድቅ ተደርጓል |
+| `dashboard.loadPostsFailed` | ጽሑፎችን መጫን አልተቻለም። |
+| `dashboard.deletePostFailed` | ጽሑፉን መሰረዝ አልተቻለም። |
+| `dashboard.updatePostFailed` | የህትመት ሁኔታውን ማዘመን አልተቻለም። |
+| `dashboard.loadEventsFailed` | ዝግጅቶችን መጫን አልተቻለም። |
+| `dashboard.loadAttendeesFailed` | ተመዝጋቢዎችን መጫን አልተቻለም። |
+| `dashboard.deleteEventFailed` | ዝግጅቱን መሰረዝ አልተቻለም። |
+| `dashboard.loadMediaFailed` | ሚዲያውን መጫን አልተቻለም። |
+| `dashboard.uploadMediaFailed` | ፋይሉን መስቀል አልተቻለም። |
+| `dashboard.deleteMediaFailed` | ሚዲያውን መሰረዝ አልተቻለም። |
+| `dashboard.openFile` | ፋይሉን ክፈት |
+| `dashboard.loadMessagesFailed` | የግንኙነት መልእክቶችን መጫን አልተቻለም። |
+| `dashboard.updateMessageFailed` | ይህን መልእክት ማዘመን አልተቻለም። |
+| `dashboard.loadingMessages` | መልእክቶች በመጫን ላይ… |
+| `dashboard.loadUsersFailed` | ተጠቃሚዎችን መጫን አልተቻለም። |
+| `dashboard.saveUserFailed` | ተጠቃሚውን ማስቀመጥ አልተቻለም። |
+| `dashboard.deleteUserFailed` | ተጠቃሚውን መሰረዝ አልተቻለም። |
+| `dashboard.noUsers` | ምንም ተጠቃሚ የለም። |
+| `dashboard.loadVolunteersFailed` | በጎ ፈቃደኞችን መጫን አልተቻለም። |
+| `dashboard.recordContributionFailed` | አስተዋጽኦውን መመዝገብ አልተቻለም። |
+| `dashboard.loadingVolunteers` | በጎ ፈቃደኞች በመጫን ላይ… |
+| `dashboard.recordedHourCount` | {count, plural, one {# የተመዘገበ ሰዓት} other {# የተመዘገቡ ሰዓታት}} |
+| `dashboard.loadApplicationsFailed` | ማመልከቻዎችን መጫን አልተቻለም። |
+| `dashboard.reviewApplicationFailed` | ማመልከቻውን መገምገም አልተቻለም። |
+| `dashboard.adminAccessRequired` | የአስተዳዳሪ ፈቃድ ያስፈልጋል። |
+| `dashboard.postLanguage` | የጽሑፉ ቋንቋ |
+| `dashboard.eventLanguage` | የዝግጅቱ ቋንቋ |
+| `dashboard.slug` | Slug |
+| `dashboard.slugPlaceholder` | ባዶ ከተወው ከርዕሱ ይፈጠራል |
+| `dashboard.slugValidation` | ከ3 እስከ 100 ትንንሽ የላቲን ፊደሎችን፣ ቁጥሮችን ወይም ሰረዞችን ይጠቀሙ። |
+| `dashboard.clearPostTranslationHelp` | ቋንቋን ለማስወገድ ሁለቱንም መስኮች ባዶ ያድርጉ። ቢያንስ አንድ ቋንቋ መቆየት አለበት። |
+| `dashboard.savePostFailed` | ጽሑፉን ማስቀመጥ አልተቻለም። |
+| `dashboard.saveEventFailed` | ዝግጅቱን ማስቀመጥ አልተቻለም። |

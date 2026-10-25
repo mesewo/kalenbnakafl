@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { apiFetch, type EventItem } from "@/lib/api";
+import { formatDate } from "@/lib/api";
 import type { components } from "@/types/api.d.ts";
 
 type Locale = "en" | "am";
@@ -25,6 +27,8 @@ export default function EventModal({
   userRole: string | undefined;
   event?: EventItem | null;
 }) {
+  const displayLocale = useLocale();
+  const tDashboard = useTranslations("dashboard");
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [eventDate, setEventDate] = useState("");
   const [endsAt, setEndsAt] = useState("");
@@ -61,14 +65,16 @@ export default function EventModal({
       if (!title && !description && !location) continue;
       if (!title || !description) {
         setError(
-          `Complete title and description for ${language === "en" ? "English" : "አማርኛ"}, or clear all fields.`,
+          tDashboard("translationIncomplete", {
+            language: language === "en" ? tDashboard("english") : tDashboard("amharic"),
+          }),
         );
         return null;
       }
       result[language] = { title, description, location };
     }
     if (!Object.keys(result).length) {
-      setError("At least one complete language is required.");
+      setError(tDashboard("translationRequired"));
       return null;
     }
     return result;
@@ -80,7 +86,7 @@ export default function EventModal({
     const values = translationsToSave();
     if (!values) return;
     if (!eventDate) {
-      setError("An event date is required.");
+      setError(tDashboard("eventDateRequired"));
       return;
     }
     const start = new Date(eventDate).toISOString();
@@ -126,7 +132,7 @@ export default function EventModal({
       onSuccess();
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save the event.");
+      setError(err instanceof Error ? err.message : tDashboard("saveEventFailed"));
     } finally {
       setLoading(false);
     }
@@ -136,16 +142,16 @@ export default function EventModal({
     <div className="modal-backdrop" role="presentation">
       <div className="modal" role="dialog" aria-modal="true" aria-labelledby="event-modal-title">
         <div className="modal-head">
-          <h2 id="event-modal-title">{event ? "Edit event" : "Create an event"}</h2>
+          <h2 id="event-modal-title">
+            {event ? tDashboard("editEvent") : tDashboard("createEvent")}
+          </h2>
           <button
             className="close-btn"
             ref={closeRef}
             type="button"
-            aria-label="Close dialog"
+            aria-label={tDashboard("closeDialog")}
             onClick={onClose}
-          >
-            ×
-          </button>
+          />
         </div>
         {error && (
           <div className="status status-error" role="alert" style={{ marginBottom: "1rem" }}>
@@ -153,14 +159,14 @@ export default function EventModal({
           </div>
         )}
         <form onSubmit={submit}>
-          <div role="tablist" aria-label="Event language">
+          <div role="tablist" aria-label={tDashboard("eventLanguage")}>
             <button
               type="button"
               role="tab"
               aria-selected={locale === "en"}
               onClick={() => setLocale("en")}
             >
-              English
+              {tDashboard("english")}
             </button>
             <button
               type="button"
@@ -168,11 +174,15 @@ export default function EventModal({
               aria-selected={locale === "am"}
               onClick={() => setLocale("am")}
             >
-              አማርኛ
+              {tDashboard("amharic")}
             </button>
           </div>
           <div className="field">
-            <label htmlFor="event-title">Title ({locale === "en" ? "English" : "አማርኛ"})</label>
+            <label htmlFor="event-title">
+              {tDashboard("title")} {"("}
+              {locale === "en" ? tDashboard("english") : tDashboard("amharic")}
+              {")"}
+            </label>
             <input
               id="event-title"
               value={draft[locale].title}
@@ -182,7 +192,9 @@ export default function EventModal({
           </div>
           <div className="field">
             <label htmlFor="event-description">
-              Description ({locale === "en" ? "English" : "አማርኛ"})
+              {tDashboard("description")} {"("}
+              {locale === "en" ? tDashboard("english") : tDashboard("amharic")}
+              {")"}
             </label>
             <textarea
               id="event-description"
@@ -193,7 +205,9 @@ export default function EventModal({
           </div>
           <div className="field">
             <label htmlFor="event-location">
-              Location ({locale === "en" ? "English" : "አማርኛ"})
+              {tDashboard("location")} {"("}
+              {locale === "en" ? tDashboard("english") : tDashboard("amharic")}
+              {")"}
             </label>
             <input
               id="event-location"
@@ -203,7 +217,7 @@ export default function EventModal({
             />
           </div>
           <div className="field">
-            <label htmlFor="event-date">Date and time</label>
+            <label htmlFor="event-date">{tDashboard("dateAndTime")}</label>
             <input
               id="event-date"
               type="datetime-local"
@@ -211,26 +225,37 @@ export default function EventModal({
               onChange={(e) => setEventDate(e.target.value)}
               required
             />
+            {displayLocale === "am" && eventDate && (
+              <small>
+                {tDashboard("ethiopianDate", { date: formatDate(eventDate, true, displayLocale) })}
+              </small>
+            )}
           </div>
           <div className="field">
-            <label htmlFor="event-ends-at">End date and time (optional)</label>
+            <label htmlFor="event-ends-at">{tDashboard("endDateOptional")}</label>
             <input
               id="event-ends-at"
               type="datetime-local"
               value={endsAt}
               onChange={(e) => setEndsAt(e.target.value)}
             />
+            {displayLocale === "am" && endsAt && (
+              <small>
+                {tDashboard("ethiopianDate", { date: formatDate(endsAt, true, displayLocale) })}
+              </small>
+            )}
           </div>
-          <p className="meta">
-            Clear all translation fields for a language to remove it. At least one language must
-            remain.
-          </p>
+          <p className="meta">{tDashboard("clearTranslationHelp")}</p>
           <div className="form-actions">
             <button className="btn btn-primary" disabled={loading}>
-              {loading ? "Saving…" : event ? "Save changes" : "Create event"}
+              {loading
+                ? tDashboard("saving")
+                : event
+                  ? tDashboard("saveChanges")
+                  : tDashboard("createEvent")}
             </button>
             <button className="btn btn-outline" type="button" onClick={onClose}>
-              Cancel
+              {tDashboard("cancel")}
             </button>
           </div>
         </form>

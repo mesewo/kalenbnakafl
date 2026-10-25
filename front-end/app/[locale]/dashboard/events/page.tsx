@@ -1,10 +1,14 @@
 "use client";
 import { Fragment, useEffect, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch, formatDate, type EventItem, type PageResponse } from "@/lib/api";
 type Attendee = { name: string; email: string; created_at: string };
 import EventModal from "@/components/EventModal";
 export default function EventsAdminPage() {
+  const locale = useLocale();
+  const t = useTranslations("dashboard");
   const { user } = useAuth();
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,7 +36,7 @@ export default function EventsAdminPage() {
           [],
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load events.");
+      setError(err instanceof Error ? err.message : t("loadEventsFailed"));
     } finally {
       setLoading(false);
     }
@@ -52,7 +56,7 @@ export default function EventsAdminPage() {
         ),
       );
     } catch (err) {
-      setAttendeeError(err instanceof Error ? err.message : "Could not load attendees.");
+      setAttendeeError(err instanceof Error ? err.message : t("loadAttendeesFailed"));
     } finally {
       setAttendeeLoading(false);
     }
@@ -66,23 +70,23 @@ export default function EventsAdminPage() {
     void loadAttendees(eventID, 1);
   }
   async function remove(event: EventItem) {
-    if (!window.confirm(`Delete “${event.title}”?`)) return;
+    if (!window.confirm(t("confirmDeleteEvent", { title: event.title }))) return;
     try {
       await apiFetch(`${prefix}/events/${event.id}`, { method: "DELETE" });
       load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not delete the event.");
+      setError(err instanceof Error ? err.message : t("deleteEventFailed"));
     }
   }
   return (
     <div>
       <div className="dashboard-title">
         <div>
-          <span className="eyebrow">Gatherings</span>
-          <h1>Events</h1>
+          <span className="eyebrow">{t("eventsEyebrow")}</span>
+          <h1>{t("events")}</h1>
         </div>
         <button className="btn btn-primary" onClick={() => setModal({ open: true, event: null })}>
-          New event
+          {t("newEvent")}
         </button>
       </div>
       {error && (
@@ -91,17 +95,17 @@ export default function EventsAdminPage() {
         </div>
       )}
       {loading ? (
-        <div className="empty-state">Loading events…</div>
+        <div className="empty-state">{t("loadingEvents")}</div>
       ) : events.length === 0 ? (
-        <div className="empty-state">No events yet. Add the next gathering.</div>
+        <div className="empty-state">{t("noEvents")}</div>
       ) : (
         <div className="table-wrap">
           <table className="data-table">
             <thead>
               <tr>
-                <th>Event</th>
-                <th>Date</th>
-                <th>Actions</th>
+                <th>{t("event")}</th>
+                <th>{t("date")}</th>
+                <th>{t("actions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -110,29 +114,44 @@ export default function EventsAdminPage() {
                   <tr>
                     <td>
                       <strong>{event.title}</strong>
+                      {(!event.translations?.am?.title || !event.translations?.am?.description) && (
+                        <span className="badge status-pending">{t("missingAmharic")}</span>
+                      )}
+                      {(!event.translations?.en?.title || !event.translations?.en?.description) && (
+                        <span className="badge status-pending">{t("missingEnglish")}</span>
+                      )}
+                      <div>
+                        <Link
+                          href="/events"
+                          locale={locale === "en" ? "am" : "en"}
+                          className="meta"
+                        >
+                          {t("previewOtherLanguage")}
+                        </Link>
+                      </div>
                       <div className="meta">
                         {event.description.slice(0, 120)}
                         {event.description.length > 120 ? "..." : ""}
                       </div>
                     </td>
-                    <td>{formatDate(event.event_date, true)}</td>
+                    <td>{formatDate(event.event_date, true, locale)}</td>
                     <td>
                       <div className="form-actions">
                         <button
                           className="btn btn-outline btn-small"
                           onClick={() => setModal({ open: true, event })}
                         >
-                          Edit
+                          {t("edit")}
                         </button>
                         <button className="btn btn-danger btn-small" onClick={() => remove(event)}>
-                          Delete
+                          {t("delete")}
                         </button>
                         {user?.role === "admin" && (
                           <button
                             className="btn btn-outline btn-small"
                             onClick={() => toggleAttendees(event.id)}
                           >
-                            Attendees
+                            {t("attendees")}
                           </button>
                         )}
                       </div>
@@ -141,7 +160,7 @@ export default function EventsAdminPage() {
                   {attendeeEvent === event.id && user?.role === "admin" && (
                     <tr>
                       <td colSpan={3}>
-                        <h3>Attendees for {event.title}</h3>
+                        <h3>{t("attendeesFor", { title: event.title })}</h3>
                         {attendeeError && (
                           <div className="status status-error" role="alert">
                             {attendeeError}
@@ -149,30 +168,34 @@ export default function EventsAdminPage() {
                         )}
                         {attendeeLoading ? (
                           <div className="empty-state" role="status">
-                            Loading attendees...
+                            {t("loadingAttendees")}
                           </div>
                         ) : attendees.items.length === 0 ? (
-                          <div className="empty-state">No one has signed up yet.</div>
+                          <div className="empty-state">{t("noAttendees")}</div>
                         ) : (
                           <ul>
                             {attendees.items.map((attendee) => (
                               <li key={attendee.email}>
-                                {attendee.name} - {attendee.email}
+                                {attendee.name}
+                                {" — "}
+                                {attendee.email}
                               </li>
                             ))}
                           </ul>
                         )}
-                        <nav className="form-actions" aria-label="Attendee pages">
+                        <nav className="form-actions" aria-label={t("attendeePages")}>
                           <button
                             className="btn btn-outline btn-small"
                             disabled={attendees.page <= 1 || attendeeLoading}
                             onClick={() => void loadAttendees(event.id, attendees.page - 1)}
                           >
-                            Previous
+                            {t("previous")}
                           </button>
                           <span className="meta">
-                            Page {attendees.page} of{" "}
-                            {Math.max(1, Math.ceil(attendees.total / attendees.limit))}
+                            {t("pageOf", {
+                              page: attendees.page,
+                              total: Math.max(1, Math.ceil(attendees.total / attendees.limit)),
+                            })}
                           </span>
                           <button
                             className="btn btn-outline btn-small"
@@ -181,7 +204,7 @@ export default function EventsAdminPage() {
                             }
                             onClick={() => void loadAttendees(event.id, attendees.page + 1)}
                           >
-                            Next
+                            {t("next")}
                           </button>
                         </nav>
                       </td>

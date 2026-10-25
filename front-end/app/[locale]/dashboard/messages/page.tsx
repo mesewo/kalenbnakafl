@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useLocale } from "next-intl";
+import { useTranslations } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch, formatDate, type PageResponse } from "@/lib/api";
 
@@ -18,6 +20,13 @@ type ContactMessage = {
 type StatusFilter = "" | ContactStatus;
 
 export default function MessagesPage() {
+  const locale = useLocale();
+  const t = useTranslations("dashboard");
+  const statusLabels: Record<ContactStatus, string> = {
+    new: t("statusNewLabel"),
+    read: t("statusReadLabel"),
+    replied: t("statusRepliedLabel"),
+  };
   const { user, isLoading: authLoading } = useAuth();
   const isStaff = user?.role === "admin" || user?.role === "editor";
   const [messages, setMessages] = useState<PageResponse<ContactMessage>>({
@@ -42,11 +51,11 @@ export default function MessagesPage() {
     try {
       setMessages(await apiFetch<PageResponse<ContactMessage>>(`/staff/contact-messages?${query}`));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load contact messages.");
+      setError(err instanceof Error ? err.message : t("loadMessagesFailed"));
     } finally {
       setLoading(false);
     }
-  }, [isStaff, page, status]);
+  }, [isStaff, page, status, t]);
 
   useEffect(() => {
     if (isStaff) void load();
@@ -62,25 +71,24 @@ export default function MessagesPage() {
       });
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not update this message.");
+      setError(err instanceof Error ? err.message : t("updateMessageFailed"));
     } finally {
       setUpdating(null);
     }
   }
 
-  if (authLoading) return <div className="empty-state">Checking your access…</div>;
-  if (!isStaff)
-    return <div className="empty-state">You do not have permission to view messages.</div>;
+  if (authLoading) return <div className="empty-state">{t("checkingAccess")}</div>;
+  if (!isStaff) return <div className="empty-state">{t("accessDenied")}</div>;
 
   return (
     <div>
       <div className="dashboard-title">
         <div>
-          <span className="eyebrow">Community messages</span>
-          <h1>Contact inbox</h1>
+          <span className="eyebrow">{t("messagesEyebrow")}</span>
+          <h1>{t("inbox")}</h1>
         </div>
         <div className="field">
-          <label htmlFor="message-status">Filter by status</label>
+          <label htmlFor="message-status">{t("filterStatus")}</label>
           <select
             id="message-status"
             value={status}
@@ -89,10 +97,10 @@ export default function MessagesPage() {
               setPage(1);
             }}
           >
-            <option value="">All messages</option>
-            <option value="new">New</option>
-            <option value="read">Read</option>
-            <option value="replied">Replied</option>
+            <option value="">{t("allMessages")}</option>
+            <option value="new">{t("statusNewLabel")}</option>
+            <option value="read">{t("statusReadLabel")}</option>
+            <option value="replied">{t("statusRepliedLabel")}</option>
           </select>
         </div>
       </div>
@@ -105,19 +113,19 @@ export default function MessagesPage() {
 
       {loading ? (
         <div className="empty-state" role="status">
-          Loading messages…
+          {t("loadingMessages")}
         </div>
       ) : messages.items.length === 0 ? (
-        <div className="empty-state">No contact messages match this filter.</div>
+        <div className="empty-state">{t("noMessages")}</div>
       ) : (
         <div className="table-wrap">
           <table className="data-table">
             <thead>
               <tr>
-                <th>From</th>
-                <th>Received</th>
-                <th>Status</th>
-                <th>Actions</th>
+                <th>{t("from")}</th>
+                <th>{t("receivedLabel")}</th>
+                <th>{t("status")}</th>
+                <th>{t("actions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -132,7 +140,7 @@ export default function MessagesPage() {
                         aria-expanded={isExpanded}
                         onClick={() => setExpanded(isExpanded ? null : message.id)}
                       >
-                        {isExpanded ? "Hide message" : message.name}
+                        {isExpanded ? t("hideMessage") : message.name}
                       </button>
                       <div className="meta">
                         <a href={`mailto:${message.email}`}>{message.email}</a>
@@ -145,18 +153,18 @@ export default function MessagesPage() {
                           {message.message}
                           {message.handled_by_name && (
                             <p className="meta">
-                              Handled by {message.handled_by_name}
+                              {t("handledBy", { name: message.handled_by_name })}
                               {message.handled_at
-                                ? ` · ${formatDate(message.handled_at, true)}`
+                                ? ` · ${formatDate(message.handled_at, true, locale)}`
                                 : ""}
                             </p>
                           )}
                         </div>
                       )}
                     </td>
-                    <td>{formatDate(message.created_at, true)}</td>
+                    <td>{formatDate(message.created_at, true, locale)}</td>
                     <td>
-                      <span className="badge">{message.status}</span>
+                      <span className="badge">{statusLabels[message.status]}</span>
                     </td>
                     <td>
                       <div className="form-actions">
@@ -166,7 +174,7 @@ export default function MessagesPage() {
                           disabled={updating === message.id || message.status === "read"}
                           onClick={() => void updateMessage(message, "read")}
                         >
-                          Mark read
+                          {t("markRead")}
                         </button>
                         <button
                           type="button"
@@ -174,7 +182,7 @@ export default function MessagesPage() {
                           disabled={updating === message.id || message.status === "replied"}
                           onClick={() => void updateMessage(message, "replied")}
                         >
-                          Mark replied
+                          {t("markReplied")}
                         </button>
                       </div>
                     </td>
@@ -187,21 +195,22 @@ export default function MessagesPage() {
       )}
 
       {!loading && messages.total > 0 && (
-        <div
-          className="form-actions"
-          aria-label="Contact message pages"
-          style={{ marginTop: "1rem" }}
-        >
+        <div className="form-actions" aria-label={t("messagePages")} style={{ marginTop: "1rem" }}>
           <button
             type="button"
             className="btn btn-outline btn-small"
             disabled={page <= 1}
             onClick={() => setPage((current) => Math.max(1, current - 1))}
           >
-            Previous
+            {t("previous")}
           </button>
           <span className="meta">
-            Page {messages.page} · {messages.total} messages
+            {t("pageOf", {
+              page: messages.page,
+              total: Math.max(1, Math.ceil(messages.total / messages.limit)),
+            })}
+            {" · "}
+            {t("messageCount", { count: messages.total })}
           </span>
           <button
             type="button"
@@ -209,7 +218,7 @@ export default function MessagesPage() {
             disabled={page * messages.limit >= messages.total}
             onClick={() => setPage((current) => current + 1)}
           >
-            Next
+            {t("next")}
           </button>
         </div>
       )}

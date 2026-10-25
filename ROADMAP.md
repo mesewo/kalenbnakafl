@@ -2,12 +2,12 @@
 
 ### Current state / next step
 
-- Bilingual public routing/catalogs are implemented; Amharic brand display uses `ካለን ብናካፍል` in the header, footer, and localized copy.
-- Excluded the unprefixed `/dashboard` routes from locale middleware after CI showed the middleware redirected them to nonexistent `/en/dashboard/...` paths.
-- Added a Playwright URL assertion to guard the dashboard route behavior; frontend lint, TypeScript, Playwright discovery, catalog parity, production build, and a live `/dashboard/posts` HTTP smoke passed.
-- Full authenticated Playwright flows remain unverified because this environment does not have the CI Compose/test setup available.
-- Next: rerun the CI Compose/Playwright smoke and have a native Amharic speaker review `docs/i18n-review.md`.
-
+- Dashboard translations and Amharic content/inbox/volunteer E2E flows are in place; responsive overflow coverage spans both locales.
+- Fixed E2E selectors and publication synchronization, added the missing Amharic contact validation, and made public-content checks tolerate the 60-second ISR cache.
+- Corrected the English event-submit selector to match the catalog label, “Create an event.”
+- Focused checks passed: Go localization tests, Playwright lint/format/TypeScript, catalog validation (411 messages), test discovery (7 tests), and `git diff --check`.
+- The authenticated Compose E2E suite was not run locally because it mutates persistent data; CI provides an ephemeral database.
+- Next: rerun authenticated Playwright tests in CI and get native review of `docs/i18n-review.md`.
 **Goal:** a repo and a live demo that survive a 10-minute recruiter/hiring-manager review for a *senior full-stack* role: one-command startup, real security, real tests, CI, docs, and a polished, working UI.
 
 **Rhythm:** each phase = 1–3 focused sessions (≈2–4 h each) with Gemini. Finish a phase's *Exit criteria* before starting the next. Total ≈ 3–4 weeks part-time.
@@ -156,6 +156,9 @@
 ## Verified commands (fill in as confirmed)
 
 | Command | Result | Date |
+| `cd server && gofmt -l . && go vet ./... && go test ./... && go tool sqlc diff -f ../sqlc.yaml` (bilingual front-end part 2a) | Passed; gofmt listed no files, vet/tests passed all packages, and sqlc diff was clean. | 2026-10-25 |
+| `cd front-end && npm run lint && npx tsc --noEmit && npm run format:check && npm run check:i18n && npm run build` (bilingual front-end part 2a) | Passed; lint had 5 existing hook warnings and 0 errors; TypeScript, formatting, 247-message bilingual check, and production build passed. Next reported stale Baseline data. | 2026-10-25 |
+| `cd front-end && npm run test:e2e` (bilingual front-end part 2a) | Not run: Docker Engine pipe access was denied, so the Compose app/API test environment was unavailable. | 2026-10-25 |
 |---------|--------|------|
 | `cd server && go build ./... && gofmt -l . && go vet ./... && go test -count=1 ./... && go tool sqlc diff -f ../sqlc.yaml` (single-review volunteer workflow) | Passed; `gofmt -l .` listed no files and sqlc diff was clean. PostgreSQL integration tests skipped because `DATABASE_URL_TEST` was unset. | 2026-10-25 |
 | `cd front-end && npm run gen:api && npm run lint && npx tsc --noEmit && npm run format:check && npm run build` (single-review volunteer workflow) | Passed; lint reported 7 pre-existing warnings and 0 errors; TypeScript, format check, and build passed. Next.js reported stale Baseline browser data. | 2026-10-25 |
@@ -219,6 +222,9 @@
 | `cd server && gofmt -l . && go build ./... && go vet ./... && go test ./... && go tool sqlc diff -f ../sqlc.yaml` (bilingual frontend) | Passed; gofmt listed no files and sqlc diff was clean. | 2026-10-25 |
 | `cd front-end && npm run check:i18n && npm run lint && npx tsc --noEmit && npm run format:check && npm run build && npm run test:e2e -- --list` (bilingual frontend) | Passed; 202 catalog keys validated; lint had 5 existing dashboard warnings and no errors; TypeScript, formatting, production build, and Playwright test discovery passed. Build ran outside the sandbox to permit the SWC cache. | 2026-10-25 |
 | `docker compose up --build -d` (bilingual frontend smoke) | Failed before startup: Docker Engine named pipe was unavailable; full Playwright flows were not run. | 2026-10-25 |
+| `cd server && gofmt -l . && go vet ./... && go test ./... && go tool sqlc diff -f ../sqlc.yaml` (bilingual frontend part 2b) | Passed; gofmt listed no files, all packages passed (some cached), and sqlc diff was clean. | 2026-10-25 |
+| `cd front-end && npm run check:i18n && npm run report:unused-messages && npm run lint && npx tsc --noEmit && npm run format:check && npm run build && npm run test:e2e -- --list` (bilingual frontend part 2b) | Passed; 411 bilingual messages validated, unused-key report ran, lint had 5 hook warnings and 0 errors, TypeScript/format/build passed, and 7 Playwright specs were discovered. Build required elevated permissions after the sandbox native-binding failure. | 2026-10-25 |
+| `docker compose -f ../docker-compose.yaml up --build -d` (bilingual frontend part 2b) | Docker access succeeded with elevation, but the frontend image build stalled at `npm ci`; stopped before containers started, so Playwright browser flows were not executed. | 2026-10-25 |
 
 ### Phase 0 baseline run — 2026-10-20
 

@@ -1,9 +1,13 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch, formatDate, type PageResponse, type Post } from "@/lib/api";
 import PostModal from "@/components/PostModal";
 export default function PostsPage() {
+  const locale = useLocale();
+  const t = useTranslations("dashboard");
   const { user } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,7 +25,7 @@ export default function PostsPage() {
         (await (await apiFetch<PageResponse<Post>>(`${prefix}/posts?limit=50`, {})).items) || [],
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load posts.");
+      setError(err instanceof Error ? err.message : t("loadPostsFailed"));
     } finally {
       setLoading(false);
     }
@@ -30,12 +34,12 @@ export default function PostsPage() {
     load();
   }, [user, user?.role]);
   async function remove(post: Post) {
-    if (!window.confirm(`Delete “${post.title}”?`)) return;
+    if (!window.confirm(t("confirmDeletePost", { title: post.title }))) return;
     try {
       await apiFetch(`${prefix}/posts/${post.id}`, { method: "DELETE" });
       load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not delete the post.");
+      setError(err instanceof Error ? err.message : t("deletePostFailed"));
     }
   }
   async function toggle(post: Post) {
@@ -46,18 +50,18 @@ export default function PostsPage() {
       });
       load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not update publication status.");
+      setError(err instanceof Error ? err.message : t("updatePostFailed"));
     }
   }
   return (
     <div>
       <div className="dashboard-title">
         <div>
-          <span className="eyebrow">Content studio</span>
-          <h1>Posts</h1>
+          <span className="eyebrow">{t("postsEyebrow")}</span>
+          <h1>{t("posts")}</h1>
         </div>
         <button className="btn btn-primary" onClick={() => setModal({ open: true, post: null })}>
-          New post
+          {t("newPost")}
         </button>
       </div>
       {error && (
@@ -66,18 +70,18 @@ export default function PostsPage() {
         </div>
       )}
       {loading ? (
-        <div className="empty-state">Loading posts…</div>
+        <div className="empty-state">{t("loadingPosts")}</div>
       ) : posts.length === 0 ? (
-        <div className="empty-state">No posts yet. Create the first community update.</div>
+        <div className="empty-state">{t("noPosts")}</div>
       ) : (
         <div className="table-wrap">
           <table className="data-table">
             <thead>
               <tr>
-                <th>Title</th>
-                <th>Status</th>
-                <th>Updated</th>
-                <th>Actions</th>
+                <th>{t("title")}</th>
+                <th>{t("status")}</th>
+                <th>{t("updated")}</th>
+                <th>{t("actions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -85,28 +89,45 @@ export default function PostsPage() {
                 <tr key={post.id}>
                   <td>
                     <strong>{post.title}</strong>
+                    {(!post.translations?.am?.title || !post.translations?.am?.content) && (
+                      <span className="badge status-pending">{t("missingAmharic")}</span>
+                    )}
+                    {(!post.translations?.en?.title || !post.translations?.en?.content) && (
+                      <span className="badge status-pending">{t("missingEnglish")}</span>
+                    )}
+                    <div>
+                      <Link
+                        href={`/blog/${post.slug}`}
+                        locale={locale === "en" ? "am" : "en"}
+                        className="meta"
+                      >
+                        {t("previewOtherLanguage")}
+                      </Link>
+                    </div>
                     <div className="meta">
                       {post.content.slice(0, 100)}
                       {post.content.length > 100 ? "…" : ""}
                     </div>
                   </td>
                   <td>
-                    <span className="badge">{post.published ? "Published" : "Draft"}</span>
+                    <span className="badge">
+                      {post.published ? t("statusPublishedLabel") : t("statusDraftLabel")}
+                    </span>
                   </td>
-                  <td>{formatDate(post.updated_at || post.created_at)}</td>
+                  <td>{formatDate(post.updated_at || post.created_at, false, locale)}</td>
                   <td>
                     <div className="form-actions">
                       <button
                         className="btn btn-outline btn-small"
                         onClick={() => setModal({ open: true, post })}
                       >
-                        Edit
+                        {t("edit")}
                       </button>
                       <button className="btn btn-outline btn-small" onClick={() => toggle(post)}>
-                        {post.published ? "Unpublish" : "Publish"}
+                        {post.published ? t("unpublish") : t("publish")}
                       </button>
                       <button className="btn btn-danger btn-small" onClick={() => remove(post)}>
-                        Delete
+                        {t("delete")}
                       </button>
                     </div>
                   </td>

@@ -9,6 +9,7 @@ import type { components } from "@/types/api.d.ts";
 type Application = components["schemas"]["VolunteerApplicationDTO"];
 export default function VolunteerClient() {
   const t = useTranslations("volunteer");
+  const dashboardT = useTranslations("dashboard");
   const common = useTranslations("common");
   const { user, isLoading: authLoading } = useAuth();
   const [application, setApplication] = useState<Application | null>(null);
@@ -51,6 +52,19 @@ export default function VolunteerClient() {
     }
   }
   const canApply = user?.role === "user" && !application;
+  const roleLabels = {
+    admin: dashboardT("roleAdmin"),
+    editor: dashboardT("roleEditor"),
+    user: dashboardT("roleUser"),
+    volunteer: dashboardT("roleVolunteer"),
+  };
+  const applicationStatus = application
+    ? {
+        pending: dashboardT("statusPendingLabel"),
+        approved: dashboardT("statusApprovedLabel"),
+        declined: dashboardT("statusDeclinedLabel"),
+      }[application.status]
+    : "";
   return (
     <main id="main-content">
       <section className="page-hero">
@@ -83,13 +97,13 @@ export default function VolunteerClient() {
             )}
             {user && application && (
               <div className="card card-accent">
-                <h3>{t("status", { status: application.status })}</h3>
+                <h3>{t("status", { status: applicationStatus })}</h3>
                 <p>{t("existing")}</p>
               </div>
             )}
             {user && !checking && user.role !== "user" && !application && (
               <div className="status" role="status">
-                {t("role", { role: user.role })}
+                {t("role", { role: roleLabels[user.role] })}
               </div>
             )}
             {error && (

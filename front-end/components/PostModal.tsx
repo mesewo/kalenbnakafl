@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { apiFetch, type Post } from "@/lib/api";
 import type { components } from "@/types/api.d.ts";
 
@@ -25,6 +26,7 @@ export default function PostModal({
   userRole: string | undefined;
   post?: Post | null;
 }) {
+  const t = useTranslations("dashboard");
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [slug, setSlug] = useState("");
   const [locale, setLocale] = useState<Locale>("en");
@@ -58,14 +60,14 @@ export default function PostModal({
       if (!title && !content) continue;
       if (!title || !content) {
         setError(
-          `Complete both title and content for ${language === "en" ? "English" : "አማርኛ"}, or clear both fields.`,
+          t("translationIncomplete", { language: language === "en" ? t("english") : t("amharic") }),
         );
         return null;
       }
       result[language] = { title, content };
     }
     if (!Object.keys(result).length) {
-      setError("At least one complete language is required.");
+      setError(t("translationRequired"));
       return null;
     }
     return result;
@@ -119,7 +121,7 @@ export default function PostModal({
       onSuccess();
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save the post.");
+      setError(err instanceof Error ? err.message : t("savePostFailed"));
     } finally {
       setLoading(false);
     }
@@ -129,16 +131,14 @@ export default function PostModal({
     <div className="modal-backdrop" role="presentation">
       <div className="modal" role="dialog" aria-modal="true" aria-labelledby="post-modal-title">
         <div className="modal-head">
-          <h2 id="post-modal-title">{post ? "Edit post" : "Create a post"}</h2>
+          <h2 id="post-modal-title">{post ? t("editPost") : t("createPost")}</h2>
           <button
             className="close-btn"
             ref={closeRef}
             type="button"
-            aria-label="Close dialog"
+            aria-label={t("closeDialog")}
             onClick={onClose}
-          >
-            ×
-          </button>
+          />
         </div>
         {error && (
           <div className="status status-error" role="alert" style={{ marginBottom: "1rem" }}>
@@ -146,14 +146,14 @@ export default function PostModal({
           </div>
         )}
         <form onSubmit={submit}>
-          <div role="tablist" aria-label="Post language">
+          <div role="tablist" aria-label={t("postLanguage")}>
             <button
               type="button"
               role="tab"
               aria-selected={locale === "en"}
               onClick={() => setLocale("en")}
             >
-              English
+              {t("english")}
             </button>
             <button
               type="button"
@@ -161,11 +161,15 @@ export default function PostModal({
               aria-selected={locale === "am"}
               onClick={() => setLocale("am")}
             >
-              አማርኛ
+              {t("amharic")}
             </button>
           </div>
           <div className="field">
-            <label htmlFor="post-title">Title ({locale === "en" ? "English" : "አማርኛ"})</label>
+            <label htmlFor="post-title">
+              {t("title")} {"("}
+              {locale === "en" ? t("english") : t("amharic")}
+              {")"}
+            </label>
             <input
               id="post-title"
               value={draft[locale].title}
@@ -174,18 +178,22 @@ export default function PostModal({
             />
           </div>
           <div className="field">
-            <label htmlFor="post-slug">Slug</label>
+            <label htmlFor="post-slug">{t("slug")}</label>
             <input
               id="post-slug"
               value={slug}
               onChange={(e) => setSlug(e.target.value)}
-              placeholder="Generated from title when blank"
+              placeholder={t("slugPlaceholder")}
               pattern="[a-z0-9-]{3,100}"
-              title="Use 3 to 100 lowercase letters, numbers, or hyphens."
+              title={t("slugValidation")}
             />
           </div>
           <div className="field">
-            <label htmlFor="post-content">Content ({locale === "en" ? "English" : "አማርኛ"})</label>
+            <label htmlFor="post-content">
+              {t("postContent")} {"("}
+              {locale === "en" ? t("english") : t("amharic")}
+              {")"}
+            </label>
             <textarea
               id="post-content"
               value={draft[locale].content}
@@ -193,15 +201,13 @@ export default function PostModal({
               onChange={(e) => change("content", e.target.value)}
             />
           </div>
-          <p className="meta">
-            Clear both fields for a language to remove it. At least one language must remain.
-          </p>
+          <p className="meta">{t("clearPostTranslationHelp")}</p>
           <div className="form-actions">
             <button className="btn btn-primary" disabled={loading}>
-              {loading ? "Saving…" : post ? "Save changes" : "Create post"}
+              {loading ? t("saving") : post ? t("saveChanges") : t("createPost")}
             </button>
             <button className="btn btn-outline" type="button" onClick={onClose}>
-              Cancel
+              {t("cancel")}
             </button>
           </div>
         </form>

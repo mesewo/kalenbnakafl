@@ -1,6 +1,8 @@
 "use client";
-import Link from "next/link";
+
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { useAuth } from "@/context/AuthContext";
 import {
   apiFetch,
@@ -10,13 +12,15 @@ import {
   type Post,
   type User,
 } from "@/lib/api";
+
 export default function DashboardPage() {
   const { user } = useAuth();
+  const t = useTranslations("dashboard");
   const [stats, setStats] = useState({ users: 0, posts: 0, events: 0, media: 0 });
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     if (!user) return;
-    const prefix = user?.role === "admin" || user?.role === "editor" ? "/staff" : "";
+    const prefix = user.role === "admin" || user.role === "editor" ? "/staff" : "";
     Promise.all([
       apiFetch<PageResponse<Post>>(`${prefix}/posts?limit=1`, {}).catch(() => ({
         items: [],
@@ -30,15 +34,13 @@ export default function DashboardPage() {
         limit: 1,
         total: 0,
       })),
-      user?.role
-        ? apiFetch<PageResponse<MediaItem>>(`${prefix}/media?limit=1`, {}).catch(() => ({
-            items: [],
-            page: 1,
-            limit: 1,
-            total: 0,
-          }))
-        : Promise.resolve({ items: [], page: 1, limit: 1, total: 0 }),
-      user?.role === "admin"
+      apiFetch<PageResponse<MediaItem>>(`${prefix}/media?limit=1`, {}).catch(() => ({
+        items: [],
+        page: 1,
+        limit: 1,
+        total: 0,
+      })),
+      user.role === "admin"
         ? apiFetch<User[]>("/admin/users", {}).catch(() => [])
         : Promise.resolve([]),
     ])
@@ -51,46 +53,40 @@ export default function DashboardPage() {
         }),
       )
       .finally(() => setLoading(false));
-  }, [user, user?.role]);
+  }, [user]);
   const admin = user?.role === "admin";
   const editor = user?.role === "editor";
   const cards = [
-    ...(admin ? [{ label: "People", value: stats.users, href: "/dashboard/users" }] : []),
+    ...(admin ? [{ label: t("people"), value: stats.users, href: "/dashboard/users" }] : []),
     ...(admin || editor
       ? [
-          { label: "Posts", value: stats.posts, href: "/dashboard/posts" },
-          { label: "Events", value: stats.events, href: "/dashboard/events" },
-          { label: "Media", value: stats.media, href: "/dashboard/media" },
+          { label: t("posts"), value: stats.posts, href: "/dashboard/posts" },
+          { label: t("events"), value: stats.events, href: "/dashboard/events" },
+          { label: t("media"), value: stats.media, href: "/dashboard/media" },
         ]
       : []),
   ];
+  const headline = admin ? t("adminHeadline") : editor ? t("editorHeadline") : t("memberHeadline");
+  const description = admin
+    ? t("adminDescription")
+    : editor
+      ? t("editorDescription")
+      : t("memberDescription");
   return (
     <div>
       <div className="dashboard-title">
         <div>
-          <span className="eyebrow">Workspace overview</span>
-          <h1>Good to see you, {user?.name?.split(" ")[0] || "there"}.</h1>
+          <span className="eyebrow">{t("homeEyebrow")}</span>
+          <h1>{t("greeting", { name: user?.name?.split(" ")[0] || "" })}</h1>
         </div>
       </div>
       <div className="card card-accent" style={{ marginBottom: "1.5rem" }}>
-        <h2>
-          {admin
-            ? "You have full access to keep the work moving."
-            : editor
-              ? "You can shape the next community update."
-              : "Thanks for being part of the community."}
-        </h2>
-        <p>
-          {admin
-            ? "Manage people, publish stories, organize events, and keep the library useful."
-            : editor
-              ? "Create stories and events that help more people find a way to participate."
-              : "Browse events and news, or update your profile when you are ready."}
-        </p>
+        <h2>{headline}</h2>
+        <p>{description}</p>
       </div>
       <div className="grid-3">
         {loading ? (
-          <div className="empty-state">Loading workspace data…</div>
+          <div className="empty-state">{t("loading")}</div>
         ) : cards.length ? (
           cards.map((card) => (
             <Link className="card" href={card.href} key={card.label}>
@@ -105,13 +101,11 @@ export default function DashboardPage() {
               >
                 {card.value}
               </strong>
-              <span className="meta">Open {card.label.toLowerCase()} →</span>
+              <span className="meta">{t("open", { label: card.label.toLowerCase() })}</span>
             </Link>
           ))
         ) : (
-          <div className="empty-state">
-            Your workspace is ready. Explore the public site or update your profile.
-          </div>
+          <div className="empty-state">{t("ready")}</div>
         )}
       </div>
     </div>

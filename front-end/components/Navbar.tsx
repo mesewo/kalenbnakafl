@@ -1,8 +1,8 @@
 "use client";
 import Image from "next/image";
-import NextLink from "next/link";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -18,31 +18,16 @@ const links = [
 export default function Navbar() {
   const t = useTranslations("common");
   const nav = useTranslations("nav");
-  const locale = useLocale();
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout, isLoading } = useAuth();
   const [open, setOpen] = useState(false);
-  const nextLocale = locale === "en" ? "am" : "en";
-  function switchLanguage() {
-    router.replace(pathname, { locale: nextLocale });
-    setOpen(false);
-  }
   function handleLogout() {
     logout();
     setOpen(false);
     router.push("/");
   }
-  const langButton = (
-    <button
-      type="button"
-      className="btn btn-outline btn-small"
-      onClick={switchLanguage}
-      aria-label={locale === "en" ? t("amharic") : t("english")}
-    >
-      {locale === "en" ? t("amharic") : t("english")}
-    </button>
-  );
+  const langButton = <LanguageSwitcher />;
   return (
     <>
       <a className="skip-link" href="#main-content">
@@ -71,9 +56,9 @@ export default function Navbar() {
                   <span className="meta">
                     {nav("hello", { name: user.name?.split(" ")[0] || "" })}
                   </span>
-                  <NextLink href="/dashboard" className="btn btn-primary btn-small">
+                  <Link href="/dashboard" className="btn btn-primary btn-small">
                     {t("dashboard")}
-                  </NextLink>
+                  </Link>
                   <button
                     type="button"
                     onClick={handleLogout}
@@ -120,9 +105,9 @@ export default function Navbar() {
             ))}
             {user ? (
               <>
-                <NextLink href="/dashboard" onClick={() => setOpen(false)}>
+                <Link href="/dashboard" onClick={() => setOpen(false)}>
                   {t("dashboard")}
-                </NextLink>
+                </Link>
                 <button className="btn btn-outline" onClick={handleLogout}>
                   {t("logout")}
                 </button>

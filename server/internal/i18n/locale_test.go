@@ -34,7 +34,12 @@ func TestRequestLocalePrecedenceAndInvalidValues(t *testing.T) {
 }
 
 func TestAmharicCatalogContainsLocalizedMessages(t *testing.T) {
-	for _, key := range []string{"common.locale_invalid", "contact.name_valid_email_and_a_message_are_required", "posts.translations_are_required_and_must_be_valid"} {
+	for _, key := range []string{
+		"common.locale_invalid",
+		"contact.name_valid_email_and_a_message_are_required",
+		"contact.status_must_be_read_or_replied",
+		"posts.translations_are_required_and_must_be_valid",
+	} {
 		value := Text("am", key)
 		if value == key || value == Text("en", key) {
 			t.Errorf("Amharic message %q is missing or falls back to English", key)
