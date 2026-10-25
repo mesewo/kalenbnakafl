@@ -568,7 +568,7 @@ export interface paths {
     head?: never;
     /**
      * Approve or decline a volunteer application
-     * @description Approval promotes a `user` account to `volunteer` role in the same transaction.
+     * @description Applications may only be reviewed while pending. A second review returns 409. Approval promotes a `user` account to `volunteer` role in the same transaction.
      */
     patch: operations["adminReviewVolunteerApplication"];
     trace?: never;
@@ -730,12 +730,15 @@ export interface components {
       /** Format: double */
       total_hours: number;
     };
-    PagePost: {
-      items: components["schemas"]["Post"][];
+    Page: {
+      items: unknown[];
       page: number;
       limit: number;
       /** Format: int64 */
       total: number;
+    };
+    PagePost: components["schemas"]["Page"] & {
+      items: components["schemas"]["Post"][];
     };
     PageEvent: {
       items: components["schemas"]["Event"][];
@@ -2167,6 +2170,7 @@ export interface operations {
       401: components["responses"]["Unauthorized"];
       403: components["responses"]["Forbidden"];
       404: components["responses"]["NotFound"];
+      409: components["responses"]["Conflict"];
       422: components["responses"]["UnprocessableEntity"];
       500: components["responses"]["InternalServerError"];
     };

@@ -63,7 +63,7 @@ flowchart LR
 
 | GET · POST | `/admin/volunteers` · `/admin/volunteers/{id}/contributions` | admin | list volunteers and add contributions |
 | GET | `/admin/volunteer-applications?status&page&limit` | admin | filtered, newest-first paginated applications; applicant name/email only |
-| PATCH | `/admin/volunteer-applications/{id}` | admin | approve or decline; reviewer comes from the session; approval promotes only a current `user` account in the same transaction |
+| PATCH | `/admin/volunteer-applications/{id}` | admin | reviews pending applications once; repeats return 409; reviewer comes from the session; approval promotes only a current `user` account in the same transaction |
 | GET | `/admin/events/{id}/signups?page&limit` | admin | paginated attendee names and emails |
 | POST/GET | `/me/volunteer-application` | any authenticated account | submit once as a `user`, or read own application; declined applications remain and cannot be reapplied until admin action |
 | GET | `/me/signups?page&limit` | any authenticated account | own event sign-ups in the standard page envelope |

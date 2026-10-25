@@ -9,7 +9,7 @@
     "lint": "eslint",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "gen:api": "openapi-typescript ../docs/openapi.yaml -o types/api.d.ts"
+    "gen:api": "openapi-typescript ../docs/openapi.yaml -o types/api.d.ts && prettier --write types/api.d.ts"
   },
   "dependencies": {
     "next": "16.0.10",

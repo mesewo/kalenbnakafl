@@ -94,6 +94,21 @@ curl -s localhost:8080/healthz                                     # ⚠ (endpoi
 - [ ] Docs updated (ARCHITECTURE / `.env.example` / ROADMAP checkbox / ADR)
 - [ ] Final message lists: what changed, how you verified it, what you did **not** do
 
+## Verification (run before saying done)
+
+- In `server/`, run `gofmt -l .`, `go vet ./...`, `go test ./...`, and `go tool sqlc diff -f ../sqlc.yaml`.
+- In `front-end/`, run `npm run lint`, `npx tsc --noEmit`, `npm run format:check`, and `npm run build`.
+- Run a Compose smoke check when infrastructure or API routes changed.
+- Report what you could not run and the reason.
+
+## Handoff
+
+- After every task, update `ROADMAP.md` with a **Current state / next step** block of 3–5 lines.
+
+## Multiple tools
+
+- Tasks may be done by different assistants; never rely on chat memory. Read the repository instructions and current state from files before acting.
+
 ## Known traps in this repo
 
 - The Next.js rewrite destination uses `API_INTERNAL_URL`, and `NEXT_PUBLIC_*` values are baked in at **build** time. Changing either at container runtime does not change the built rewrite/client bundle; pass the rewrite destination as a Docker build argument.

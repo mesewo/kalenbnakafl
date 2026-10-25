@@ -4,7 +4,7 @@ export type UserRole = components["schemas"]["User"]["role"];
 export type User = components["schemas"]["User"];
 export type Post = components["schemas"]["Post"];
 export type EventItem = components["schemas"]["Event"];
-export type PageResponse<T> = Omit<components["schemas"]["PagePost"], "items"> & { items: T[] };
+export type PageResponse<T> = Omit<components["schemas"]["Page"], "items"> & { items: T[] };
 export type MediaItem = components["schemas"]["Media"];
 
 export type ApiErrorBody = { code: string; message: string; details: Record<string, unknown> };
