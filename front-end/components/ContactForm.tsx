@@ -1,7 +1,10 @@
 "use client";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+
 export default function ContactForm() {
+  const t = useTranslations("contact");
   const [formData, setFormData] = useState({ name: "", email: "", message: "" });
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
@@ -15,15 +18,9 @@ export default function ContactForm() {
     try {
       await apiFetch("/contact", { method: "POST", body: JSON.stringify(formData) });
       setFormData({ name: "", email: "", message: "" });
-      setStatus({
-        type: "success",
-        message: "Your message is on its way. We will get back to you soon.",
-      });
+      setStatus({ type: "success", message: t("success") });
     } catch (err) {
-      setStatus({
-        type: "error",
-        message: err instanceof Error ? err.message : "We could not send your message.",
-      });
+      setStatus({ type: "error", message: err instanceof Error ? err.message : t("failure") });
     } finally {
       setLoading(false);
     }
@@ -32,8 +29,8 @@ export default function ContactForm() {
     <form onSubmit={handleSubmit} className="form-card" noValidate>
       <div className="section-head" style={{ marginBottom: "1.5rem" }}>
         <div>
-          <span className="eyebrow">Say hello</span>
-          <h2>Start a conversation.</h2>
+          <span className="eyebrow">{t("say")}</span>
+          <h2>{t("formTitle")}</h2>
         </div>
       </div>
       {status && (
@@ -47,7 +44,7 @@ export default function ContactForm() {
         </div>
       )}
       <div className="field">
-        <label htmlFor="contact-name">Your name</label>
+        <label htmlFor="contact-name">{t("name")}</label>
         <input
           id="contact-name"
           name="name"
@@ -58,7 +55,7 @@ export default function ContactForm() {
         />
       </div>
       <div className="field">
-        <label htmlFor="contact-email">Email address</label>
+        <label htmlFor="contact-email">{t("emailLabel")}</label>
         <input
           id="contact-email"
           name="email"
@@ -70,7 +67,7 @@ export default function ContactForm() {
         />
       </div>
       <div className="field">
-        <label htmlFor="contact-message">How can we help?</label>
+        <label htmlFor="contact-message">{t("message")}</label>
         <textarea
           id="contact-message"
           name="message"
@@ -79,12 +76,10 @@ export default function ContactForm() {
           required
           aria-describedby="message-help"
         />
-        <small id="message-help">
-          Questions, ideas, partnership notes, or volunteer interest are all welcome.
-        </small>
+        <small id="message-help">{t("help")}</small>
       </div>
       <button className="btn btn-primary" type="submit" disabled={loading}>
-        {loading ? "Sending…" : "Send message"}
+        {loading ? t("sending") : t("send")}
       </button>
     </form>
   );

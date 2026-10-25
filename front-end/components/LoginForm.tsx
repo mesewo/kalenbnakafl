@@ -1,10 +1,12 @@
 "use client";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AuthCard from "@/components/AuthCard";
 import { useAuth } from "@/context/AuthContext";
 export default function LoginPage() {
+  const t = useTranslations("auth");
   const { login, user, isLoading } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -22,23 +24,23 @@ export default function LoginPage() {
       await login(email, password);
       router.push("/dashboard");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "We could not log you in.");
+      setError(err instanceof Error ? err.message : t("loginFailed"));
     } finally {
       setSubmitting(false);
     }
   }
   if (isLoading)
     return (
-      <AuthCard title="Checking access…">
-        <p className="lede">One moment.</p>
+      <AuthCard title={t("checking")}>
+        <p className="lede">{t("moment")}</p>
       </AuthCard>
     );
   return (
     <>
-      <AuthCard title="Welcome back" eyebrow="Member access">
+      <AuthCard title={t("welcome")} eyebrow={t("member")}>
         <form onSubmit={submit}>
           <div className="field">
-            <label htmlFor="login-email">Email address</label>
+            <label htmlFor="login-email">{t("email")}</label>
             <input
               id="login-email"
               type="email"
@@ -49,7 +51,7 @@ export default function LoginPage() {
             />
           </div>
           <div className="field">
-            <label htmlFor="login-password">Password</label>
+            <label htmlFor="login-password">{t("password")}</label>
             <input
               id="login-password"
               type="password"
@@ -65,13 +67,13 @@ export default function LoginPage() {
             </div>
           )}
           <button className="btn btn-primary" style={{ width: "100%" }} disabled={submitting}>
-            {submitting ? "Logging in…" : "Log in"}
+            {submitting ? t("logging") : t("login")}
           </button>
         </form>
         <p className="meta" style={{ marginTop: "1.25rem" }}>
-          New to Kalen Benakafil?{" "}
+          {t("new")}{" "}
           <Link href="/auth/register" style={{ textDecoration: "underline" }}>
-            Create an account
+            {t("create")}
           </Link>
         </p>
       </AuthCard>

@@ -1,10 +1,12 @@
 "use client";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import AuthCard from "@/components/AuthCard";
 import { useAuth } from "@/context/AuthContext";
 export default function RegisterPage() {
+  const t = useTranslations("auth");
   const { register } = useAuth();
   const router = useRouter();
   const [form, setForm] = useState({ name: "", email: "", password: "" });
@@ -17,7 +19,7 @@ export default function RegisterPage() {
     e.preventDefault();
     setError("");
     if (form.password.length < 12) {
-      setError("Choose a password with at least 12 characters.");
+      setError(t("shortPassword"));
       return;
     }
     setLoading(true);
@@ -25,16 +27,16 @@ export default function RegisterPage() {
       await register(form);
       router.push("/auth/login");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Registration failed.");
+      setError(err instanceof Error ? err.message : t("registerFailed"));
     } finally {
       setLoading(false);
     }
   }
   return (
-    <AuthCard title="Join the work" eyebrow="Community membership">
+    <AuthCard title={t("join")} eyebrow={t("membership")}>
       <form onSubmit={submit}>
         <div className="field">
-          <label htmlFor="register-name">Full name</label>
+          <label htmlFor="register-name">{t("name")}</label>
           <input
             id="register-name"
             name="name"
@@ -45,7 +47,7 @@ export default function RegisterPage() {
           />
         </div>
         <div className="field">
-          <label htmlFor="register-email">Email address</label>
+          <label htmlFor="register-email">{t("email")}</label>
           <input
             id="register-email"
             name="email"
@@ -57,7 +59,7 @@ export default function RegisterPage() {
           />
         </div>
         <div className="field">
-          <label htmlFor="register-password">Password</label>
+          <label htmlFor="register-password">{t("password")}</label>
           <input
             id="register-password"
             name="password"
@@ -68,9 +70,7 @@ export default function RegisterPage() {
             minLength={12}
             autoComplete="new-password"
           />
-          <small>
-            Use at least 12 characters. After creating an account, you can apply to volunteer.
-          </small>
+          <small>{t("passwordRule")}</small>
         </div>
         {error && (
           <div className="status status-error" role="alert" style={{ marginBottom: "1rem" }}>
@@ -78,13 +78,13 @@ export default function RegisterPage() {
           </div>
         )}
         <button className="btn btn-primary" style={{ width: "100%" }} disabled={loading}>
-          {loading ? "Creating account…" : "Create account"}
+          {loading ? t("creating") : t("register")}
         </button>
       </form>
       <p className="meta" style={{ marginTop: "1.25rem" }}>
-        Already have an account?{" "}
+        {t("already")}{" "}
         <Link href="/auth/login" style={{ textDecoration: "underline" }}>
-          Log in
+          {t("login")}
         </Link>
       </p>
     </AuthCard>
