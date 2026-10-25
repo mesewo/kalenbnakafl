@@ -73,7 +73,7 @@ Every Amharic string below was drafted for this change and **needs native review
 | `home.oneText` | ሰዎች፣ ሐሳቦችና ተግባራዊ ድጋፍ ወደ አንድ አቅጣጫ ይንቀሳቀሳሉ። |
 | `home.how` | እንዴት እንደምንሳተፍ |
 | `home.useful` | ጠቃሚ ሥራን በጋራ ማከናወን። |
-| `home.howText` | ጎረቤቶች እንዲያበረክቱ፣ እርስ በርስ እንዲማሩና በአካባቢያቸው እየተከናወነ ካለው ጋር እንዲተሳሰሩ和 እናግዛለን። |
+| `home.howText` | ጎረቤቶች እንዲያበረክቱ፣ እርስ በርስ እንዲማሩና በአካባቢያቸው እየተከናወነ ካለው ጋር እንዲተሳሰሩ እናግዛለን። |
 | `home.connect` | ማገናኘት |
 | `home.connectText` | ድጋፍ ወደሚያስፈልገው እንዲደርስ ሰዎችንና የአካባቢ ሐሳቦችን እናገናኛለን። |
 | `home.learn` | መማር |
@@ -162,7 +162,7 @@ Every Amharic string below was drafted for this change and **needs native review
 | `contact.send` | መልእክት ይላኩ |
 | `contact.sending` | በመላክ ላይ… |
 | `contact.success` | መልእክትዎ ተልኳል። በቅርቡ እንመልስልዎታለን። |
-| `contact.failure` | መልእክትዎን መላክ አልቻልንም。 |
+| `contact.failure` | መልእክትዎን መላክ አልቻልንም። |
 | `volunteer.eyebrow` | ለውጥ ያምጡ |
 | `volunteer.title` | ጊዜዎን፣ ችሎታዎንና ጉጉትዎን ያበርክቱ። |
 | `volunteer.intro` | ለማኅበረሰቡ እንዴት ማበርከት እንደሚፈልጉ ይንገሩን። |

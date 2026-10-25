@@ -3,10 +3,10 @@
 ### Current state / next step
 
 - Public routes now live under `[locale]/(site)` and dashboard routes under `[locale]/dashboard`; `/dashboard/*` receives locale-prefix handling.
-- Dashboard shell, overview, profile, role labels, auth redirects, and the shared language switcher use the selected locale; dashboard is noindex and excluded from robots and sitemap.
-- Dashboard dates use locale-aware formatting, and event datetime fields show Ethiopian calendar equivalents in Amharic; locale, auth-redirect, and viewport Playwright specs are added.
-- Verification passed: Go formatting, vet, tests, sqlc diff; front-end lint, TypeScript, format check, i18n check, and production build. Docker-backed Playwright could not run because Docker Engine access was denied.
-- Next: run the Playwright specs in CI/Compose and have a native Amharic speaker review `docs/i18n-review.md`.
+- Dashboard shell, overview, profile, role labels, auth redirects, and language switching use the selected locale; dates and event datetime fields are locale-aware.
+- Updated the dashboard locale Playwright test to wait for login navigation, then switch languages using the dashboard control.
+- ESLint, TypeScript, and Playwright test discovery passed; full authenticated Playwright execution still requires the Compose stack and admin credentials.
+- Next: rerun the Playwright specs in CI/Compose and have a native Amharic speaker review `docs/i18n-review.md`.
 **Goal:** a repo and a live demo that survive a 10-minute recruiter/hiring-manager review for a *senior full-stack* role: one-command startup, real security, real tests, CI, docs, and a polished, working UI.
 
 **Rhythm:** each phase = 1–3 focused sessions (≈2–4 h each) with Gemini. Finish a phase's *Exit criteria* before starting the next. Total ≈ 3–4 weeks part-time.

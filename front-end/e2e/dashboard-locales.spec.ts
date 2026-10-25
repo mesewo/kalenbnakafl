@@ -11,7 +11,10 @@ test("dashboard shell follows the selected locale and fits mobile and desktop", 
   await page.getByLabel("Email address").fill(email!);
   await page.getByLabel("Password").fill(password!);
   await page.getByRole("button", { name: "Log in" }).click();
-  await page.goto("/am/dashboard");
+  await expect(page).toHaveURL(/\/en\/dashboard$/);
+  await expect(page.getByRole("heading", { name: /Good to see you/ })).toBeVisible();
+  await page.getByRole("button", { name: "አማርኛ" }).click();
+  await expect(page).toHaveURL("/am/dashboard");
   await expect(page.locator("html")).toHaveAttribute("lang", "am");
   await expect(page.getByRole("heading", { name: /እንኳን ደህና መጡ/ })).toBeVisible();
   for (const width of [360, 1280]) {
