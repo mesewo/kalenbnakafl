@@ -46,6 +46,7 @@ test("Amharic admin creates, publishes, edits, and deletes translated posts and 
   let postRow = page.getByRole("row").filter({ hasText: postTitle });
   await expect(postRow).toBeVisible();
   await postRow.getByRole("button", { name: dashboard.publish }).click();
+  await expect(postRow).toContainText(dashboard.statusPublishedLabel);
   await page.goto("/am/blog");
   await expect(page.getByRole("heading", { name: postTitle })).toBeVisible();
 
@@ -72,7 +73,7 @@ test("Amharic admin creates, publishes, edits, and deletes translated posts and 
     .getByLabel(`${dashboard.description} (${dashboard.english})`)
     .fill(`English details ${suffix}`);
   await dialog.getByLabel(`${dashboard.location} (${dashboard.english})`).fill("Test venue");
-  await dialog.getByLabel(dashboard.dateAndTime).fill(futureDateTime());
+  await dialog.getByLabel(dashboard.dateAndTime, { exact: true }).fill(futureDateTime());
   await dialog.getByRole("tab", { name: dashboard.amharic }).click();
   await dialog.getByLabel(`${dashboard.title} (${dashboard.amharic})`).fill(eventTitle);
   await dialog
@@ -117,7 +118,7 @@ test("Amharic contact inbox displays the API's localized validation error", asyn
     await route.continue({ postData: JSON.stringify({ status: "invalid" }) });
   });
   await row.getByRole("button", { name: dashboard.markRead }).click();
-  await expect(page.getByRole("alert")).toContainText(/[\u1200-\u137F]/);
+  await expect(page.locator(".status-error")).toContainText(/[\u1200-\u137F]/);
   expect(observedLanguage).toContain("am");
 });
 

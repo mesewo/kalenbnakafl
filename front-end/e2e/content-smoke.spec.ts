@@ -29,11 +29,12 @@ test("admin content and public bilingual flows", async ({ page }) => {
   await dialog.getByRole("tab", { name: "አማርኛ" }).click();
   await dialog.getByLabel("Title (አማርኛ)").fill(amPostTitle);
   await dialog.getByLabel("Content (አማርኛ)").fill(`የአማርኛ ይዘት ${suffix}`);
-  await dialog.getByRole("button", { name: "Create post" }).click();
+  await dialog.getByRole("button", { name: "Create a post" }).click();
 
   let postRow = page.getByRole("row").filter({ hasText: postTitle });
   await expect(postRow).toBeVisible();
   await postRow.getByRole("button", { name: "Publish" }).click();
+  await expect(postRow).toContainText("Published");
   await page.goto("/en/blog");
   await expect(page.getByRole("heading", { name: postTitle })).toBeVisible();
   await page.getByRole("link", { name: "Read the full note →" }).first().click();

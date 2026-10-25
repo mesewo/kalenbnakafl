@@ -5,8 +5,9 @@
 - Translated dashboard posts, events, media, inbox, users, volunteers, and applications; role and status labels use catalog entries.
 - Removed the temporary hard-coded-text ESLint exclusions and added checks for missing catalog keys plus report-only unused-key output.
 - Added Amharic content/inbox/volunteer Playwright flows and a 360px/1280px overflow check for every dashboard route in both locales.
-- Go formatting, vet, tests, and sqlc diff passed; frontend catalog checks, lint, TypeScript, format check, and production build passed.
-- Playwright discovery found 7 specs; the elevated Compose build stalled during the frontend image's `npm ci` with no further output and was stopped before starting containers.
+- Fixed Playwright content-flow selectors and publication synchronization; added the missing Amharic contact-status validation message.
+- Focused checks passed: Go localization tests, Playwright lint/format/TypeScript checks, test discovery (7 tests), and `git diff --check`.
+- The authenticated Compose E2E suite was not run locally because it creates and modifies persistent test data; rerun it against CI's ephemeral database.
 - Next: run the authenticated Compose Playwright suite in CI and get native review of `docs/i18n-review.md`.
 **Goal:** a repo and a live demo that survive a 10-minute recruiter/hiring-manager review for a *senior full-stack* role: one-command startup, real security, real tests, CI, docs, and a polished, working UI.
 
