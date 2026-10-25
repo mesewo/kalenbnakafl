@@ -2,11 +2,11 @@
 
 ### Current state / next step
 
-- Bilingual public routing/catalogs are implemented; Amharic brand display now uses `ካለን ብናካፍል` in the header, footer, and localized copy.
-- Updated the Amharic review catalog and added a browser-flow assertion for the switched header brand.
-- Verified: 202 bilingual messages and review parity, ESLint on the touched frontend files, TypeScript, Playwright test discovery, and `git diff --check`.
-- Browser flows and full Compose build remain unverified; the earlier Docker attempt failed with containerd I/O errors and critically low host disk space.
-- Next: restore Docker/host storage, run the Compose and Playwright smoke checks, and have a native Amharic speaker review `docs/i18n-review.md`.
+- Bilingual public routing/catalogs are implemented; Amharic brand display uses `ካለን ብናካፍል` in the header, footer, and localized copy.
+- Excluded the unprefixed `/dashboard` routes from locale middleware after CI showed the middleware redirected them to nonexistent `/en/dashboard/...` paths.
+- Added a Playwright URL assertion to guard the dashboard route behavior; frontend lint, TypeScript, Playwright discovery, catalog parity, production build, and a live `/dashboard/posts` HTTP smoke passed.
+- Full authenticated Playwright flows remain unverified because this environment does not have the CI Compose/test setup available.
+- Next: rerun the CI Compose/Playwright smoke and have a native Amharic speaker review `docs/i18n-review.md`.
 
 **Goal:** a repo and a live demo that survive a 10-minute recruiter/hiring-manager review for a *senior full-stack* role: one-command startup, real security, real tests, CI, docs, and a polished, working UI.
 

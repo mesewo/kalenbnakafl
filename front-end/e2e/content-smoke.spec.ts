@@ -21,6 +21,7 @@ test("admin content and public bilingual flows", async ({ page }) => {
   await expect(page).toHaveURL(/\/dashboard/);
 
   await page.goto("/dashboard/posts");
+  await expect(page).toHaveURL(/\/dashboard\/posts$/);
   await page.getByRole("button", { name: "New post" }).click();
   let dialog = page.getByRole("dialog", { name: "Create a post" });
   await dialog.getByLabel("Title (English)").fill(postTitle);
