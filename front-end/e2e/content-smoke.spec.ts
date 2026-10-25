@@ -54,7 +54,7 @@ test("admin creates, reads, edits, and deletes translated posts and events", asy
   await dialog.getByLabel("Title (English)").fill(eventTitle);
   await dialog.getByLabel("Description (English)").fill(`English event details ${suffix}`);
   await dialog.getByLabel("Location (English)").fill("Smoke test venue");
-  await dialog.getByLabel("Date and time").fill(futureDateTime());
+  await dialog.getByLabel("Date and time", { exact: true }).fill(futureDateTime());
   await dialog.getByRole("tab", { name: "አማርኛ" }).click();
   await dialog.getByLabel("Title (አማርኛ)").fill(`የሙከራ ዝግጅት ${suffix}`);
   await dialog.getByLabel("Description (አማርኛ)").fill(`የአማርኛ ዝግጅት ${suffix}`);

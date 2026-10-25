@@ -3,9 +3,10 @@
 ### Current state / next step
 
 - Bilingual backend content and the staff dashboard editors/uploads now use the `en`/`am` translation request maps; edits preserve the API's one-locale-per-update and at-least-one-translation rules.
-- Verification passed: Go formatting, build, vet, tests, sqlc diff; frontend lint (5 existing warnings, no errors), TypeScript, format check, and production build. Playwright discovers the single content smoke test.
-- Not verified: the Playwright browser smoke and Compose startup; Docker Engine is unavailable in this environment.
-- Next: run the Playwright content smoke in CI against Compose and review Amharic UI strings with a native speaker.
+- Verification passed: Go formatting, build, vet, tests, sqlc diff; frontend lint (5 warnings, no errors), TypeScript, format check, and production build. After the locator fix, frontend lint, TypeScript, format check, and Playwright test discovery pass.
+- The first CI browser run exposed an ambiguous Playwright label match (`Date and time` also matched the end-time label); the locator now requires an exact label.
+- Not verified locally: full browser smoke and Compose startup; Docker Engine is unavailable in this environment.
+- Next: rerun the Playwright content smoke in CI against Compose and review Amharic UI strings with a native speaker.
 
 **Goal:** a repo and a live demo that survive a 10-minute recruiter/hiring-manager review for a *senior full-stack* role: one-command startup, real security, real tests, CI, docs, and a polished, working UI.
 
