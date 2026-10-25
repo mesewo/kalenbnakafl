@@ -63,7 +63,7 @@ export default async function HomePage({ params }: Props) {
             <div className="grid-3">
               {(["connect", "learn", "act"] as const).map((key, index) => (
                 <article className="card card-accent" key={key}>
-                  <div className="icon-box">0{index + 1}</div>
+                  <div className="icon-box">{String(index + 1).padStart(2, "0")}</div>
                   <h3>{t(key)}</h3>
                   <p>{t(`${key}Text`)}</p>
                 </article>
@@ -106,7 +106,7 @@ export default async function HomePage({ params }: Props) {
               ))}
               {(!events || events.items.length === 0) && (
                 <div className="empty-state">
-                  {t("noEvents")} <Link href="/contact">{t("message")}</Link>.
+                  {t("noEvents")} <Link href="/contact">{t("message")}</Link>
                 </div>
               )}
             </div>

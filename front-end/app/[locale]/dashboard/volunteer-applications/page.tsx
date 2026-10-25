@@ -22,6 +22,11 @@ type Application = {
 export default function VolunteerApplicationsPage() {
   const locale = useLocale();
   const t = useTranslations("dashboard");
+  const statusLabels = {
+    pending: t("statusPendingLabel"),
+    approved: t("statusApprovedLabel"),
+    declined: t("statusDeclinedLabel"),
+  };
   const { user } = useAuth();
   const [result, setResult] = useState<PageResponse<Application>>({
     items: [],
@@ -46,11 +51,11 @@ export default function VolunteerApplicationsPage() {
         ),
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load applications.");
+      setError(err instanceof Error ? err.message : t("loadApplicationsFailed"));
     } finally {
       setLoading(false);
     }
-  }, [user, status, page]);
+  }, [user, status, page, t]);
   useEffect(() => {
     void load();
   }, [load]);
@@ -64,7 +69,7 @@ export default function VolunteerApplicationsPage() {
       });
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not review application.");
+      setError(err instanceof Error ? err.message : t("reviewApplicationFailed"));
     } finally {
       setBusy(null);
     }
@@ -72,7 +77,7 @@ export default function VolunteerApplicationsPage() {
   if (user?.role !== "admin")
     return (
       <div className="status status-error" role="alert">
-        Administrator access is required.
+        {t("adminAccessRequired")}
       </div>
     );
   const pages = Math.max(1, Math.ceil(result.total / result.limit));
@@ -80,12 +85,12 @@ export default function VolunteerApplicationsPage() {
     <div>
       <div className="dashboard-title">
         <div>
-          <span className="eyebrow">Community participation</span>
-          <h1>Volunteer applications</h1>
+          <span className="eyebrow">{t("volunteersEyebrow")}</span>
+          <h1>{t("applicationsTitle")}</h1>
         </div>
       </div>
       <div className="field">
-        <label htmlFor="application-status">Filter by status</label>
+        <label htmlFor="application-status">{t("filterApplications")}</label>
         <select
           id="application-status"
           value={status}
@@ -94,10 +99,10 @@ export default function VolunteerApplicationsPage() {
             setStatus(e.target.value);
           }}
         >
-          <option value="pending">Pending</option>
-          <option value="approved">Approved</option>
-          <option value="declined">Declined</option>
-          <option value="">All statuses</option>
+          <option value="pending">{t("statusPendingLabel")}</option>
+          <option value="approved">{t("statusApprovedLabel")}</option>
+          <option value="declined">{t("statusDeclinedLabel")}</option>
+          <option value="">{t("allStatuses")}</option>
         </select>
       </div>
       {error && (
@@ -107,30 +112,33 @@ export default function VolunteerApplicationsPage() {
       )}
       {loading ? (
         <div className="empty-state" role="status">
-          Loading applications…
+          {t("loadingApplications")}
         </div>
       ) : result.items.length === 0 ? (
-        <div className="empty-state">No applications match this status.</div>
+        <div className="empty-state">{t("noApplications")}</div>
       ) : (
         <div className="grid-2">
           {result.items.map((item) => (
             <article className="card" key={item.id}>
-              <span className="badge">{item.status}</span>
+              <span className="badge">{statusLabels[item.status]}</span>
               <h2>{item.name}</h2>
               <p>{item.email}</p>
-              <h3>Skills and interests</h3>
+              <h3>{t("skills")}</h3>
               <p>{item.skills}</p>
-              <h3>Availability</h3>
+              <h3>{t("availability")}</h3>
               <p>{item.availability}</p>
               {item.message && (
                 <>
-                  <h3>Message</h3>
+                  <h3>{t("applicationMessage")}</h3>
                   <p>{item.message}</p>
                 </>
               )}
               <p className="meta">
                 {t("received", { date: formatDate(item.created_at, false, locale) })}
               </p>
+              {item.reviewer_name && (
+                <p className="meta">{t("reviewedBy", { name: item.reviewer_name })}</p>
+              )}
               {item.status === "pending" && (
                 <div className="form-actions">
                   <button
@@ -138,14 +146,14 @@ export default function VolunteerApplicationsPage() {
                     disabled={busy === item.id}
                     onClick={() => void review(item, "approved")}
                   >
-                    {busy === item.id ? "Saving…" : "Approve"}
+                    {busy === item.id ? t("saving") : t("approve")}
                   </button>
                   <button
                     className="btn btn-outline btn-small"
                     disabled={busy === item.id}
                     onClick={() => void review(item, "declined")}
                   >
-                    Decline
+                    {t("decline")}
                   </button>
                 </div>
               )}
@@ -155,7 +163,7 @@ export default function VolunteerApplicationsPage() {
       )}
       <nav
         className="form-actions"
-        aria-label="Volunteer application pages"
+        aria-label={t("applicationPages")}
         style={{ justifyContent: "space-between", marginTop: "1.5rem" }}
       >
         <button
@@ -163,17 +171,15 @@ export default function VolunteerApplicationsPage() {
           disabled={page <= 1 || loading}
           onClick={() => setPage((value) => Math.max(1, value - 1))}
         >
-          Previous
+          {t("previous")}
         </button>
-        <span className="meta">
-          Page {page} of {pages}
-        </span>
+        <span className="meta">{t("pageOf", { page, total: pages })}</span>
         <button
           className="btn btn-outline"
           disabled={page >= pages || loading}
           onClick={() => setPage((value) => value + 1)}
         >
-          Next
+          {t("next")}
         </button>
       </nav>
     </div>

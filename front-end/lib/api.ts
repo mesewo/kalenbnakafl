@@ -1,5 +1,7 @@
 import type { components } from "../types/api.d.ts";
 import { intlLocale } from "@/i18n/locale";
+import enMessages from "@/messages/en.json";
+import amMessages from "@/messages/am.json";
 
 export type UserRole = components["schemas"]["User"]["role"];
 export type User = components["schemas"]["User"];
@@ -45,6 +47,7 @@ export async function apiFetch<T = unknown>(
   const headers = new Headers(options.headers);
   const locale =
     typeof document !== "undefined" && document.documentElement.lang === "am" ? "am" : "en";
+  const commonMessages = locale === "am" ? amMessages.common : enMessages.common;
   headers.set("Accept-Language", locale);
   const isUpload = typeof FormData !== "undefined" && options.body instanceof FormData;
   if (!isUpload && options.body !== undefined && !headers.has("Content-Type"))
@@ -79,9 +82,7 @@ export async function apiFetch<T = unknown>(
     const timedOut = controller.signal.aborted && !options.signal?.aborted;
     cleanup();
     throw new ApiError(
-      timedOut
-        ? "The request timed out. Please try again."
-        : "We could not reach the service. Please check your connection and try again.",
+      timedOut ? commonMessages.requestTimedOut : commonMessages.serviceUnavailable,
       timedOut ? "timeout" : "network_error",
       0,
     );

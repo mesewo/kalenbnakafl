@@ -7,17 +7,10 @@ const eslintConfig = defineConfig([
   ...nextTs,
   {
     files: [
-      "app/[locale]/**/*.{ts,tsx}",
+      "app/**/*.{ts,tsx}",
       "components/**/*.{ts,tsx}",
       "context/**/*.{ts,tsx}",
       "lib/**/*.{ts,tsx}",
-    ],
-    // Temporary 2b migration list: remove each entry when its dashboard CRUD UI is catalog-driven.
-    ignores: [
-      "app/[locale]/dashboard/{events,media,messages,posts,users,volunteers,volunteer-applications}/**/*.{ts,tsx}",
-      "components/{EventModal,PostModal}.tsx",
-      // useAuth's invariant error is for developers and cannot appear in a user-facing flow.
-      "context/AuthContext.tsx",
     ],
     rules: {
       "no-restricted-syntax": [
