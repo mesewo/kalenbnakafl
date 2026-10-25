@@ -13,6 +13,13 @@ info:
 
     **Pagination**: `page` (int, default 1) and `limit` (int, default 10, max 50) query params;
     response `{"items":[...],"page":1,"limit":10,"total":42}`.
+
+    **Content language**: Posts, events, and media reads accept `?lang=en|am`; when omitted,
+    `Accept-Language` selects the locale and English is the default. Missing translations fall back
+    to the available locale, reported by `language` and `fallback` in each item.
+
+    **Message language**: Response messages use `?lang`, then a supported `lang` cookie, then
+    `Accept-Language`, with English as the default.
   version: "1.0.0"
 
 servers:
@@ -108,7 +115,23 @@ components:
         updated_at:
           type: string
           format: date-time
-      required: [id, slug, title, content]
+        language: {type: string, enum: [en, am]}
+        fallback: {type: boolean}
+        translations: {$ref: "#/components/schemas/PostTranslations"}
+      required: [id, slug, title, content, language, fallback]
+
+    PostTranslation:
+      type: object
+      properties:
+        title: {type: string, maxLength: 180}
+        content: {type: string, maxLength: 20000}
+      required: [title, content]
+    PostTranslations:
+      type: object
+      properties:
+        en: {$ref: "#/components/schemas/PostTranslation"}
+        am: {$ref: "#/components/schemas/PostTranslation"}
+      additionalProperties: false
 
     Event:
       type: object
@@ -133,7 +156,24 @@ components:
         created_at:
           type: string
           format: date-time
-      required: [id, title, description, event_date, location]
+        language: {type: string, enum: [en, am]}
+        fallback: {type: boolean}
+        translations: {$ref: "#/components/schemas/EventTranslations"}
+      required: [id, title, description, event_date, location, language, fallback]
+
+    EventTranslation:
+      type: object
+      properties:
+        title: {type: string, maxLength: 180}
+        description: {type: string, maxLength: 20000}
+        location: {type: string, maxLength: 500}
+      required: [title, description, location]
+    EventTranslations:
+      type: object
+      properties:
+        en: {$ref: "#/components/schemas/EventTranslation"}
+        am: {$ref: "#/components/schemas/EventTranslation"}
+      additionalProperties: false
 
     Media:
       type: object
@@ -159,7 +199,22 @@ components:
         created_at:
           type: string
           format: date-time
-      required: [id, title, file_path, kind]
+        language: {type: string, enum: [en, am]}
+        fallback: {type: boolean}
+        translations: {$ref: "#/components/schemas/MediaTranslations"}
+      required: [id, title, file_path, kind, language, fallback]
+
+    MediaTranslation:
+      type: object
+      properties:
+        title: {type: string, maxLength: 180}
+      required: [title]
+    MediaTranslations:
+      type: object
+      properties:
+        en: {$ref: "#/components/schemas/MediaTranslation"}
+        am: {$ref: "#/components/schemas/MediaTranslation"}
+      additionalProperties: false
 
     ContactMessage:
       type: object
@@ -427,36 +482,36 @@ components:
     CreatePostRequest:
       type: object
       properties:
-        title:
-          type: string
-          maxLength: 180
-        content:
-          type: string
-          maxLength: 20000
+        translations:
+          allOf:
+            - $ref: "#/components/schemas/PostTranslations"
+          minProperties: 1
         slug:
           type: string
           pattern: "^[a-z0-9-]{3,100}$"
         cover_media_id:
           type: integer
           format: int64
-      required: [title, content]
+      required: [translations]
 
     UpdatePostRequest:
       type: object
       properties:
-        title:
-          type: string
-          maxLength: 180
-        content:
-          type: string
-          maxLength: 20000
+        translations:
+          type: object
+          minProperties: 1
+          maxProperties: 1
+          properties:
+            en: {oneOf: [{$ref: "#/components/schemas/PostTranslation"}, {type: "null"}]}
+            am: {oneOf: [{$ref: "#/components/schemas/PostTranslation"}, {type: "null"}]}
+          additionalProperties: false
         slug:
           type: string
           pattern: "^[a-z0-9-]{3,100}$"
         cover_media_id:
           type: integer
           format: int64
-      required: [title, content, slug]
+      required: [translations]
 
     PublishPostRequest:
       type: object
@@ -468,12 +523,10 @@ components:
     CreateEventRequest:
       type: object
       properties:
-        title:
-          type: string
-          maxLength: 180
-        description:
-          type: string
-          maxLength: 20000
+        translations:
+          allOf:
+            - $ref: "#/components/schemas/EventTranslations"
+          minProperties: 1
         event_date:
           type: string
           format: date-time
@@ -482,28 +535,26 @@ components:
           type: string
           format: date-time
           description: Optional; must be after event_date
-        location:
-          type: string
-      required: [title, description, event_date]
+      required: [translations, event_date]
 
     UpdateEventRequest:
       type: object
       properties:
-        title:
-          type: string
-          maxLength: 180
-        description:
-          type: string
-          maxLength: 20000
+        translations:
+          type: object
+          minProperties: 1
+          maxProperties: 1
+          properties:
+            en: {oneOf: [{$ref: "#/components/schemas/EventTranslation"}, {type: "null"}]}
+            am: {oneOf: [{$ref: "#/components/schemas/EventTranslation"}, {type: "null"}]}
+          additionalProperties: false
         event_date:
           type: string
           format: date-time
         ends_at:
           type: string
           format: date-time
-        location:
-          type: string
-      required: [title, description, event_date]
+      required: [translations, event_date]
 
     UpdateProfileRequest:
       type: object
@@ -610,6 +661,14 @@ components:
 
   # ──────────── reusable parameters ────────────
   parameters:
+    LanguageParam:
+      name: lang
+      in: query
+      required: false
+      description: Requested locale; defaults from Accept-Language when omitted.
+      schema:
+        type: string
+        enum: [en, am]
     PageParam:
       name: page
       in: query
@@ -825,6 +884,7 @@ paths:
       description: Returns published posts paginated, newest first. Supports full-text search.
       tags: [posts]
       parameters:
+        - $ref: "#/components/parameters/LanguageParam"
         - $ref: "#/components/parameters/PageParam"
         - $ref: "#/components/parameters/LimitParam"
         - name: q
@@ -841,6 +901,11 @@ paths:
                 $ref: "#/components/schemas/PagePost"
         "500":
           $ref: "#/components/responses/InternalServerError"
+        "422":
+          description: Unsupported language locale
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ErrorEnvelope"}
 
   /api/posts/{slug}:
     get:
@@ -849,6 +914,7 @@ paths:
       description: Drafts return 404.
       tags: [posts]
       parameters:
+        - $ref: "#/components/parameters/LanguageParam"
         - name: slug
           in: path
           required: true
@@ -864,6 +930,11 @@ paths:
                 $ref: "#/components/schemas/Post"
         "404":
           $ref: "#/components/responses/NotFound"
+        "422":
+          description: Unsupported language locale
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ErrorEnvelope"}
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -876,6 +947,7 @@ paths:
         otherwise newest-created first.
       tags: [events]
       parameters:
+        - $ref: "#/components/parameters/LanguageParam"
         - $ref: "#/components/parameters/PageParam"
         - $ref: "#/components/parameters/LimitParam"
         - name: upcoming
@@ -893,6 +965,11 @@ paths:
                 $ref: "#/components/schemas/PageEvent"
         "500":
           $ref: "#/components/responses/InternalServerError"
+        "422":
+          description: Unsupported language locale
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ErrorEnvelope"}
 
   /api/events/{id}:
     get:
@@ -900,6 +977,7 @@ paths:
       summary: Get an event by ID
       tags: [events]
       parameters:
+        - $ref: "#/components/parameters/LanguageParam"
         - name: id
           in: path
           required: true
@@ -917,6 +995,11 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
+        "422":
+          description: Unsupported language locale
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ErrorEnvelope"}
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -927,6 +1010,7 @@ paths:
       description: Filtered, paginated media items.
       tags: [media]
       parameters:
+        - $ref: "#/components/parameters/LanguageParam"
         - $ref: "#/components/parameters/PageParam"
         - $ref: "#/components/parameters/LimitParam"
         - name: kind
@@ -943,7 +1027,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/PageMedia"
         "422":
-          description: Invalid kind value
+          description: Invalid kind or unsupported language locale
           content:
             application/json:
               schema:
@@ -1191,6 +1275,7 @@ paths:
       security:
         - cookieAuth: []
       parameters:
+        - $ref: "#/components/parameters/LanguageParam"
         - $ref: "#/components/parameters/PageParam"
         - $ref: "#/components/parameters/LimitParam"
         - name: q
@@ -1208,6 +1293,11 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "422":
+          description: Unsupported language locale
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ErrorEnvelope"}
         "500":
           $ref: "#/components/responses/InternalServerError"
     post:
@@ -1229,7 +1319,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Post"
+                $ref: "#/components/schemas/MessageResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -1272,7 +1362,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Post"
+                $ref: "#/components/schemas/MessageResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -1369,6 +1459,7 @@ paths:
       security:
         - cookieAuth: []
       parameters:
+        - $ref: "#/components/parameters/LanguageParam"
         - $ref: "#/components/parameters/PageParam"
         - $ref: "#/components/parameters/LimitParam"
         - name: upcoming
@@ -1387,6 +1478,11 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "422":
+          description: Unsupported language locale
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ErrorEnvelope"}
         "500":
           $ref: "#/components/responses/InternalServerError"
     post:
@@ -1408,7 +1504,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Event"
+                $ref: "#/components/schemas/MessageResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -1451,7 +1547,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Event"
+                $ref: "#/components/schemas/MessageResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -1503,6 +1599,7 @@ paths:
       security:
         - cookieAuth: []
       parameters:
+        - $ref: "#/components/parameters/LanguageParam"
         - $ref: "#/components/parameters/PageParam"
         - $ref: "#/components/parameters/LimitParam"
         - name: kind
@@ -1521,6 +1618,11 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "422":
+          description: Unsupported language locale
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ErrorEnvelope"}
         "500":
           $ref: "#/components/responses/InternalServerError"
     post:
@@ -1543,10 +1645,10 @@ paths:
                 file:
                   type: string
                   format: binary
-                title:
+                translations:
                   type: string
-                  maxLength: 180
-              required: [file]
+                  description: JSON object with at least one en/am title, e.g. {"en":{"title":"Photo"}}.
+              required: [file, translations]
       responses:
         "201":
           description: File uploaded

@@ -46,8 +46,12 @@ ON CONFLICT (event_id, user_id) DO NOTHING;
 DELETE FROM event_signups WHERE event_id = sqlc.arg(event_id) AND user_id = sqlc.arg(user_id);
 
 -- name: ListMyEventSignups :many
-SELECT e.id, e.title, e.description, e.event_date, e.ends_at, e.location, e.created_at
+SELECT e.id, COALESCE(en.title, am.title, '') AS title,
+       COALESCE(en.description, am.description, '') AS description,
+       e.event_date, e.ends_at, COALESCE(en.location, am.location, '') AS location, e.created_at
 FROM event_signups s JOIN events e ON e.id = s.event_id
+LEFT JOIN event_translations en ON en.event_id = e.id AND en.locale = 'en'
+LEFT JOIN event_translations am ON am.event_id = e.id AND am.locale = 'am'
 WHERE s.user_id = sqlc.arg(user_id)
 ORDER BY e.event_date ASC
 LIMIT sqlc.arg(page_size)::integer OFFSET sqlc.arg(row_offset)::integer;

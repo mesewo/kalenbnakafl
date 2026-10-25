@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"kalenbnakafl/internal/i18n"
 )
 
 type ErrorBody struct {
@@ -25,15 +26,15 @@ func Write(c *gin.Context, status int, code, message string, details map[string]
 
 func Fail(c *gin.Context, status int, message string) {
 	if tooLarge, exists := c.Get("httpx.request_too_large"); exists && tooLarge == true {
-		Write(c, http.StatusRequestEntityTooLarge, "payload_too_large", "Request body is too large.", nil)
+		Write(c, http.StatusRequestEntityTooLarge, "payload_too_large", i18n.Text(requestLocale(c), "common.request_too_large"), nil)
 		return
 	}
 	if bindErr, exists := c.Get("httpx.bind_error"); exists {
 		if code, ok := bindErr.(string); ok {
 			if code == "payload_too_large" {
-				Write(c, http.StatusRequestEntityTooLarge, code, "Request body is too large.", nil)
+				Write(c, http.StatusRequestEntityTooLarge, code, i18n.Text(requestLocale(c), "common.request_too_large"), nil)
 			} else {
-				Write(c, http.StatusBadRequest, code, "Request body must contain valid JSON.", nil)
+				Write(c, http.StatusBadRequest, code, i18n.Text(requestLocale(c), "common.invalid_json"), nil)
 			}
 			return
 		}
@@ -57,12 +58,27 @@ func Fail(c *gin.Context, status int, message string) {
 	case http.StatusRequestEntityTooLarge:
 		code = "payload_too_large"
 	}
-	Write(c, status, code, message, nil)
+	Write(c, status, code, i18n.Text(requestLocale(c), message), nil)
 }
 
 func Internal(c *gin.Context, operation string) {
 	Logger(c).Error("request failed", "operation", operation)
-	Write(c, http.StatusInternalServerError, "internal", "An unexpected error occurred.", nil)
+	Write(c, http.StatusInternalServerError, "internal", i18n.Text(requestLocale(c), "common.internal"), nil)
+}
+
+func Success(c *gin.Context, status int, key string, extra ...gin.H) {
+	body := gin.H{"message": i18n.Text(requestLocale(c), key)}
+	if len(extra) > 0 {
+		for name, value := range extra[0] {
+			body[name] = value
+		}
+	}
+	c.JSON(status, body)
+}
+
+func requestLocale(c *gin.Context) string {
+	locale, _ := i18n.RequestLocale(c.Request, true)
+	return locale
 }
 
 func BindJSON(c *gin.Context, target any) bool {

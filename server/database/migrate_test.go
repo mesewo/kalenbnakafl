@@ -295,3 +295,60 @@ func TestMigration0005CreatesVolunteerWorkflowsWithExistingData(t *testing.T) {
 		t.Fatalf("pre-existing event data not preserved: count=%d err=%v", preserved, err)
 	}
 }
+
+func TestMigration0006BackfillsTranslationsAnd0007DropsLegacyText(t *testing.T) {
+	db := testDatabase(t)
+	ctx := context.Background()
+	provider, err := newMigrationProvider(db)
+	if err != nil {
+		t.Fatalf("create provider: %v", err)
+	}
+	if _, err := provider.UpTo(ctx, 5); err != nil {
+		t.Fatalf("apply migrations through 0005: %v", err)
+	}
+	if _, err := db.Exec(`INSERT INTO users(name,email,password,role) VALUES('Bilingual','bilingual@example.org','hash','admin')`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO posts(slug,title,content,author_id,published) VALUES('bilingual-post','Legacy English title','Legacy English body',1,true)`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO events(title,description,location,event_date) VALUES('Legacy event','Legacy description','Legacy place',CURRENT_TIMESTAMP)`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO media(title,file_path,kind) VALUES('Legacy media','/uploads/legacy.png','image')`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := provider.UpTo(ctx, 6); err != nil {
+		t.Fatalf("apply translation migration: %v", err)
+	}
+	var title, body, vector string
+	if err := db.QueryRow(`SELECT t.title,t.content,ps.search_vector::text FROM post_translations t JOIN post_search ps ON ps.post_id=t.post_id WHERE t.locale='en'`).Scan(&title, &body, &vector); err != nil {
+		t.Fatal(err)
+	}
+	if title != "Legacy English title" || body != "Legacy English body" || !strings.Contains(vector, "legacy") {
+		t.Fatalf("backfill title=%q body=%q vector=%q", title, body, vector)
+	}
+	var locale, eventTitle, eventDesc, eventLocation, mediaTitle string
+	if err := db.QueryRow(`SELECT locale,title,description,location FROM event_translations`).Scan(&locale, &eventTitle, &eventDesc, &eventLocation); err != nil {
+		t.Fatal(err)
+	}
+	if locale != "en" || eventTitle != "Legacy event" || eventDesc != "Legacy description" || eventLocation != "Legacy place" {
+		t.Fatalf("event translation %q %q %q %q", locale, eventTitle, eventDesc, eventLocation)
+	}
+	if err := db.QueryRow(`SELECT title FROM media_translations`).Scan(&mediaTitle); err != nil || mediaTitle != "Legacy media" {
+		t.Fatalf("media title=%q err=%v", mediaTitle, err)
+	}
+	if _, err := provider.UpTo(ctx, 7); err != nil {
+		t.Fatalf("drop legacy fields: %v", err)
+	}
+	var legacyColumn sql.NullString
+	if err := db.QueryRow(`SELECT column_name FROM information_schema.columns WHERE table_schema=current_schema() AND table_name='posts' AND column_name='title'`).Scan(&legacyColumn); err != sql.ErrNoRows {
+		t.Fatalf("posts.title still exists or lookup failed: %v", err)
+	}
+	if _, err := provider.DownTo(ctx, 6); err != nil {
+		t.Fatalf("restore legacy fields: %v", err)
+	}
+	if _, err := provider.UpTo(ctx, 7); err != nil {
+		t.Fatalf("reapply legacy-field removal: %v", err)
+	}
+}

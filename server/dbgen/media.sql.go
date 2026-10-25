@@ -23,14 +23,14 @@ func (q *Queries) CountMedia(ctx context.Context, kind sql.NullString) (int64, e
 	return column_1, err
 }
 
-const createMedia = `-- name: CreateMedia :exec
-INSERT INTO media (title, file_path, media_type, original_name, size_bytes, kind, uploaded_by)
-VALUES ($1, $2, $3,
-        $4, $5, $6, $7)
+const createMedia = `-- name: CreateMedia :one
+INSERT INTO media (file_path, media_type, original_name, size_bytes, kind, uploaded_by)
+VALUES ($1, $2,
+        $3, $4, $5, $6)
+RETURNING id
 `
 
 type CreateMediaParams struct {
-	Title        string         `json:"title"`
 	FilePath     string         `json:"file_path"`
 	MediaType    sql.NullString `json:"media_type"`
 	OriginalName sql.NullString `json:"original_name"`
@@ -39,9 +39,8 @@ type CreateMediaParams struct {
 	UploadedBy   sql.NullInt32  `json:"uploaded_by"`
 }
 
-func (q *Queries) CreateMedia(ctx context.Context, arg CreateMediaParams) error {
-	_, err := q.db.ExecContext(ctx, createMedia,
-		arg.Title,
+func (q *Queries) CreateMedia(ctx context.Context, arg CreateMediaParams) (int32, error) {
+	row := q.db.QueryRowContext(ctx, createMedia,
 		arg.FilePath,
 		arg.MediaType,
 		arg.OriginalName,
@@ -49,7 +48,9 @@ func (q *Queries) CreateMedia(ctx context.Context, arg CreateMediaParams) error 
 		arg.Kind,
 		arg.UploadedBy,
 	)
-	return err
+	var id int32
+	err := row.Scan(&id)
+	return id, err
 }
 
 const deleteMedia = `-- name: DeleteMedia :execrows
@@ -76,12 +77,15 @@ func (q *Queries) GetMediaFilePath(ctx context.Context, id int32) (string, error
 }
 
 const listMedia = `-- name: ListMedia :many
-SELECT id, title, file_path, COALESCE(media_type, '') AS media_type,
-       COALESCE(original_name, '') AS original_name,
-       COALESCE(size_bytes, 0) AS size_bytes, kind, created_at
-FROM media
-WHERE ($1::text IS NULL OR kind = $1::text)
-ORDER BY created_at DESC
+SELECT m.id, m.file_path, COALESCE(m.media_type, '') AS media_type,
+       COALESCE(m.original_name, '') AS original_name,
+       COALESCE(m.size_bytes, 0) AS size_bytes, m.kind, m.created_at,
+       en.title AS en_title, am.title AS am_title
+FROM media m
+LEFT JOIN media_translations en ON en.media_id = m.id AND en.locale = 'en'
+LEFT JOIN media_translations am ON am.media_id = m.id AND am.locale = 'am'
+WHERE ($1::text IS NULL OR m.kind = $1::text)
+ORDER BY m.created_at DESC
 LIMIT $3::integer OFFSET $2::integer
 `
 
@@ -92,14 +96,15 @@ type ListMediaParams struct {
 }
 
 type ListMediaRow struct {
-	ID           int32     `json:"id"`
-	Title        string    `json:"title"`
-	FilePath     string    `json:"file_path"`
-	MediaType    string    `json:"media_type"`
-	OriginalName string    `json:"original_name"`
-	SizeBytes    int64     `json:"size_bytes"`
-	Kind         string    `json:"kind"`
-	CreatedAt    time.Time `json:"created_at"`
+	ID           int32          `json:"id"`
+	FilePath     string         `json:"file_path"`
+	MediaType    string         `json:"media_type"`
+	OriginalName string         `json:"original_name"`
+	SizeBytes    int64          `json:"size_bytes"`
+	Kind         string         `json:"kind"`
+	CreatedAt    time.Time      `json:"created_at"`
+	EnTitle      sql.NullString `json:"en_title"`
+	AmTitle      sql.NullString `json:"am_title"`
 }
 
 func (q *Queries) ListMedia(ctx context.Context, arg ListMediaParams) ([]ListMediaRow, error) {
@@ -113,13 +118,14 @@ func (q *Queries) ListMedia(ctx context.Context, arg ListMediaParams) ([]ListMed
 		var i ListMediaRow
 		if err := rows.Scan(
 			&i.ID,
-			&i.Title,
 			&i.FilePath,
 			&i.MediaType,
 			&i.OriginalName,
 			&i.SizeBytes,
 			&i.Kind,
 			&i.CreatedAt,
+			&i.EnTitle,
+			&i.AmTitle,
 		); err != nil {
 			return nil, err
 		}
@@ -132,4 +138,21 @@ func (q *Queries) ListMedia(ctx context.Context, arg ListMediaParams) ([]ListMed
 		return nil, err
 	}
 	return items, nil
+}
+
+const upsertMediaTranslation = `-- name: UpsertMediaTranslation :exec
+INSERT INTO media_translations(media_id, locale, title)
+VALUES ($1, $2, $3)
+ON CONFLICT (media_id, locale) DO UPDATE SET title = EXCLUDED.title
+`
+
+type UpsertMediaTranslationParams struct {
+	MediaID int32  `json:"media_id"`
+	Locale  string `json:"locale"`
+	Title   string `json:"title"`
+}
+
+func (q *Queries) UpsertMediaTranslation(ctx context.Context, arg UpsertMediaTranslationParams) error {
+	_, err := q.db.ExecContext(ctx, upsertMediaTranslation, arg.MediaID, arg.Locale, arg.Title)
+	return err
 }

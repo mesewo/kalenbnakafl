@@ -73,6 +73,10 @@ func nullableID(value sql.NullInt32) *int {
 }
 
 func (a *API) GetPosts(c *gin.Context) {
+	language, ok := contentLanguage(c)
+	if !ok {
+		return
+	}
 	page, limit, offset := pageArgs(c)
 	_, includeUnpublished := c.Get("role")
 	search := strings.TrimSpace(c.Query("q"))
@@ -80,32 +84,42 @@ func (a *API) GetPosts(c *gin.Context) {
 	ctx := c.Request.Context()
 	rows, err := a.q.ListPosts(ctx, dbgen.ListPostsParams{IncludeUnpublished: includeUnpublished, Search: searchArg, RowOffset: offset, PageSize: int32(limit)})
 	if err != nil {
-		httpx.Fail(c, http.StatusInternalServerError, "Failed to fetch posts")
+		httpx.Fail(c, http.StatusInternalServerError, "posts.failed_to_fetch_posts")
 		return
 	}
 	total, err := a.q.CountPosts(ctx, dbgen.CountPostsParams{IncludeUnpublished: includeUnpublished, Search: searchArg})
 	if err != nil {
-		httpx.Fail(c, http.StatusInternalServerError, "Failed to count posts")
+		httpx.Fail(c, http.StatusInternalServerError, "posts.failed_to_count_posts")
 		return
 	}
 	posts := make([]models.Post, 0, len(rows))
 	for _, row := range rows {
-		posts = append(posts, models.Post{ID: int(row.ID), Slug: row.Slug, Title: row.Title, Content: row.Content, AuthorID: int(row.AuthorID), AuthorName: row.AuthorName, Published: row.Published, PublishedAt: nullableTime(row.PublishedAt), CoverMediaID: nullableID(row.CoverMediaID), CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt})
+		translations, title, content, effective, fallback := postTranslationValues(row.EnTitle, row.EnContent, row.AmTitle, row.AmContent, language)
+		post := models.Post{ID: int(row.ID), Slug: row.Slug, Title: title, Content: content, AuthorID: int(row.AuthorID), AuthorName: row.AuthorName, Published: row.Published, PublishedAt: nullableTime(row.PublishedAt), CoverMediaID: nullableID(row.CoverMediaID), CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt, Language: effective, Fallback: fallback}
+		if _, staff := c.Get("role"); staff {
+			post.Translations = translations
+		}
+		posts = append(posts, post)
 	}
 	c.JSON(http.StatusOK, models.Page[models.Post]{Items: posts, Page: page, Limit: limit, Total: total})
 }
 
 func (a *API) GetPostBySlug(c *gin.Context) {
+	language, ok := contentLanguage(c)
+	if !ok {
+		return
+	}
 	row, err := a.q.GetPostBySlug(c.Request.Context(), c.Param("slug"))
 	if errors.Is(err, sql.ErrNoRows) {
-		httpx.Fail(c, http.StatusNotFound, "Post not found")
+		httpx.Fail(c, http.StatusNotFound, "posts.not_found")
 		return
 	}
 	if err != nil {
-		httpx.Fail(c, http.StatusInternalServerError, "Failed to fetch post")
+		httpx.Fail(c, http.StatusInternalServerError, "posts.failed_to_fetch_post")
 		return
 	}
-	c.JSON(http.StatusOK, models.Post{ID: int(row.ID), Slug: row.Slug, Title: row.Title, Content: row.Content, AuthorID: int(row.AuthorID), AuthorName: row.AuthorName, Published: row.Published, PublishedAt: nullableTime(row.PublishedAt), CoverMediaID: nullableID(row.CoverMediaID), CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt})
+	_, title, content, effective, fallback := postTranslationValues(row.EnTitle, row.EnContent, row.AmTitle, row.AmContent, language)
+	c.JSON(http.StatusOK, models.Post{ID: int(row.ID), Slug: row.Slug, Title: title, Content: content, AuthorID: int(row.AuthorID), AuthorName: row.AuthorName, Published: row.Published, PublishedAt: nullableTime(row.PublishedAt), CoverMediaID: nullableID(row.CoverMediaID), CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt, Language: effective, Fallback: fallback})
 }
 
 func slugify(title string) (string, error) {
@@ -146,35 +160,42 @@ func validateCoverID(id *int) sql.NullInt32 {
 func (a *API) CreatePost(c *gin.Context) {
 	var input models.PostInput
 	if !httpx.BindJSON(c, &input) {
-		httpx.Fail(c, http.StatusBadRequest, "Title and content are required")
+		httpx.Fail(c, http.StatusBadRequest, "posts.translations_are_required_and_must_be_valid")
 		return
 	}
-	if !validateText(input.Title, 180) || !validateText(input.Content, 20000) {
-		httpx.Fail(c, http.StatusBadRequest, "Title and content are required")
+	translations, valid := validPostTranslations(input.Translations, false)
+	if !valid {
+		httpx.Fail(c, http.StatusBadRequest, "posts.translations_are_required_and_must_be_valid")
 		return
 	}
 	userID, ok := c.Get("user_id")
 	if !ok {
-		httpx.Fail(c, http.StatusUnauthorized, "Authentication required")
+		httpx.Fail(c, http.StatusUnauthorized, "posts.authentication_required")
 		return
 	}
 	id, ok := userID.(int)
 	if !ok {
-		httpx.Fail(c, http.StatusInternalServerError, "Failed to create post")
+		httpx.Fail(c, http.StatusInternalServerError, "posts.failed_to_create_post")
 		return
 	}
 	provided := strings.TrimSpace(input.Slug) != ""
 	base := strings.TrimSpace(input.Slug)
 	if provided {
 		if !validSlug.MatchString(base) {
-			httpx.Fail(c, http.StatusBadRequest, "Slug must contain 3 to 100 lowercase letters, numbers, or hyphens")
+			httpx.Fail(c, http.StatusBadRequest, "posts.slug_must_contain_3_to_100_lowercase_letters_numbers_or_hyphens")
 			return
 		}
 	} else {
 		var err error
-		base, err = slugify(input.Title)
+		title := ""
+		if english, exists := translations["en"]; exists {
+			title = english.Title
+		} else {
+			title = translations["am"].Title
+		}
+		base, err = slugify(title)
 		if err != nil {
-			httpx.Fail(c, http.StatusInternalServerError, "Failed to create post")
+			httpx.Fail(c, http.StatusInternalServerError, "posts.failed_to_create_post")
 			return
 		}
 	}
@@ -184,22 +205,42 @@ func (a *API) CreatePost(c *gin.Context) {
 			suffix := "-" + strconv.Itoa(attempt)
 			candidate = strings.TrimRight(base[:min(len(base), 100-len(suffix))], "-") + suffix
 		}
-		err := a.q.CreatePost(c.Request.Context(), dbgen.CreatePostParams{Slug: candidate, Title: clean(input.Title), Content: clean(input.Content), AuthorID: sql.NullInt32{Int32: int32(id), Valid: true}, CoverMediaID: validateCoverID(input.CoverMediaID)})
+		tx, err := a.db.BeginTx(c.Request.Context(), nil)
+		if err != nil {
+			httpx.Fail(c, http.StatusInternalServerError, "posts.failed_to_create_post")
+			return
+		}
+		queries := a.q.WithTx(tx)
+		postID, err := queries.CreatePost(c.Request.Context(), dbgen.CreatePostParams{Slug: candidate, AuthorID: sql.NullInt32{Int32: int32(id), Valid: true}, CoverMediaID: validateCoverID(input.CoverMediaID)})
 		if err == nil {
-			c.JSON(http.StatusCreated, gin.H{"message": "Post created"})
+			for locale, translation := range translations {
+				if err = queries.UpsertPostTranslation(c.Request.Context(), dbgen.UpsertPostTranslationParams{PostID: postID, Locale: locale, Title: translation.Title, Content: translation.Content}); err != nil {
+					break
+				}
+			}
+		}
+		if err == nil {
+			err = tx.Commit()
+		} else {
+			_ = tx.Rollback()
+		}
+		if err == nil {
+			httpx.Success(c, http.StatusCreated, "posts.created")
 			return
 		}
 		if status, constraint := postEventConstraintStatus(err); constraint {
+			_ = tx.Rollback()
 			if status == http.StatusConflict && !provided {
 				continue
 			}
-			httpx.Fail(c, status, "Failed to create post")
+			httpx.Fail(c, status, "posts.failed_to_create_post")
 			return
 		}
-		httpx.Fail(c, http.StatusInternalServerError, "Failed to create post")
+		_ = tx.Rollback()
+		httpx.Fail(c, http.StatusInternalServerError, "posts.failed_to_create_post")
 		return
 	}
-	httpx.Fail(c, http.StatusConflict, "Could not generate a unique post slug")
+	httpx.Fail(c, http.StatusConflict, "posts.could_not_generate_a_unique_post_slug")
 }
 
 func (a *API) UpdatePost(c *gin.Context) {
@@ -208,36 +249,83 @@ func (a *API) UpdatePost(c *gin.Context) {
 		return
 	}
 	var input models.PostInput
-	if !httpx.BindJSON(c, &input) || !validateText(input.Title, 180) || !validateText(input.Content, 20000) {
-		httpx.Fail(c, http.StatusBadRequest, "Title and content are required")
+	if !httpx.BindJSON(c, &input) || len(input.Translations) != 1 {
+		httpx.Fail(c, http.StatusBadRequest, "posts.one_translation_change_is_required")
+		return
+	}
+	translations, valid := validPostTranslations(input.Translations, true)
+	if !valid {
+		httpx.Fail(c, http.StatusBadRequest, "posts.translation_is_invalid")
 		return
 	}
 	slug := sql.NullString{}
 	if strings.TrimSpace(input.Slug) != "" {
-		if !validSlug.MatchString(input.Slug) {
-			httpx.Fail(c, http.StatusBadRequest, "Slug must contain 3 to 100 lowercase letters, numbers, or hyphens")
+		if !validSlug.MatchString(strings.TrimSpace(input.Slug)) {
+			httpx.Fail(c, http.StatusBadRequest, "posts.slug_must_contain_3_to_100_lowercase_letters_numbers_or_hyphens")
 			return
 		}
-		slug = sql.NullString{String: input.Slug, Valid: true}
+		slug = sql.NullString{String: strings.TrimSpace(input.Slug), Valid: true}
 	}
 	var coverID sql.NullInt32
 	if input.CoverMediaID != nil && *input.CoverMediaID > 0 {
 		coverID = validateCoverID(input.CoverMediaID)
 	}
-	affected, err := a.q.UpdatePost(c.Request.Context(), dbgen.UpdatePostParams{Slug: slug, Title: clean(input.Title), Content: clean(input.Content), CoverMediaID: coverID, ID: int32(id)})
+	tx, err := a.db.BeginTx(c.Request.Context(), nil)
 	if err != nil {
-		if status, constraint := postEventConstraintStatus(err); constraint {
-			httpx.Fail(c, status, "Failed to update post")
+		httpx.Fail(c, http.StatusInternalServerError, "posts.failed_to_update_post")
+		return
+	}
+	defer func() { _ = tx.Rollback() }()
+	queries := a.q.WithTx(tx)
+	if _, err := queries.LockPost(c.Request.Context(), int32(id)); errors.Is(err, sql.ErrNoRows) {
+		httpx.Fail(c, http.StatusNotFound, "posts.not_found")
+		return
+	} else if err != nil {
+		httpx.Fail(c, http.StatusInternalServerError, "posts.failed_to_update_post")
+		return
+	}
+	for locale, translation := range translations {
+		if translation == nil {
+			count, countErr := queries.CountPostTranslations(c.Request.Context(), int32(id))
+			if countErr != nil {
+				httpx.Fail(c, http.StatusInternalServerError, "posts.failed_to_update_post")
+				return
+			}
+			if count <= 1 {
+				httpx.Fail(c, http.StatusUnprocessableEntity, "posts.at_least_one_translation_is_required")
+				return
+			}
+			removed, removeErr := queries.DeletePostTranslation(c.Request.Context(), dbgen.DeletePostTranslationParams{PostID: int32(id), Locale: locale})
+			if removeErr != nil {
+				httpx.Fail(c, http.StatusInternalServerError, "posts.failed_to_update_post")
+				return
+			}
+			if removed == 0 {
+				httpx.Fail(c, http.StatusNotFound, "posts.translation_not_found")
+				return
+			}
+		} else if err := queries.UpsertPostTranslation(c.Request.Context(), dbgen.UpsertPostTranslationParams{PostID: int32(id), Locale: locale, Title: translation.Title, Content: translation.Content}); err != nil {
+			httpx.Fail(c, http.StatusInternalServerError, "posts.failed_to_update_post")
 			return
 		}
-		httpx.Fail(c, http.StatusInternalServerError, "Failed to update post")
+	}
+	if _, err := queries.UpdatePostFields(c.Request.Context(), dbgen.UpdatePostFieldsParams{Slug: slug, CoverMediaID: coverID, ID: int32(id)}); err != nil {
+		if status, constraint := postEventConstraintStatus(err); constraint {
+			httpx.Fail(c, status, "posts.failed_to_update_post")
+			return
+		}
+		httpx.Fail(c, http.StatusInternalServerError, "posts.failed_to_update_post")
 		return
 	}
-	if affected == 0 {
-		httpx.Fail(c, http.StatusNotFound, "Post not found")
+	if err := tx.Commit(); err != nil {
+		if status, constraint := postEventConstraintStatus(err); constraint {
+			httpx.Fail(c, status, "posts.failed_to_update_post")
+			return
+		}
+		httpx.Fail(c, http.StatusInternalServerError, "posts.failed_to_update_post")
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Post updated"})
+	httpx.Success(c, http.StatusOK, "posts.updated")
 }
 
 func (a *API) DeletePost(c *gin.Context) {
@@ -247,14 +335,14 @@ func (a *API) DeletePost(c *gin.Context) {
 	}
 	affected, err := a.q.DeletePost(c.Request.Context(), int32(id))
 	if err != nil {
-		httpx.Fail(c, http.StatusInternalServerError, "Failed to delete post")
+		httpx.Fail(c, http.StatusInternalServerError, "posts.failed_to_delete_post")
 		return
 	}
 	if affected == 0 {
-		httpx.Fail(c, http.StatusNotFound, "Post not found")
+		httpx.Fail(c, http.StatusNotFound, "posts.not_found")
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Post deleted"})
+	httpx.Success(c, http.StatusOK, "posts.deleted")
 }
 
 func (a *API) PublishPost(c *gin.Context) {
@@ -264,17 +352,17 @@ func (a *API) PublishPost(c *gin.Context) {
 	}
 	var input models.PostPublishInput
 	if !httpx.BindJSON(c, &input) {
-		httpx.Fail(c, http.StatusBadRequest, "Invalid publication status")
+		httpx.Fail(c, http.StatusBadRequest, "posts.invalid_publication_status")
 		return
 	}
 	affected, err := a.q.PublishPost(c.Request.Context(), dbgen.PublishPostParams{Published: input.Published, ID: int32(id)})
 	if err != nil {
-		httpx.Fail(c, http.StatusInternalServerError, "Failed to update publication status")
+		httpx.Fail(c, http.StatusInternalServerError, "posts.failed_to_update_publication_status")
 		return
 	}
 	if affected == 0 {
-		httpx.Fail(c, http.StatusNotFound, "Post not found")
+		httpx.Fail(c, http.StatusNotFound, "posts.not_found")
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Publication status updated"})
+	httpx.Success(c, http.StatusOK, "posts.publication_status_updated")
 }

@@ -71,7 +71,10 @@ func TestRegisteredRouteRoleMatrix(t *testing.T) {
 		t.Fatalf("insert contact fixture: %v", err)
 	}
 	const detailSlug = "matrix-detail-post"
-	if _, err := db.ExecContext(t.Context(), `INSERT INTO posts (slug, title, content, author_id, published, published_at) VALUES ($1, $2, $3, $4, true, CURRENT_TIMESTAMP)`, detailSlug, "Detail", "Body", postAuthor); err != nil {
+	if _, err := db.ExecContext(t.Context(), `INSERT INTO posts (slug, author_id, published, published_at) VALUES ($1,$2,true,CURRENT_TIMESTAMP)`, detailSlug, postAuthor); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.ExecContext(t.Context(), `INSERT INTO post_translations(post_id,locale,title,content) SELECT id,'en','Detail','Body' FROM posts WHERE slug=$1`, detailSlug); err != nil {
 		t.Fatal(err)
 	}
 	// Keep the self-application GET and duplicate POST route expectations stable while the route order is exercised.
@@ -135,7 +138,7 @@ func TestRegisteredRouteRoleMatrix(t *testing.T) {
 				path = fmt.Sprintf("/api/admin/users/%d", target)
 			}
 			if strings.Contains(key, "PATCH /api/staff/posts/") && !strings.HasSuffix(path, "/publish") {
-				body = fmt.Sprintf(`{"title":"updated %s","content":"body","slug":"updated-%s-post"}`, role, role)
+				body = fmt.Sprintf(`{"translations":{"en":{"title":"updated %s","content":"body"}},"slug":"updated-%s-post"}`, role, role)
 			}
 			got := authRequest(r, method, path, body, cookie).Code
 			if got != wantByRole[ri] {
@@ -169,9 +172,9 @@ func matrixRequestBody(key, role string, index int, date string) string {
 	case "POST /api/contact":
 		return fmt.Sprintf(`{"name":"Contact","email":"contact-%s@example.org","message":"Hello"}`, role)
 	case "POST /api/staff/posts":
-		return fmt.Sprintf(`{"title":"created %s","content":"body"}`, role)
+		return fmt.Sprintf(`{"translations":{"en":{"title":"created %s","content":"body"}}}`, role)
 	case "POST /api/staff/events", "PATCH /api/staff/events/:id":
-		return fmt.Sprintf(`{"title":"event %s %d","description":"body","event_date":%q}`, role, index, date)
+		return fmt.Sprintf(`{"translations":{"en":{"title":"event %s %d","description":"body","location":"here"}},"event_date":%q}`, role, index, date)
 	case "PATCH /api/staff/posts/:id/publish":
 		return `{"published":true}`
 	case "PATCH /api/admin/users/:id":
@@ -190,7 +193,10 @@ func matrixRequestBody(key, role string, index int, date string) string {
 func insertMatrixMedia(t *testing.T, db *sql.DB, uploader int32) int32 {
 	t.Helper()
 	var id int32
-	if err := db.QueryRow(`INSERT INTO media(title,file_path,uploaded_by) VALUES('matrix','/uploads/matrix-route.png',$1) RETURNING id`, uploader).Scan(&id); err != nil {
+	if err := db.QueryRow(`INSERT INTO media(file_path,uploaded_by,kind) VALUES('/uploads/matrix-route.png',$1,'image') RETURNING id`, uploader).Scan(&id); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO media_translations(media_id,locale,title) VALUES($1,'en','matrix')`, id); err != nil {
 		t.Fatal(err)
 	}
 	return id

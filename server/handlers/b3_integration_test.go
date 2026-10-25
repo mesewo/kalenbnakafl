@@ -28,7 +28,7 @@ func mediaUploadRequestWithData(t *testing.T, r http.Handler, path string, cooki
 	t.Helper()
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
-	if err := writer.WriteField("title", "Test upload"); err != nil {
+	if err := writer.WriteField("translations", `{"en":{"title":"Test upload"}}`); err != nil {
 		t.Fatal(err)
 	}
 	header := make(textproto.MIMEHeader)
@@ -333,7 +333,10 @@ func TestB3RoleRouteMatrix(t *testing.T) {
 				if err := os.WriteFile(file, []byte("fixture"), 0600); err != nil {
 					t.Fatal(err)
 				}
-				if err := db.QueryRow(`INSERT INTO media(title,file_path,uploaded_by) VALUES('matrix', $1, $2) RETURNING id`, filename, ids[role]).Scan(&mediaID); err != nil {
+				if err := db.QueryRow(`INSERT INTO media(file_path,uploaded_by,kind) VALUES($1,$2,'image') RETURNING id`, filename, ids[role]).Scan(&mediaID); err != nil {
+					t.Fatal(err)
+				}
+				if _, err := db.Exec(`INSERT INTO media_translations(media_id,locale,title) VALUES($1,'en','matrix')`, mediaID); err != nil {
 					t.Fatal(err)
 				}
 			}

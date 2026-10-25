@@ -17,7 +17,7 @@ func validEmail(value string) bool {
 func parseID(c *gin.Context) (int, bool) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil || id < 1 {
-		httpx.Fail(c, 400, "Invalid id")
+		httpx.Fail(c, 400, "common.invalid_id")
 		return 0, false
 	}
 	return id, true

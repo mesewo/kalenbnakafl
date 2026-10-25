@@ -11,6 +11,8 @@ A community NGO website and content workspace for news, events, volunteering, an
 
 See [ROADMAP.md](ROADMAP.md).
 
+API reference: open [`docs/api.html`](docs/api.html) for the Redoc view of [`docs/openapi.yaml`](docs/openapi.yaml).
+
 ## Troubleshooting
 
 ### Docker reports “Pool overlaps with other one”

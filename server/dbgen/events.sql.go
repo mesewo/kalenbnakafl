@@ -11,9 +11,19 @@ import (
 	"time"
 )
 
+const countEventTranslations = `-- name: CountEventTranslations :one
+SELECT count(*)::bigint FROM event_translations WHERE event_id = $1
+`
+
+func (q *Queries) CountEventTranslations(ctx context.Context, eventID int32) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countEventTranslations, eventID)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const countEvents = `-- name: CountEvents :one
-SELECT count(*)::bigint
-FROM events
+SELECT count(*)::bigint FROM events
 WHERE (NOT $1::boolean OR event_date >= CURRENT_TIMESTAMP)
 `
 
@@ -24,28 +34,22 @@ func (q *Queries) CountEvents(ctx context.Context, upcoming bool) (int64, error)
 	return column_1, err
 }
 
-const createEvent = `-- name: CreateEvent :exec
-INSERT INTO events (title, description, event_date, ends_at, location)
-VALUES ($1, $2, $3, $4, $5)
+const createEvent = `-- name: CreateEvent :one
+INSERT INTO events (event_date, ends_at)
+VALUES ($1, $2)
+RETURNING id
 `
 
 type CreateEventParams struct {
-	Title       string       `json:"title"`
-	Description string       `json:"description"`
-	EventDate   time.Time    `json:"event_date"`
-	EndsAt      sql.NullTime `json:"ends_at"`
-	Location    string       `json:"location"`
+	EventDate time.Time    `json:"event_date"`
+	EndsAt    sql.NullTime `json:"ends_at"`
 }
 
-func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) error {
-	_, err := q.db.ExecContext(ctx, createEvent,
-		arg.Title,
-		arg.Description,
-		arg.EventDate,
-		arg.EndsAt,
-		arg.Location,
-	)
-	return err
+func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) (int32, error) {
+	row := q.db.QueryRowContext(ctx, createEvent, arg.EventDate, arg.EndsAt)
+	var id int32
+	err := row.Scan(&id)
+	return id, err
 }
 
 const deleteEvent = `-- name: DeleteEvent :execrows
@@ -60,19 +64,45 @@ func (q *Queries) DeleteEvent(ctx context.Context, id int32) (int64, error) {
 	return result.RowsAffected()
 }
 
+const deleteEventTranslation = `-- name: DeleteEventTranslation :execrows
+DELETE FROM event_translations WHERE event_id = $1 AND locale = $2
+`
+
+type DeleteEventTranslationParams struct {
+	EventID int32  `json:"event_id"`
+	Locale  string `json:"locale"`
+}
+
+func (q *Queries) DeleteEventTranslation(ctx context.Context, arg DeleteEventTranslationParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteEventTranslation, arg.EventID, arg.Locale)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const getEventByID = `-- name: GetEventByID :one
-SELECT id, title, description, event_date, ends_at, location, created_at
-FROM events WHERE id = $1
+SELECT e.id,
+       en.title AS en_title, en.description AS en_description, en.location AS en_location,
+       am.title AS am_title, am.description AS am_description, am.location AS am_location,
+       e.event_date, e.ends_at, e.created_at
+FROM events e
+LEFT JOIN event_translations en ON en.event_id = e.id AND en.locale = 'en'
+LEFT JOIN event_translations am ON am.event_id = e.id AND am.locale = 'am'
+WHERE e.id = $1
 `
 
 type GetEventByIDRow struct {
-	ID          int32        `json:"id"`
-	Title       string       `json:"title"`
-	Description string       `json:"description"`
-	EventDate   time.Time    `json:"event_date"`
-	EndsAt      sql.NullTime `json:"ends_at"`
-	Location    string       `json:"location"`
-	CreatedAt   time.Time    `json:"created_at"`
+	ID            int32          `json:"id"`
+	EnTitle       sql.NullString `json:"en_title"`
+	EnDescription sql.NullString `json:"en_description"`
+	EnLocation    sql.NullString `json:"en_location"`
+	AmTitle       sql.NullString `json:"am_title"`
+	AmDescription sql.NullString `json:"am_description"`
+	AmLocation    sql.NullString `json:"am_location"`
+	EventDate     time.Time      `json:"event_date"`
+	EndsAt        sql.NullTime   `json:"ends_at"`
+	CreatedAt     time.Time      `json:"created_at"`
 }
 
 func (q *Queries) GetEventByID(ctx context.Context, id int32) (GetEventByIDRow, error) {
@@ -80,22 +110,30 @@ func (q *Queries) GetEventByID(ctx context.Context, id int32) (GetEventByIDRow, 
 	var i GetEventByIDRow
 	err := row.Scan(
 		&i.ID,
-		&i.Title,
-		&i.Description,
+		&i.EnTitle,
+		&i.EnDescription,
+		&i.EnLocation,
+		&i.AmTitle,
+		&i.AmDescription,
+		&i.AmLocation,
 		&i.EventDate,
 		&i.EndsAt,
-		&i.Location,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const listEvents = `-- name: ListEvents :many
-SELECT id, title, description, event_date, ends_at, location, created_at
-FROM events
-WHERE (NOT $1::boolean OR event_date >= CURRENT_TIMESTAMP)
-ORDER BY CASE WHEN $1::boolean THEN event_date END ASC,
-         CASE WHEN NOT $1::boolean THEN created_at END DESC
+SELECT e.id,
+       en.title AS en_title, en.description AS en_description, en.location AS en_location,
+       am.title AS am_title, am.description AS am_description, am.location AS am_location,
+       e.event_date, e.ends_at, e.created_at
+FROM events e
+LEFT JOIN event_translations en ON en.event_id = e.id AND en.locale = 'en'
+LEFT JOIN event_translations am ON am.event_id = e.id AND am.locale = 'am'
+WHERE (NOT $1::boolean OR e.event_date >= CURRENT_TIMESTAMP)
+ORDER BY CASE WHEN $1::boolean THEN e.event_date END ASC,
+         CASE WHEN NOT $1::boolean THEN e.created_at END DESC
 LIMIT $3::integer OFFSET $2::integer
 `
 
@@ -106,13 +144,16 @@ type ListEventsParams struct {
 }
 
 type ListEventsRow struct {
-	ID          int32        `json:"id"`
-	Title       string       `json:"title"`
-	Description string       `json:"description"`
-	EventDate   time.Time    `json:"event_date"`
-	EndsAt      sql.NullTime `json:"ends_at"`
-	Location    string       `json:"location"`
-	CreatedAt   time.Time    `json:"created_at"`
+	ID            int32          `json:"id"`
+	EnTitle       sql.NullString `json:"en_title"`
+	EnDescription sql.NullString `json:"en_description"`
+	EnLocation    sql.NullString `json:"en_location"`
+	AmTitle       sql.NullString `json:"am_title"`
+	AmDescription sql.NullString `json:"am_description"`
+	AmLocation    sql.NullString `json:"am_location"`
+	EventDate     time.Time      `json:"event_date"`
+	EndsAt        sql.NullTime   `json:"ends_at"`
+	CreatedAt     time.Time      `json:"created_at"`
 }
 
 func (q *Queries) ListEvents(ctx context.Context, arg ListEventsParams) ([]ListEventsRow, error) {
@@ -126,11 +167,14 @@ func (q *Queries) ListEvents(ctx context.Context, arg ListEventsParams) ([]ListE
 		var i ListEventsRow
 		if err := rows.Scan(
 			&i.ID,
-			&i.Title,
-			&i.Description,
+			&i.EnTitle,
+			&i.EnDescription,
+			&i.EnLocation,
+			&i.AmTitle,
+			&i.AmDescription,
+			&i.AmLocation,
 			&i.EventDate,
 			&i.EndsAt,
-			&i.Location,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -146,33 +190,57 @@ func (q *Queries) ListEvents(ctx context.Context, arg ListEventsParams) ([]ListE
 	return items, nil
 }
 
-const updateEvent = `-- name: UpdateEvent :execrows
-UPDATE events
-SET title = $1, description = $2, event_date = $3,
-    ends_at = $4, location = $5
-WHERE id = $6
+const lockEvent = `-- name: LockEvent :one
+SELECT id FROM events WHERE id = $1 FOR UPDATE
 `
 
-type UpdateEventParams struct {
-	Title       string       `json:"title"`
-	Description string       `json:"description"`
-	EventDate   time.Time    `json:"event_date"`
-	EndsAt      sql.NullTime `json:"ends_at"`
-	Location    string       `json:"location"`
-	ID          int32        `json:"id"`
+func (q *Queries) LockEvent(ctx context.Context, id int32) (int32, error) {
+	row := q.db.QueryRowContext(ctx, lockEvent, id)
+	err := row.Scan(&id)
+	return id, err
 }
 
-func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, updateEvent,
-		arg.Title,
-		arg.Description,
-		arg.EventDate,
-		arg.EndsAt,
-		arg.Location,
-		arg.ID,
-	)
+const updateEventFields = `-- name: UpdateEventFields :execrows
+UPDATE events
+SET event_date = $1, ends_at = $2
+WHERE id = $3
+`
+
+type UpdateEventFieldsParams struct {
+	EventDate time.Time    `json:"event_date"`
+	EndsAt    sql.NullTime `json:"ends_at"`
+	ID        int32        `json:"id"`
+}
+
+func (q *Queries) UpdateEventFields(ctx context.Context, arg UpdateEventFieldsParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateEventFields, arg.EventDate, arg.EndsAt, arg.ID)
 	if err != nil {
 		return 0, err
 	}
 	return result.RowsAffected()
+}
+
+const upsertEventTranslation = `-- name: UpsertEventTranslation :exec
+INSERT INTO event_translations(event_id, locale, title, description, location)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (event_id, locale) DO UPDATE SET title = EXCLUDED.title, description = EXCLUDED.description, location = EXCLUDED.location
+`
+
+type UpsertEventTranslationParams struct {
+	EventID     int32  `json:"event_id"`
+	Locale      string `json:"locale"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Location    string `json:"location"`
+}
+
+func (q *Queries) UpsertEventTranslation(ctx context.Context, arg UpsertEventTranslationParams) error {
+	_, err := q.db.ExecContext(ctx, upsertEventTranslation,
+		arg.EventID,
+		arg.Locale,
+		arg.Title,
+		arg.Description,
+		arg.Location,
+	)
+	return err
 }

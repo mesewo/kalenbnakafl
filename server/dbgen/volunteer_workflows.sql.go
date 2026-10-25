@@ -187,8 +187,12 @@ func (q *Queries) ListEventAttendees(ctx context.Context, arg ListEventAttendees
 }
 
 const listMyEventSignups = `-- name: ListMyEventSignups :many
-SELECT e.id, e.title, e.description, e.event_date, e.ends_at, e.location, e.created_at
+SELECT e.id, COALESCE(en.title, am.title, '') AS title,
+       COALESCE(en.description, am.description, '') AS description,
+       e.event_date, e.ends_at, COALESCE(en.location, am.location, '') AS location, e.created_at
 FROM event_signups s JOIN events e ON e.id = s.event_id
+LEFT JOIN event_translations en ON en.event_id = e.id AND en.locale = 'en'
+LEFT JOIN event_translations am ON am.event_id = e.id AND am.locale = 'am'
 WHERE s.user_id = $1
 ORDER BY e.event_date ASC
 LIMIT $3::integer OFFSET $2::integer

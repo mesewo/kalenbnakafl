@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -19,10 +20,14 @@ import (
 )
 
 func (a *API) GetMedia(c *gin.Context) {
+	language, ok := contentLanguage(c)
+	if !ok {
+		return
+	}
 	page, limit, offset := pageArgs(c)
 	kind := strings.TrimSpace(c.Query("kind"))
 	if kind != "" && kind != "image" && kind != "video" && kind != "audio" && kind != "document" {
-		httpx.Fail(c, http.StatusUnprocessableEntity, "Media kind is invalid")
+		httpx.Fail(c, http.StatusUnprocessableEntity, "media.kind_is_invalid")
 		return
 	}
 	kindArg := sql.NullString{String: kind, Valid: kind != ""}
@@ -39,29 +44,39 @@ func (a *API) GetMedia(c *gin.Context) {
 	}
 	items := make([]models.Media, 0, len(rows))
 	for _, row := range rows {
-		items = append(items, models.Media{ID: int(row.ID), Title: row.Title, FilePath: row.FilePath, MediaType: row.MediaType, OriginalName: row.OriginalName, SizeBytes: row.SizeBytes, Kind: row.Kind, CreatedAt: row.CreatedAt})
+		translations, title, effective, fallback := mediaTranslationValues(row.EnTitle, row.AmTitle, language)
+		item := models.Media{ID: int(row.ID), Title: title, FilePath: row.FilePath, MediaType: row.MediaType, OriginalName: row.OriginalName, SizeBytes: row.SizeBytes, Kind: row.Kind, CreatedAt: row.CreatedAt, Language: effective, Fallback: fallback}
+		if _, staff := c.Get("role"); staff {
+			item.Translations = translations
+		}
+		items = append(items, item)
 	}
 	c.JSON(http.StatusOK, models.Page[models.Media]{Items: items, Page: page, Limit: limit, Total: total})
 }
 
 func (a *API) UploadMedia(c *gin.Context) {
-	title := clean(c.PostForm("title"))
-	if !validateText(title, 180) {
-		httpx.Fail(c, http.StatusBadRequest, "A media title is required")
+	var raw map[string]*models.MediaTranslation
+	if json.Unmarshal([]byte(c.PostForm("translations")), &raw) != nil {
+		httpx.Fail(c, http.StatusBadRequest, "media.translations_are_required_and_must_be_valid")
+		return
+	}
+	translations, valid := validMediaTranslations(raw)
+	if !valid {
+		httpx.Fail(c, http.StatusBadRequest, "media.translations_are_required_and_must_be_valid")
 		return
 	}
 	header, err := c.FormFile("file")
 	if err != nil {
-		httpx.Fail(c, http.StatusBadRequest, "Choose a supported file")
+		httpx.Fail(c, http.StatusBadRequest, "media.choose_a_supported_file")
 		return
 	}
 	maxBytes := a.cfg.MediaMaxMB * 1024 * 1024
 	if header.Size > maxBytes {
-		httpx.Fail(c, http.StatusRequestEntityTooLarge, "Uploaded file exceeds the size limit")
+		httpx.Fail(c, http.StatusRequestEntityTooLarge, "media.uploaded_file_exceeds_the_size_limit")
 		return
 	}
 	if header.Size == 0 {
-		httpx.Fail(c, http.StatusUnprocessableEntity, "Empty files are not supported")
+		httpx.Fail(c, http.StatusUnprocessableEntity, "media.empty_files_are_not_supported")
 		return
 	}
 	file, err := header.Open()
@@ -83,12 +98,12 @@ func (a *API) UploadMedia(c *gin.Context) {
 	sample = sample[:n]
 	mediaType, extension, kind, ok := detectMediaType(sample)
 	if !ok {
-		httpx.Fail(c, http.StatusUnprocessableEntity, "This file type is not supported")
+		httpx.Fail(c, http.StatusUnprocessableEntity, "media.this_file_type_is_not_supported")
 		return
 	}
 	declaredExtension := strings.ToLower(filepath.Ext(header.Filename))
 	if !extensionMatches(mediaType, declaredExtension) {
-		httpx.Fail(c, http.StatusUnprocessableEntity, "File extension does not match its content")
+		httpx.Fail(c, http.StatusUnprocessableEntity, "media.file_extension_does_not_match_its_content")
 		return
 	}
 	if _, err := file.Seek(0, io.SeekStart); err != nil {
@@ -97,12 +112,12 @@ func (a *API) UploadMedia(c *gin.Context) {
 	}
 	storedName, size, err := a.storage.Save(c.Request.Context(), file, extension, maxBytes)
 	if errors.Is(err, storage.ErrTooLarge) {
-		httpx.Fail(c, http.StatusRequestEntityTooLarge, "Uploaded file exceeds the size limit")
+		httpx.Fail(c, http.StatusRequestEntityTooLarge, "media.uploaded_file_exceeds_the_size_limit")
 		return
 	}
 	if err != nil {
 		if errors.Is(err, storage.ErrEmpty) {
-			httpx.Fail(c, http.StatusUnprocessableEntity, "Empty files are not supported")
+			httpx.Fail(c, http.StatusUnprocessableEntity, "media.empty_files_are_not_supported")
 			return
 		}
 		httpx.Internal(c, "Could not save uploaded file")
@@ -115,12 +130,31 @@ func (a *API) UploadMedia(c *gin.Context) {
 		uploadedBy = sql.NullInt32{Int32: int32(id), Valid: true}
 	}
 	originalName := cleanOriginalName(header.Filename)
-	err = a.q.CreateMedia(c.Request.Context(), dbgen.CreateMediaParams{
-		Title: title, FilePath: path,
+	tx, err := a.db.BeginTx(c.Request.Context(), nil)
+	if err != nil {
+		_ = a.storage.Delete(context.Background(), storedName)
+		httpx.Internal(c, "Could not save media metadata")
+		return
+	}
+	queries := a.q.WithTx(tx)
+	mediaID, err := queries.CreateMedia(c.Request.Context(), dbgen.CreateMediaParams{
+		FilePath:     path,
 		MediaType:    sql.NullString{String: mediaType, Valid: true},
 		OriginalName: sql.NullString{String: originalName, Valid: originalName != ""},
 		SizeBytes:    size, Kind: kind, UploadedBy: uploadedBy,
 	})
+	if err == nil {
+		for locale, translation := range translations {
+			if err = queries.UpsertMediaTranslation(c.Request.Context(), dbgen.UpsertMediaTranslationParams{MediaID: mediaID, Locale: locale, Title: translation.Title}); err != nil {
+				break
+			}
+		}
+	}
+	if err == nil {
+		err = tx.Commit()
+	} else {
+		_ = tx.Rollback()
+	}
 	if err != nil {
 		if cleanupErr := a.storage.Delete(context.Background(), storedName); cleanupErr != nil && !errors.Is(cleanupErr, os.ErrNotExist) {
 			httpx.Logger(c).Error("remove upload after metadata insert failure", "error_type", cleanupErr.Error())
@@ -128,7 +162,7 @@ func (a *API) UploadMedia(c *gin.Context) {
 		httpx.Internal(c, "Could not save media metadata")
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"message": "Media uploaded", "file_path": path})
+	httpx.Success(c, http.StatusCreated, "media.uploaded", gin.H{"file_path": path})
 }
 
 func (a *API) DeleteMedia(c *gin.Context) {
@@ -138,7 +172,7 @@ func (a *API) DeleteMedia(c *gin.Context) {
 	}
 	path, err := a.q.GetMediaFilePath(c.Request.Context(), int32(id))
 	if errors.Is(err, sql.ErrNoRows) {
-		httpx.Fail(c, http.StatusNotFound, "Media not found")
+		httpx.Fail(c, http.StatusNotFound, "media.not_found")
 		return
 	}
 	if err != nil {
@@ -151,7 +185,7 @@ func (a *API) DeleteMedia(c *gin.Context) {
 		return
 	}
 	if removed == 0 {
-		httpx.Fail(c, http.StatusNotFound, "Media not found")
+		httpx.Fail(c, http.StatusNotFound, "media.not_found")
 		return
 	}
 	storedName := strings.TrimPrefix(path, "/uploads/")
@@ -160,7 +194,7 @@ func (a *API) DeleteMedia(c *gin.Context) {
 			httpx.Logger(c).Error("remove media after deleting metadata", "media_id", id, "error_type", err.Error())
 		}
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Media deleted"})
+	httpx.Success(c, http.StatusOK, "media.deleted")
 }
 
 func cleanOriginalName(value string) string {
