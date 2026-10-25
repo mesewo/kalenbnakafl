@@ -1,9 +1,11 @@
 import { expect, test } from "@playwright/test";
+import { waitForPublicContent } from "./helpers/public-content";
 
 const adminEmail = process.env.ADMIN_EMAIL;
 const adminPassword = process.env.ADMIN_PASSWORD;
 
 test("admin content and public bilingual flows", async ({ page }) => {
+  test.setTimeout(240_000);
   expect(adminEmail, "ADMIN_EMAIL must be set for the smoke test").toBeTruthy();
   expect(adminPassword, "ADMIN_PASSWORD must be set for the smoke test").toBeTruthy();
   const suffix = `${Date.now()}`;
@@ -35,12 +37,10 @@ test("admin content and public bilingual flows", async ({ page }) => {
   await expect(postRow).toBeVisible();
   await postRow.getByRole("button", { name: "Publish" }).click();
   await expect(postRow).toContainText("Published");
-  await page.goto("/en/blog");
-  await expect(page.getByRole("heading", { name: postTitle })).toBeVisible();
+  await waitForPublicContent(page, "/en/blog", page.getByRole("heading", { name: postTitle }));
   await page.getByRole("link", { name: "Read the full note →" }).first().click();
   await expect(page.getByText(`English body ${suffix}`)).toBeVisible();
-  await page.goto("/am/blog");
-  await expect(page.getByRole("heading", { name: amPostTitle })).toBeVisible();
+  await waitForPublicContent(page, "/am/blog", page.getByRole("heading", { name: amPostTitle }));
   await page.getByRole("link", { name: "ሙሉ ታሪኩን ያንብቡ →" }).first().click();
   await expect(page).toHaveURL(/\/am\/blog\//);
   await expect(page.getByText(`የአማርኛ ይዘት ${suffix}`)).toBeVisible();
@@ -94,8 +94,7 @@ test("admin content and public bilingual flows", async ({ page }) => {
 
   let eventRow = page.getByRole("row").filter({ hasText: eventTitle });
   await expect(eventRow).toBeVisible();
-  await page.goto("/am/events");
-  await expect(page.getByRole("heading", { name: amEventTitle })).toBeVisible();
+  await waitForPublicContent(page, "/am/events", page.getByRole("heading", { name: amEventTitle }));
   const eventCard = page.locator("article.card").filter({ hasText: amEventTitle });
   const ethiopianDate = await page.evaluate(
     (date) =>

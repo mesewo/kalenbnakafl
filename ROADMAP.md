@@ -2,13 +2,11 @@
 
 ### Current state / next step
 
-- Translated dashboard posts, events, media, inbox, users, volunteers, and applications; role and status labels use catalog entries.
-- Removed the temporary hard-coded-text ESLint exclusions and added checks for missing catalog keys plus report-only unused-key output.
-- Added Amharic content/inbox/volunteer Playwright flows and a 360px/1280px overflow check for every dashboard route in both locales.
-- Fixed Playwright content-flow selectors and publication synchronization; added the missing Amharic contact-status validation message.
-- Focused checks passed: Go localization tests, Playwright lint/format/TypeScript checks, test discovery (7 tests), and `git diff --check`.
-- The authenticated Compose E2E suite was not run locally because it creates and modifies persistent test data; rerun it against CI's ephemeral database.
-- Next: run the authenticated Compose Playwright suite in CI and get native review of `docs/i18n-review.md`.
+- Dashboard translations and Amharic content/inbox/volunteer E2E flows are in place; responsive overflow coverage spans both locales.
+- Fixed E2E selectors and publication synchronization, added the missing Amharic contact validation, and made public-content checks tolerate the 60-second ISR cache.
+- Focused checks passed: Go localization tests, Playwright lint/format/TypeScript, catalog validation (411 messages), test discovery (7 tests), and `git diff --check`.
+- The authenticated Compose E2E suite was not run locally because it mutates persistent data; CI provides an ephemeral database.
+- Next: rerun authenticated Playwright tests in CI and get native review of `docs/i18n-review.md`.
 **Goal:** a repo and a live demo that survive a 10-minute recruiter/hiring-manager review for a *senior full-stack* role: one-command startup, real security, real tests, CI, docs, and a polished, working UI.
 
 **Rhythm:** each phase = 1–3 focused sessions (≈2–4 h each) with Gemini. Finish a phase's *Exit criteria* before starting the next. Total ≈ 3–4 weeks part-time.

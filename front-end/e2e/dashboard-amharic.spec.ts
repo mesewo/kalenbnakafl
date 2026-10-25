@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import en from "../messages/en.json";
 import am from "../messages/am.json";
+import { waitForPublicContent } from "./helpers/public-content";
 
 const dashboard = am.dashboard;
 const suffix = `${Date.now()}`;
@@ -22,6 +23,7 @@ async function login(
 test("Amharic admin creates, publishes, edits, and deletes translated posts and events", async ({
   page,
 }) => {
+  test.setTimeout(90_000);
   expect(process.env.ADMIN_EMAIL, "ADMIN_EMAIL must be set").toBeTruthy();
   expect(process.env.ADMIN_PASSWORD, "ADMIN_PASSWORD must be set").toBeTruthy();
   const postTitle = `የፈተና ጽሑፍ ${suffix}`;
@@ -47,8 +49,7 @@ test("Amharic admin creates, publishes, edits, and deletes translated posts and 
   await expect(postRow).toBeVisible();
   await postRow.getByRole("button", { name: dashboard.publish }).click();
   await expect(postRow).toContainText(dashboard.statusPublishedLabel);
-  await page.goto("/am/blog");
-  await expect(page.getByRole("heading", { name: postTitle })).toBeVisible();
+  await waitForPublicContent(page, "/am/blog", page.getByRole("heading", { name: postTitle }));
 
   await page.goto("/am/dashboard/posts");
   postRow = page.getByRole("row").filter({ hasText: postTitle });
@@ -125,6 +126,7 @@ test("Amharic contact inbox displays the API's localized validation error", asyn
 test("volunteer sees localized profile, application, and event signup on Amharic routes", async ({
   page,
 }) => {
+  test.setTimeout(90_000);
   const email = `volunteer-${suffix}@example.invalid`;
   const password = `Volunteer-${suffix}-Aa1!`;
   await login(page, "en");
@@ -172,9 +174,8 @@ test("volunteer sees localized profile, application, and event signup on Amharic
   await expect(page.getByRole("heading", { name: am.dashboard.profile })).toBeVisible();
   await page.goto("/am/volunteer");
   await expect(page.getByText(new RegExp(am.volunteer.role.replace("{role}", ".*")))).toBeVisible();
-  await page.goto("/am/events");
   const event = page.locator("article.card").filter({ hasText: `የምዝገባ ዝግጅት ${suffix}` });
-  await expect(event).toBeVisible();
+  await waitForPublicContent(page, "/am/events", event);
   await event.getByRole("button", { name: am.events.signup }).click();
   await expect(event.getByRole("button", { name: am.events.cancel })).toBeVisible();
 });
