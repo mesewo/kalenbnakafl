@@ -8,7 +8,16 @@ const eslintConfig = defineConfig([
   {
     files: [
       "app/[locale]/**/*.{ts,tsx}",
-      "components/{Navbar,Footer,AuthCard,ContactForm,EventSignup,LoginForm,RegisterForm,VolunteerClient}.tsx",
+      "components/**/*.{ts,tsx}",
+      "context/**/*.{ts,tsx}",
+      "lib/**/*.{ts,tsx}",
+    ],
+    // Temporary 2b migration list: remove each entry when its dashboard CRUD UI is catalog-driven.
+    ignores: [
+      "app/[locale]/dashboard/{events,media,messages,posts,users,volunteers,volunteer-applications}/**/*.{ts,tsx}",
+      "components/{EventModal,PostModal}.tsx",
+      // useAuth's invariant error is for developers and cannot appear in a user-facing flow.
+      "context/AuthContext.tsx",
     ],
     rules: {
       "no-restricted-syntax": [
@@ -20,6 +29,14 @@ const eslintConfig = defineConfig([
         {
           selector: "JSXAttribute[name.name='aria-label'] > Literal",
           message: "Public aria-label values must come from the locale message catalog.",
+        },
+        {
+          selector: "CallExpression[callee.name='setError'] > Literal[value!='']",
+          message: "User-facing errors must come from the locale message catalog.",
+        },
+        {
+          selector: "NewExpression[callee.name='Error'] > Literal[value!='']",
+          message: "User-facing errors must come from the locale message catalog.",
         },
       ],
     },

@@ -54,6 +54,7 @@ export async function apiFetch<T = unknown>(
   if (options.signal?.aborted) forwardAbort();
   else options.signal?.addEventListener("abort", forwardAbort, { once: true });
   const timeout = setTimeout(
+    // eslint-disable-next-line no-restricted-syntax -- internal abort reason, not displayed to users
     () => controller.abort(new Error("Request timed out")),
     isUpload ? UPLOAD_TIMEOUT_MS : REQUEST_TIMEOUT_MS,
   );

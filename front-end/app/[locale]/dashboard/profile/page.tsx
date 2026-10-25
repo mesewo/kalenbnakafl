@@ -1,9 +1,13 @@
 "use client";
+
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch } from "@/lib/api";
+
 export default function ProfilePage() {
   const { user } = useAuth();
+  const t = useTranslations("dashboard");
   const [name, setName] = useState(user?.name || "");
   const [email, setEmail] = useState(user?.email || "");
   const [password, setPassword] = useState("");
@@ -16,7 +20,7 @@ export default function ProfilePage() {
     setError("");
     setMessage("");
     if (password && password !== confirm) {
-      setError("New password and confirmation do not match.");
+      setError(t("passwordMismatch"));
       return;
     }
     setLoading(true);
@@ -25,11 +29,11 @@ export default function ProfilePage() {
         method: "PUT",
         body: JSON.stringify({ name, email, ...(password ? { password } : {}) }),
       });
-      setMessage("Your profile has been updated.");
+      setMessage(t("profileUpdated"));
       setPassword("");
       setConfirm("");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not update your profile.");
+    } catch {
+      setError(t("profileUpdateFailed"));
     } finally {
       setLoading(false);
     }
@@ -38,15 +42,15 @@ export default function ProfilePage() {
     <div>
       <div className="dashboard-title">
         <div>
-          <span className="eyebrow">Your details</span>
-          <h1>My profile</h1>
+          <span className="eyebrow">{t("yourDetails")}</span>
+          <h1>{t("profile")}</h1>
         </div>
-        <span className="badge">{user?.role}</span>
+        <span className="badge">{user ? t(`roles.${user.role}`) : ""}</span>
       </div>
       <div className="form-shell" style={{ margin: 0 }}>
         <form className="form-card" onSubmit={submit}>
           <div className="field">
-            <label htmlFor="profile-name">Name</label>
+            <label htmlFor="profile-name">{t("name")}</label>
             <input
               id="profile-name"
               value={name}
@@ -55,7 +59,7 @@ export default function ProfilePage() {
             />
           </div>
           <div className="field">
-            <label htmlFor="profile-email">Email</label>
+            <label htmlFor="profile-email">{t("email")}</label>
             <input
               id="profile-email"
               type="email"
@@ -66,7 +70,7 @@ export default function ProfilePage() {
           </div>
           <hr style={{ border: 0, borderTop: "1px solid var(--line)", margin: "1.5rem 0" }} />
           <div className="field">
-            <label htmlFor="profile-password">New password</label>
+            <label htmlFor="profile-password">{t("newPassword")}</label>
             <input
               id="profile-password"
               type="password"
@@ -74,10 +78,10 @@ export default function ProfilePage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
-            <small>Leave blank if you do not want to change it.</small>
+            <small>{t("passwordHint")}</small>
           </div>
           <div className="field">
-            <label htmlFor="profile-confirm">Confirm new password</label>
+            <label htmlFor="profile-confirm">{t("confirmPassword")}</label>
             <input
               id="profile-confirm"
               type="password"
@@ -97,7 +101,7 @@ export default function ProfilePage() {
             </div>
           )}
           <button className="btn btn-primary" disabled={loading}>
-            {loading ? "Saving…" : "Save profile"}
+            {loading ? t("saving") : t("saveProfile")}
           </button>
         </form>
       </div>

@@ -1,11 +1,13 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useLocale } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch, formatDate, type MediaItem, type PageResponse } from "@/lib/api";
 import type { components } from "@/types/api.d.ts";
 type Locale = "en" | "am";
 type MediaTranslations = components["schemas"]["MediaTranslations"];
 export default function MediaPage() {
+  const displayLocale = useLocale();
   const { user } = useAuth();
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [titles, setTitles] = useState<Record<Locale, string>>({ en: "", am: "" });
@@ -138,7 +140,7 @@ export default function MediaPage() {
         <div className="grid-3">
           {media.map((item) => (
             <article className="card" key={item.id}>
-              <span className="meta">{formatDate(item.created_at)}</span>
+              <span className="meta">{formatDate(item.created_at, false, displayLocale)}</span>
               <h3>{item.title}</h3>
               <p>{item.original_name || item.file_path}</p>
               <div className="form-actions">

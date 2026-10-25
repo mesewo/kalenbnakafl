@@ -1,10 +1,12 @@
 "use client";
 import { Fragment, useEffect, useState } from "react";
+import { useLocale } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch, formatDate, type EventItem, type PageResponse } from "@/lib/api";
 type Attendee = { name: string; email: string; created_at: string };
 import EventModal from "@/components/EventModal";
 export default function EventsAdminPage() {
+  const locale = useLocale();
   const { user } = useAuth();
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -115,7 +117,7 @@ export default function EventsAdminPage() {
                         {event.description.length > 120 ? "..." : ""}
                       </div>
                     </td>
-                    <td>{formatDate(event.event_date, true)}</td>
+                    <td>{formatDate(event.event_date, true, locale)}</td>
                     <td>
                       <div className="form-actions">
                         <button

@@ -3,8 +3,6 @@ import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";
 import { Noto_Sans_Ethiopic, Noto_Serif_Ethiopic, DM_Sans, Fraunces } from "next/font/google";
 import { AuthProvider } from "@/context/AuthContext";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import { routing } from "@/i18n/routing";
 import "../globals.css";
 
@@ -43,11 +41,7 @@ export default async function LocaleLayout({
         className={`${sans.variable} ${serif.variable} ${notoSans.variable} ${notoSerif.variable}`}
       >
         <NextIntlClientProvider messages={messages}>
-          <AuthProvider>
-            <Navbar />
-            {children}
-            <Footer />
-          </AuthProvider>
+          <AuthProvider>{children}</AuthProvider>
         </NextIntlClientProvider>
       </body>
     </html>

@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { apiFetch, type EventItem } from "@/lib/api";
+import { formatDate } from "@/lib/api";
 import type { components } from "@/types/api.d.ts";
 
 type Locale = "en" | "am";
@@ -25,6 +27,8 @@ export default function EventModal({
   userRole: string | undefined;
   event?: EventItem | null;
 }) {
+  const displayLocale = useLocale();
+  const tDashboard = useTranslations("dashboard");
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [eventDate, setEventDate] = useState("");
   const [endsAt, setEndsAt] = useState("");
@@ -211,6 +215,11 @@ export default function EventModal({
               onChange={(e) => setEventDate(e.target.value)}
               required
             />
+            {displayLocale === "am" && eventDate && (
+              <small>
+                {tDashboard("ethiopianDate", { date: formatDate(eventDate, true, displayLocale) })}
+              </small>
+            )}
           </div>
           <div className="field">
             <label htmlFor="event-ends-at">End date and time (optional)</label>
@@ -220,6 +229,11 @@ export default function EventModal({
               value={endsAt}
               onChange={(e) => setEndsAt(e.target.value)}
             />
+            {displayLocale === "am" && endsAt && (
+              <small>
+                {tDashboard("ethiopianDate", { date: formatDate(endsAt, true, displayLocale) })}
+              </small>
+            )}
           </div>
           <p className="meta">
             Clear all translation fields for a language to remove it. At least one language must

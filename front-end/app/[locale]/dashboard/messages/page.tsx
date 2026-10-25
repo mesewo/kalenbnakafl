@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useLocale } from "next-intl";
+import { useTranslations } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch, formatDate, type PageResponse } from "@/lib/api";
 
@@ -18,6 +20,8 @@ type ContactMessage = {
 type StatusFilter = "" | ContactStatus;
 
 export default function MessagesPage() {
+  const locale = useLocale();
+  const t = useTranslations("dashboard");
   const { user, isLoading: authLoading } = useAuth();
   const isStaff = user?.role === "admin" || user?.role === "editor";
   const [messages, setMessages] = useState<PageResponse<ContactMessage>>({
@@ -115,7 +119,7 @@ export default function MessagesPage() {
             <thead>
               <tr>
                 <th>From</th>
-                <th>Received</th>
+                <th>{t("receivedLabel")}</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -147,14 +151,14 @@ export default function MessagesPage() {
                             <p className="meta">
                               Handled by {message.handled_by_name}
                               {message.handled_at
-                                ? ` · ${formatDate(message.handled_at, true)}`
+                                ? ` · ${formatDate(message.handled_at, true, locale)}`
                                 : ""}
                             </p>
                           )}
                         </div>
                       )}
                     </td>
-                    <td>{formatDate(message.created_at, true)}</td>
+                    <td>{formatDate(message.created_at, true, locale)}</td>
                     <td>
                       <span className="badge">{message.status}</span>
                     </td>

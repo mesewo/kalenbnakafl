@@ -6,7 +6,7 @@ Every Amharic string below was drafted for this change and **needs native review
 |---|---|
 | `common.locale_invalid` | ቋንቋው en ወይም am መሆን አለበት |
 | `contact.name_valid_email_and_a_message_are_required` | ስም እና መልእክት ያስፈልጋል |
-| `posts.translations_are_required_and_must_be_valid` | ቢያንስ አንድ ትክክለኛ የልጥፍ ትርጉም ያስፈልጋል |
+| `posts.translations_are_required_and_must_be_valid` | ቢያንስ አንድ ትክክለኛ የግጽፍ ትርጉም ያስፈልጋል |
 | `e2e.smoke_post_title` | የሙከራ ጽሑፍ {suffix} |
 | `e2e.smoke_post_body` | የአማርኛ ይዘት {suffix} |
 | `e2e.smoke_event_title` | የሙከራ ዝግጅት {suffix} |
@@ -53,7 +53,7 @@ Every Amharic string below was drafted for this change and **needs native review
 | `nav.close` | ምናሌውን ዝጋ |
 | `nav.hello` | ሰላም፣ {name} |
 | `footer.explore` | ይመልከቱ |
-| `footer.connect` | ያገናኙን |
+| `footer.connect` | ይገናኙ |
 | `footer.story` | ታሪካችን |
 | `footer.upcoming` | የሚመጡ ዝግጅቶች |
 | `footer.news` | የማኅበረሰብ ዜና |
@@ -73,7 +73,7 @@ Every Amharic string below was drafted for this change and **needs native review
 | `home.oneText` | ሰዎች፣ ሐሳቦችና ተግባራዊ ድጋፍ ወደ አንድ አቅጣጫ ይንቀሳቀሳሉ። |
 | `home.how` | እንዴት እንደምንሳተፍ |
 | `home.useful` | ጠቃሚ ሥራን በጋራ ማከናወን። |
-| `home.howText` | ጎረቤቶች እንዲያበረክቱ፣ እርስ በርስ እንዲማሩና በአካባቢያቸው እየተከናወነ ካለው ጋር እንዲተሳሰሩ እናግዛለን። |
+| `home.howText` | ጎረቤቶች እንዲያበረክቱ፣ እርስ በርስ እንዲማሩና በአካባቢያቸው እየተከናወነ ካለው ጋር እንዲተሳሰሩ和 እናግዛለን። |
 | `home.connect` | ማገናኘት |
 | `home.connectText` | ድጋፍ ወደሚያስፈልገው እንዲደርስ ሰዎችንና የአካባቢ ሐሳቦችን እናገናኛለን። |
 | `home.learn` | መማር |
@@ -103,7 +103,7 @@ Every Amharic string below was drafted for this change and **needs native review
 | `about.intro` | ካለን ብናካፍል ሰዎች እንዲገናኙ፣ እንዲያበረክቱና የበለጠ ደጋፊ የአካባቢ ወደፊት እንዲገነቡ ተግባራዊ መንገዶችን የሚፈጥር ድርጅት ነው። |
 | `about.guides` | የሚመሩን እሴቶች |
 | `about.shared` | እንክብካቤን ስንጋራ ወደ ጠቃሚ ተግባር ይለወጣል። |
-| `about.p1` | ጤናማ ማኅበረሰቦች በዕለት ተዕለት ተሳትፎ እንደሚገነቡ እናምናለን፤ ጎረቤቶች ዕውቀት ይጋራሉ፣ አዳዲስ ድምፆችን ይቀበላሉ፣ የፊታቸውን ሥራም ያከናውናሉ። |
+| `about.p1` | ጤናማ ማኅበረሰቦች በዕለት ተዕለት ተሳትፎ እንደሚገነቡ እናምናለን፤ ጎረቤቶች ዕውቀት ይጋራሉ፣ አዳዲስ ድምፆችን ይቀበላሉ፣ የየበኩላቸውንም ሥራ ያከናውናሉ። |
 | `about.p2` | ፕሮግራሞቻችንና ዝግጅቶቻችን ለሁሉም ተደራሽ፣ ተግባራዊና በማኅበረሰቡ ነባር ጥንካሬዎች ላይ የተመሠረቱ ናቸው። |
 | `about.gather` | እንዴት እንደምንሰበሰብ ይመልከቱ |
 | `about.approach` | አቀራረባችን |
@@ -158,11 +158,11 @@ Every Amharic string below was drafted for this change and **needs native review
 | `contact.name` | ስምዎ |
 | `contact.emailLabel` | ኢሜይል አድራሻ |
 | `contact.message` | እንዴት እንርዳዎ? |
-| `contact.help` | ጥያቄዎች፣ ሐሳቦች፣ የአጋርነት ማስታወሻዎችና የበጎ ፈቃደኝነት ፍላጎቶች በደስታ ይቀበላሉ። |
+| `contact.help` | ጥያቄዎችዎን፣ ሐሳቦችዎን፣ አጋርነትዎን እና የበጎ ፈቃደኝነት ፍላጎትዎን በደስታ እንቀበላለን። |
 | `contact.send` | መልእክት ይላኩ |
 | `contact.sending` | በመላክ ላይ… |
 | `contact.success` | መልእክትዎ ተልኳል። በቅርቡ እንመልስልዎታለን። |
-| `contact.failure` | መልእክትዎን መላክ አልቻልንም። |
+| `contact.failure` | መልእክትዎን መላክ አልቻልንም。 |
 | `volunteer.eyebrow` | ለውጥ ያምጡ |
 | `volunteer.title` | ጊዜዎን፣ ችሎታዎንና ጉጉትዎን ያበርክቱ። |
 | `volunteer.intro` | ለማኅበረሰቡ እንዴት ማበርከት እንደሚፈልጉ ይንገሩን። |
@@ -173,7 +173,7 @@ Every Amharic string below was drafted for this change and **needs native review
 | `volunteer.register` | መለያ ይፍጠሩ |
 | `volunteer.checking` | ማመልከቻዎን በመፈተሽ ላይ… |
 | `volunteer.status` | የማመልከቻ ሁኔታ፦ {status} |
-| `volunteer.existing` | የበጎ ፈቃደኝነት ማመልከቻዎ ደርሶናል። አስተዳዳሪ እርምጃ ካልወሰደ ሌላ ማመልከቻ ማስገባት አይችሉም። |
+| `volunteer.existing` | የበጎ ፈቃደኝነት ማመልከቻዎ ደርሶናል። አስተዳዳሪው እስኪገመግመው ድረስ ሌላ ማመልከቻ ማስገባት አይችሉም። |
 | `volunteer.role` | መለያዎ የ{role} ሚና ስላለው ለበጎ ፈቃደኝነት ማመልከት አይችሉም። |
 | `volunteer.skills` | ችሎታዎችና ፍላጎቶች |
 | `volunteer.availability` | የሚገኙበት ጊዜ |
@@ -215,3 +215,48 @@ Every Amharic string below was drafted for this change and **needs native review
 | `errors.home` | ወደ ዋና ገጽ ይመለሱ |
 | `errors.generic` | ችግር ተፈጥሯል። እንደገና ይሞክሩ። |
 | `errors.retry` | እንደገና ይሞክሩ |
+| `dashboard.brand` | ካለን ብናካፍል / የሥራ ቦታ |
+| `dashboard.navigation` | የዳሽቦርድ ምናሌ |
+| `dashboard.publicSite` | ← የሕዝብ ገጽ |
+| `dashboard.overview` | አጠቃላይ እይታ |
+| `dashboard.posts` | ጽሑፎች |
+| `dashboard.events` | ዝግጅቶች |
+| `dashboard.media` | ሚዲያ |
+| `dashboard.messages` | መልእክቶች |
+| `dashboard.users` | ተጠቃሚዎች |
+| `dashboard.volunteers` | በጎ ፈቃደኞች |
+| `dashboard.applications` | የበጎ ፈቃደኝነት ማመልከቻዎች |
+| `dashboard.profile` | የእኔ መገለጫ |
+| `dashboard.logout` | ውጣ |
+| `dashboard.checkingAccess` | የመግቢያ ፈቃድዎን በመፈተሽ ላይ… |
+| `dashboard.accessDenied` | ይህን ገጽ የማየት ፈቃድ የለዎትም። |
+| `dashboard.roles.admin` | አስተዳዳሪ |
+| `dashboard.roles.editor` | አርታዒ |
+| `dashboard.roles.user` | አባል |
+| `dashboard.roles.volunteer` | በጎ ፈቃደኛ |
+| `dashboard.homeEyebrow` | የሥራ ቦታ አጠቃላይ እይታ |
+| `dashboard.greeting` | እንኳን ደህና መጡ፣ {name}። |
+| `dashboard.adminHeadline` | ሥራው እንዲቀጥል ሙሉ ፈቃድ አለዎት። |
+| `dashboard.editorHeadline` | ቀጣዩን የማኅበረሰብ ዝመና ማዘጋጀት ይችላሉ። |
+| `dashboard.memberHeadline` | የማኅበረሰቡ አካል ስለሆኑ እናመሰግናለን። |
+| `dashboard.adminDescription` | ሰዎችን ያስተዳድሩ፣ ታሪኮችን ያትሙ፣ ዝግጅቶችን ያዘጋጁ፣ የመረጃ ማዕከሉንም ጠቃሚ ያድርጉ። |
+| `dashboard.editorDescription` | ብዙ ሰዎች የሚሳተፉበትን መንገድ የሚያሳዩ ታሪኮችና ዝግጅቶች ያዘጋጁ። |
+| `dashboard.memberDescription` | ዝግጅቶችንና ዜናዎችን ይመልከቱ፣ ወይም ዝግጁ ሲሆኑ መገለጫዎን ያዘምኑ። |
+| `dashboard.loading` | የሥራ ቦታ መረጃ በመጫን ላይ… |
+| `dashboard.people` | ሰዎች |
+| `dashboard.open` | {label} ይክፈቱ → |
+| `dashboard.ready` | የሥራ ቦታዎ ዝግጁ ነው። የሕዝብ ገጹን ይመልከቱ ወይም መገለጫዎን ያዘምኑ። |
+| `dashboard.yourDetails` | የእርስዎ መረጃ |
+| `dashboard.name` | ስም |
+| `dashboard.email` | ኢሜይል |
+| `dashboard.newPassword` | አዲስ የይለፍ ቃል |
+| `dashboard.confirmPassword` | አዲሱን የይለፍ ቃል ያረጋግጡ |
+| `dashboard.passwordHint` | መቀየር ካልፈለጉ ባዶውን ይተዉት። |
+| `dashboard.passwordMismatch` | አዲሱ የይለፍ ቃልና ማረጋገጫው አይዛመዱም። |
+| `dashboard.profileUpdated` | መገለጫዎ ተዘምኗል። |
+| `dashboard.profileUpdateFailed` | መገለጫዎን ማዘመን አልተቻለም። |
+| `dashboard.saving` | በማስቀመጥ ላይ… |
+| `dashboard.saveProfile` | መገለጫውን ያስቀምጡ |
+| `dashboard.ethiopianDate` | በኢትዮጵያ የቀን አቆጣጠር፦ {date} |
+| `dashboard.received` | የደረሰበት ቀን፦ {date} |
+| `dashboard.receivedLabel` | የደረሰበት ቀን |

@@ -252,8 +252,8 @@ Conventions: JSON; errors `{ "error": { "code", "message", "details?" } }`; pagi
 ```
 front-end/
 ├── app/
-│   ├── [locale]/                  # localized public and auth routes
-│   ├── (dashboard)/dashboard/     # unprefixed staff workspace
+│   ├── [locale]/                  # locale providers; (site) pages and dashboard sibling
+│   ├── [locale]/dashboard/     # localized staff workspace
 │   ├── proxy.ts                   # locale detection (Next.js 16)
 │   ├── sitemap.ts  robots.ts
 ├── components/ ui/ (design system) · layout/ · features/
@@ -261,7 +261,7 @@ front-end/
 └── types/ api.ts (generated)
 ```
 
-Rendering rules: public page entry points = Server Components + ISR (`revalidate: 60`); interactive forms and signup controls are client components. Dashboard routes remain unprefixed and client rendered. Auth state comes from the cookie session via `/me`, never from `localStorage`.
+Rendering rules: public page entry points = Server Components + ISR (`revalidate: 60`); interactive forms and signup controls are client components. Dashboard routes use `/en/dashboard/*` and `/am/dashboard/*`, are client rendered, localized, and marked noindex. Public routes live under `[locale]/(site)` so the localized root layout can provide fonts and auth without the public header on staff pages. Auth state comes from the cookie session via `/me`, never from `localStorage`.
 
 ## 3. Configuration (env)
 

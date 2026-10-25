@@ -1,9 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useLocale } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch, formatDate, type PageResponse, type Post } from "@/lib/api";
 import PostModal from "@/components/PostModal";
 export default function PostsPage() {
+  const locale = useLocale();
   const { user } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,7 +95,7 @@ export default function PostsPage() {
                   <td>
                     <span className="badge">{post.published ? "Published" : "Draft"}</span>
                   </td>
-                  <td>{formatDate(post.updated_at || post.created_at)}</td>
+                  <td>{formatDate(post.updated_at || post.created_at, false, locale)}</td>
                   <td>
                     <div className="form-actions">
                       <button

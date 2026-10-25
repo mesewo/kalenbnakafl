@@ -1,7 +1,10 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
+import { useLocale } from "next-intl";
+import { useTranslations } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch, type PageResponse } from "@/lib/api";
+import { formatDate } from "@/lib/api";
 
 type Application = {
   id: number;
@@ -17,6 +20,8 @@ type Application = {
 };
 
 export default function VolunteerApplicationsPage() {
+  const locale = useLocale();
+  const t = useTranslations("dashboard");
   const { user } = useAuth();
   const [result, setResult] = useState<PageResponse<Application>>({
     items: [],
@@ -123,7 +128,9 @@ export default function VolunteerApplicationsPage() {
                   <p>{item.message}</p>
                 </>
               )}
-              <p className="meta">Received {new Date(item.created_at).toLocaleDateString()}</p>
+              <p className="meta">
+                {t("received", { date: formatDate(item.created_at, false, locale) })}
+              </p>
               {item.status === "pending" && (
                 <div className="form-actions">
                   <button

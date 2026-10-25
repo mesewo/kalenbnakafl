@@ -18,10 +18,10 @@ test("admin content and public bilingual flows", async ({ page }) => {
   await page.getByLabel("Email address").fill(adminEmail!);
   await page.getByLabel("Password").fill(adminPassword!);
   await page.getByRole("button", { name: "Log in" }).click();
-  await expect(page).toHaveURL(/\/dashboard/);
+  await expect(page).toHaveURL(/\/en\/dashboard/);
 
-  await page.goto("/dashboard/posts");
-  await expect(page).toHaveURL(/\/dashboard\/posts$/);
+  await page.goto("/en/dashboard/posts");
+  await expect(page).toHaveURL(/\/en\/dashboard\/posts$/);
   await page.getByRole("button", { name: "New post" }).click();
   let dialog = page.getByRole("dialog", { name: "Create a post" });
   await dialog.getByLabel("Title (English)").fill(postTitle);
@@ -65,7 +65,7 @@ test("admin content and public bilingual flows", async ({ page }) => {
       .toBe(true);
   }
 
-  await page.goto("/dashboard/posts");
+  await page.goto("/en/dashboard/posts");
   postRow = page.getByRole("row").filter({ hasText: postTitle });
   await postRow.getByRole("button", { name: "Edit" }).click();
   dialog = page.getByRole("dialog", { name: "Edit post" });
@@ -77,7 +77,7 @@ test("admin content and public bilingual flows", async ({ page }) => {
   await postRow.getByRole("button", { name: "Delete" }).click();
   await expect(page.getByRole("row").filter({ hasText: editedPostTitle })).toHaveCount(0);
 
-  await page.goto("/dashboard/events");
+  await page.goto("/en/dashboard/events");
   await page.getByRole("button", { name: "New event" }).click();
   dialog = page.getByRole("dialog", { name: "Create an event" });
   await dialog.getByLabel("Title (English)").fill(eventTitle);
@@ -117,7 +117,7 @@ test("admin content and public bilingual flows", async ({ page }) => {
       .toBe(true);
   }
 
-  await page.goto("/dashboard/events");
+  await page.goto("/en/dashboard/events");
   eventRow = page.getByRole("row").filter({ hasText: eventTitle });
   await eventRow.getByRole("button", { name: "Edit" }).click();
   dialog = page.getByRole("dialog", { name: "Edit event" });
