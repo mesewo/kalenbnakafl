@@ -1,187 +1,1989 @@
-﻿openapi: 3.0.3
+openapi: 3.1.0
 info:
-  title: Kalenbnakafl Volunteer Workflows
-  version: 1.0.0
-  description: API paths added for volunteer applications and event sign-ups. All paths are prefixed with /api.
+  title: Kalen Benakafil API
+  description: |
+    Community NGO website API — public content, volunteer workflows, staff content management,
+    and admin user/volunteer administration.
+
+    **Authentication**: `HttpOnly` cookie-based session. `POST /api/login` sets `access_token`
+    (JWT, 15 min) and `refresh_token` (opaque, 7 days). Include `credentials: "include"` on
+    every fetch. Mutating requests carrying a session cookie require a matching `Origin` header.
+
+    **Error envelope**: `{"error":{"code":"...","message":"...","details":{}}}`
+
+    **Pagination**: `page` (int, default 1) and `limit` (int, default 10, max 50) query params;
+    response `{"items":[...],"page":1,"limit":10,"total":42}`.
+  version: "1.0.0"
+
 servers:
-  - url: /api
+  - url: http://localhost:8080
+    description: Local development
+
+security: []
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: access_token
+      description: HttpOnly JWT access token set by POST /api/login or POST /api/refresh
+
+  schemas:
+    # ──────────── shared primitives ────────────
+    UserRole:
+      type: string
+      enum: [admin, editor, user, volunteer]
+
+    ErrorDetail:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+      required: [code, message, details]
+
+    ErrorEnvelope:
+      type: object
+      properties:
+        error:
+          $ref: "#/components/schemas/ErrorDetail"
+      required: [error]
+
+    # ──────────── domain objects ────────────
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+          maxLength: 120
+        email:
+          type: string
+          format: email
+        role:
+          $ref: "#/components/schemas/UserRole"
+        created_at:
+          type: string
+          format: date-time
+      required: [id, name, email, role]
+
+    Post:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        slug:
+          type: string
+          pattern: "^[a-z0-9-]{3,100}$"
+        title:
+          type: string
+          maxLength: 180
+        content:
+          type: string
+          maxLength: 20000
+        author_id:
+          type: integer
+          format: int64
+        author_name:
+          type: string
+        published:
+          type: boolean
+        published_at:
+          type: string
+          format: date-time
+        cover_media_id:
+          type: integer
+          format: int64
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required: [id, slug, title, content]
+
+    Event:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        title:
+          type: string
+          maxLength: 180
+        description:
+          type: string
+          maxLength: 20000
+        event_date:
+          type: string
+          format: date-time
+        ends_at:
+          type: string
+          format: date-time
+        location:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+      required: [id, title, description, event_date, location]
+
+    Media:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        title:
+          type: string
+          maxLength: 180
+        file_path:
+          type: string
+        media_type:
+          type: string
+        original_name:
+          type: string
+        size_bytes:
+          type: integer
+          format: int64
+        kind:
+          type: string
+          enum: [image, video, audio, document]
+        created_at:
+          type: string
+          format: date-time
+      required: [id, title, file_path, kind]
+
+    ContactMessage:
+      type: object
+      description: Contact message as returned to staff
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        message:
+          type: string
+        status:
+          type: string
+          enum: [new, read, replied]
+        created_at:
+          type: string
+          format: date-time
+        handled_by_name:
+          type: string
+        handled_at:
+          type: string
+          format: date-time
+      required: [id, name, email, message, status, created_at]
+
+    VolunteerApplicationDTO:
+      type: object
+      description: Own volunteer application (returned to the applicant)
+      properties:
+        id:
+          type: integer
+          format: int64
+        skills:
+          type: string
+        availability:
+          type: string
+        message:
+          type: string
+        status:
+          type: string
+          enum: [pending, approved, declined]
+        created_at:
+          type: string
+          format: date-time
+        reviewed_at:
+          type: string
+          format: date-time
+      required: [id, skills, availability, status, created_at]
+
+    VolunteerApplicationReviewDTO:
+      type: object
+      description: Volunteer application as returned to admins (includes applicant identity)
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        skills:
+          type: string
+        availability:
+          type: string
+        message:
+          type: string
+        status:
+          type: string
+          enum: [pending, approved, declined]
+        created_at:
+          type: string
+          format: date-time
+        reviewed_at:
+          type: string
+          format: date-time
+        reviewer_name:
+          type: string
+      required: [id, name, email, skills, availability, status, created_at]
+
+    EventAttendeeDTO:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        created_at:
+          type: string
+          format: date-time
+      required: [name, email, created_at]
+
+    Volunteer:
+      type: object
+      description: Volunteer user with total contribution hours
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          $ref: "#/components/schemas/UserRole"
+        created_at:
+          type: string
+          format: date-time
+        total_hours:
+          type: number
+          format: double
+      required: [id, name, email, role, total_hours]
+
+    # ──────────── page envelopes ────────────
+    PagePost:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Post"
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+          format: int64
+      required: [items, page, limit, total]
+
+    PageEvent:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Event"
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+          format: int64
+      required: [items, page, limit, total]
+
+    PageMedia:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Media"
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+          format: int64
+      required: [items, page, limit, total]
+
+    PageContactMessage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContactMessage"
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+          format: int64
+      required: [items, page, limit, total]
+
+    PageVolunteerApplicationReview:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/VolunteerApplicationReviewDTO"
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+          format: int64
+      required: [items, page, limit, total]
+
+    PageEventAttendee:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/EventAttendeeDTO"
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+          format: int64
+      required: [items, page, limit, total]
+
+    # ──────────── request bodies ────────────
+    RegisterRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 120
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 12
+      required: [name, email, password]
+
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required: [email, password]
+
+    ContactRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 120
+        email:
+          type: string
+          format: email
+        message:
+          type: string
+          maxLength: 5000
+      required: [name, email, message]
+
+    CreatePostRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 180
+        content:
+          type: string
+          maxLength: 20000
+        slug:
+          type: string
+          pattern: "^[a-z0-9-]{3,100}$"
+        cover_media_id:
+          type: integer
+          format: int64
+      required: [title, content]
+
+    UpdatePostRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 180
+        content:
+          type: string
+          maxLength: 20000
+        slug:
+          type: string
+          pattern: "^[a-z0-9-]{3,100}$"
+        cover_media_id:
+          type: integer
+          format: int64
+      required: [title, content, slug]
+
+    PublishPostRequest:
+      type: object
+      properties:
+        published:
+          type: boolean
+      required: [published]
+
+    CreateEventRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 180
+        description:
+          type: string
+          maxLength: 20000
+        event_date:
+          type: string
+          format: date-time
+          description: RFC3339 datetime
+        ends_at:
+          type: string
+          format: date-time
+          description: Optional; must be after event_date
+        location:
+          type: string
+      required: [title, description, event_date]
+
+    UpdateEventRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 180
+        description:
+          type: string
+          maxLength: 20000
+        event_date:
+          type: string
+          format: date-time
+        ends_at:
+          type: string
+          format: date-time
+        location:
+          type: string
+      required: [title, description, event_date]
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 120
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+          description: Optional; when provided, updates the password
+      required: [name, email]
+
+    CreateUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 120
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 12
+        role:
+          $ref: "#/components/schemas/UserRole"
+      required: [name, email, password, role]
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 120
+        email:
+          type: string
+          format: email
+        role:
+          $ref: "#/components/schemas/UserRole"
+      required: [name, email, role]
+
+    AddContributionRequest:
+      type: object
+      properties:
+        hours:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+          maximum: 1000
+        contribution_date:
+          type: string
+          format: date
+      required: [hours, contribution_date]
+
+    VolunteerApplicationRequest:
+      type: object
+      properties:
+        skills:
+          type: string
+          maxLength: 2000
+        availability:
+          type: string
+          maxLength: 1000
+        message:
+          type: string
+          maxLength: 5000
+      required: [skills, availability]
+
+    ReviewVolunteerApplicationRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [approved, declined]
+      required: [status]
+
+    UpdateContactMessageStatusRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [read, replied]
+      required: [status]
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required: [message]
+
+    UploadMediaResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        file_path:
+          type: string
+      required: [message, file_path]
+
+  # ──────────── reusable parameters ────────────
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    LimitParam:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 50
+        default: 10
+
+  # ──────────── reusable responses ────────────
+  responses:
+    Unauthorized:
+      description: Missing or invalid access token
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    Forbidden:
+      description: Authenticated but insufficient role
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    Conflict:
+      description: Uniqueness constraint violated (e.g. duplicate email or slug)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    BadRequest:
+      description: Malformed JSON or validation failure
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    UnprocessableEntity:
+      description: Semantic validation failure (e.g. invalid enum value, ends_at before event_date)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    InternalServerError:
+      description: Unexpected server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+
 paths:
-  /me/volunteer-application:
-    get:
-      summary: Read the authenticated user's volunteer application
-      security: [{ sessionCookie: [] }]
-      responses:
-        '200':
-          description: Existing application
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/VolunteerApplication' }
-        '401': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
+  # ═══════════════════════════════════════
+  # Auth — public
+  # ═══════════════════════════════════════
+  /api/register:
     post:
-      summary: Submit a volunteer application
-      security: [{ sessionCookie: [] }]
+      operationId: register
+      summary: Register a new user account
+      description: |
+        Creates a new account with role `user`. Rate-limited to 10 requests/minute per IP.
+      tags: [auth]
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required: [skills, availability]
-              properties:
-                skills: { type: string, maxLength: 2000 }
-                availability: { type: string, maxLength: 1000 }
-                message: { type: string, maxLength: 5000 }
+              $ref: "#/components/schemas/RegisterRequest"
       responses:
-        '201': { description: Application submitted }
-        '400': { $ref: '#/components/responses/Error' }
-        '401': { $ref: '#/components/responses/Error' }
-        '409': { $ref: '#/components/responses/Error' }
-  /me/signups:
-    get:
-      summary: List the authenticated user's event sign-ups
-      security: [{ sessionCookie: [] }]
-      parameters: [{ $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Limit' }]
-      responses:
-        '200':
-          description: Paginated event list
+        "201":
+          description: Account created
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Page' }
-        '401': { $ref: '#/components/responses/Error' }
-  /events/{id}/signup:
-    parameters:
-      - name: id
-        in: path
-        required: true
-        schema: { type: integer, minimum: 1 }
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          description: Email already registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/login:
     post:
-      summary: Sign up for a future event
-      security: [{ sessionCookie: [] }]
+      operationId: login
+      summary: Log in and receive session cookies
+      description: |
+        Verifies credentials and sets two `HttpOnly` cookies:
+        - `access_token`: JWT, 15-minute TTL
+        - `refresh_token`: opaque token, 7-day TTL
+
+        Rate-limited to 10 requests/minute per IP+email.
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
       responses:
-        '201': { description: Sign-up created }
-        '401': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
-        '409': { $ref: '#/components/responses/Error' }
-        '422': { $ref: '#/components/responses/Error' }
-    delete:
-      summary: Cancel the authenticated user's event sign-up
-      security: [{ sessionCookie: [] }]
+        "200":
+          description: Login successful; cookies set
+          headers:
+            Set-Cookie:
+              description: access_token and refresh_token HttpOnly cookies
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/refresh:
+    post:
+      operationId: refresh
+      summary: Rotate session cookies using the refresh token
+      description: |
+        Requires the `refresh_token` cookie. Issues a new access token and rotates the refresh
+        token (old one is revoked). Rate-limited to 10 requests/minute per IP.
+      tags: [auth]
       responses:
-        '200': { description: Sign-up cancelled }
-        '401': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
-  /admin/volunteer-applications:
+        "200":
+          description: Tokens rotated; new cookies set
+          headers:
+            Set-Cookie:
+              description: New access_token and refresh_token cookies
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "401":
+          description: Missing or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/logout:
+    post:
+      operationId: logout
+      summary: Revoke the refresh token and clear cookies
+      tags: [auth]
+      responses:
+        "200":
+          description: Logged out; cookies cleared
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # ═══════════════════════════════════════
+  # Contact — public
+  # ═══════════════════════════════════════
+  /api/contact:
+    post:
+      operationId: createContact
+      summary: Submit a contact message
+      description: Rate-limited to 30 requests/minute per IP.
+      tags: [contact]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContactRequest"
+      responses:
+        "201":
+          description: Message stored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # ═══════════════════════════════════════
+  # Public content
+  # ═══════════════════════════════════════
+  /api/posts:
     get:
-      summary: List volunteer applications
-      security: [{ sessionCookie: [] }]
+      operationId: getPosts
+      summary: List published posts
+      description: Returns published posts paginated, newest first. Supports full-text search.
+      tags: [posts]
       parameters:
-        - name: status
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/LimitParam"
+        - name: q
           in: query
-          schema: { type: string, enum: [pending, approved, declined] }
-        - { $ref: '#/components/parameters/Page' }
-        - { $ref: '#/components/parameters/Limit' }
+          description: Full-text search query
+          schema:
+            type: string
       responses:
-        '200':
-          description: Paginated application list
+        "200":
+          description: Paginated published posts
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Page' }
-        '401': { $ref: '#/components/responses/Error' }
-        '403': { $ref: '#/components/responses/Error' }
-        '422': { $ref: '#/components/responses/Error' }
-  /admin/volunteer-applications/{id}:
-    parameters:
-      - name: id
-        in: path
-        required: true
-        schema: { type: integer, minimum: 1 }
-    patch:
-      summary: Approve or decline an application
-      security: [{ sessionCookie: [] }]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [status]
-              properties:
-                status: { type: string, enum: [approved, declined] }
-      responses:
-        '200': { description: Application reviewed }
-        '401': { $ref: '#/components/responses/Error' }
-        '403': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
-        '422': { $ref: '#/components/responses/Error' }
-  /admin/events/{id}/signups:
+              schema:
+                $ref: "#/components/schemas/PagePost"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/posts/{slug}:
     get:
-      summary: List event attendees
-      security: [{ sessionCookie: [] }]
+      operationId: getPostBySlug
+      summary: Get a published post by slug
+      description: Drafts return 404.
+      tags: [posts]
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: "^[a-z0-9-]{3,100}$"
+      responses:
+        "200":
+          description: Post found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/events:
+    get:
+      operationId: getEvents
+      summary: List events
+      description: |
+        Returns paginated events. When `upcoming=true`, returns future events ascending by date;
+        otherwise newest-created first.
+      tags: [events]
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/LimitParam"
+        - name: upcoming
+          in: query
+          description: When "true", return only future events sorted ascending
+          schema:
+            type: string
+            enum: ["true", "false"]
+      responses:
+        "200":
+          description: Paginated events
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageEvent"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/events/{id}:
+    get:
+      operationId: getEventByID
+      summary: Get an event by ID
+      tags: [events]
       parameters:
         - name: id
           in: path
           required: true
-          schema: { type: integer, minimum: 1 }
-        - { $ref: '#/components/parameters/Page' }
-        - { $ref: '#/components/parameters/Limit' }
+          schema:
+            type: integer
+            format: int64
       responses:
-        '200':
-          description: Paginated attendee name and email list
+        "200":
+          description: Event found
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Page' }
-        '401': { $ref: '#/components/responses/Error' }
-        '403': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
-components:
-  securitySchemes:
-    sessionCookie:
-      type: apiKey
-      in: cookie
-      name: access_token
-  parameters:
-    Page:
-      name: page
-      in: query
-      schema: { type: integer, minimum: 1, default: 1 }
-    Limit:
-      name: limit
-      in: query
-      schema: { type: integer, minimum: 1, maximum: 50, default: 10 }
-  responses:
-    Error:
-      description: Standard API error envelope
-      content:
-        application/json:
-          schema: { $ref: '#/components/schemas/Error' }
-  schemas:
-    Error:
-      type: object
-      properties:
-        error:
-          type: object
-          required: [code, message, details]
-          properties:
-            code: { type: string }
-            message: { type: string }
-            details: { type: object }
-    Page:
-      type: object
-      required: [items, page, limit, total]
-      properties:
-        items: { type: array, items: { type: object } }
-        page: { type: integer }
-        limit: { type: integer }
-        total: { type: integer, format: int64 }
-    VolunteerApplication:
-      type: object
-      required: [id, skills, availability, message, status, created_at]
-      properties:
-        id: { type: integer }
-        skills: { type: string }
-        availability: { type: string }
-        message: { type: string }
-        status: { type: string, enum: [pending, approved, declined] }
-        created_at: { type: string, format: date-time }
-        reviewed_at: { type: string, format: date-time, nullable: true }
+              schema:
+                $ref: "#/components/schemas/Event"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/media:
+    get:
+      operationId: getMedia
+      summary: List media
+      description: Filtered, paginated media items.
+      tags: [media]
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/LimitParam"
+        - name: kind
+          in: query
+          description: Filter by media kind
+          schema:
+            type: string
+            enum: [image, video, audio, document]
+      responses:
+        "200":
+          description: Paginated media
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageMedia"
+        "422":
+          description: Invalid kind value
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # ═══════════════════════════════════════
+  # Protected — any authenticated user
+  # ═══════════════════════════════════════
+  /api/me:
+    get:
+      operationId: me
+      summary: Get the currently authenticated user
+      x-roles: [admin, editor, user, volunteer]
+      tags: [profile]
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/profile:
+    get:
+      operationId: getProfile
+      summary: Get the authenticated user's profile
+      x-roles: [admin, editor, user, volunteer]
+      tags: [profile]
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Profile data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    put:
+      operationId: updateProfile
+      summary: Update the authenticated user's profile
+      x-roles: [admin, editor, user, volunteer]
+      tags: [profile]
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileRequest"
+      responses:
+        "200":
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Email already used by another account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/me/volunteer-application:
+    post:
+      operationId: createVolunteerApplication
+      summary: Submit a volunteer application
+      description: A user may only submit one application; subsequent attempts return 409.
+      x-roles: [user, volunteer, editor, admin]
+      tags: [volunteer]
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VolunteerApplicationRequest"
+      responses:
+        "201":
+          description: Application submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VolunteerApplicationDTO"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          description: Application already exists or role not eligible
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    get:
+      operationId: getMyVolunteerApplication
+      summary: Get the current user's volunteer application
+      x-roles: [admin, editor, user, volunteer]
+      tags: [volunteer]
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Own application
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VolunteerApplicationDTO"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/me/signups:
+    get:
+      operationId: listMyEventSignups
+      summary: List the current user's event sign-ups
+      x-roles: [admin, editor, user, volunteer]
+      tags: [events]
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/LimitParam"
+      responses:
+        "200":
+          description: Paginated events the user has signed up for
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageEvent"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/events/{id}/signup:
+    post:
+      operationId: signupForEvent
+      summary: Sign up for an event
+      description: Returns 409 if already signed up, 422 if the event is in the past.
+      x-roles: [admin, editor, user, volunteer]
+      tags: [events]
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "201":
+          description: Signed up
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Already signed up
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "422":
+          description: Event is in the past
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      operationId: cancelEventSignup
+      summary: Cancel an event sign-up
+      x-roles: [admin, editor, user, volunteer]
+      tags: [events]
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Sign-up cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # ═══════════════════════════════════════
+  # Staff — admin, editor
+  # ═══════════════════════════════════════
+  /api/staff/posts:
+    get:
+      operationId: staffGetPosts
+      summary: List all posts (including drafts)
+      x-roles: [admin, editor]
+      tags: [staff, posts]
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/LimitParam"
+        - name: q
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Paginated posts (published and draft)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagePost"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      operationId: createPost
+      summary: Create a new post (draft)
+      x-roles: [admin, editor]
+      tags: [staff, posts]
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePostRequest"
+      responses:
+        "201":
+          description: Post created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          description: Slug already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/staff/posts/{id}:
+    patch:
+      operationId: updatePost
+      summary: Update an existing post
+      x-roles: [admin, editor]
+      tags: [staff, posts]
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePostRequest"
+      responses:
+        "200":
+          description: Post updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Slug conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      operationId: deletePost
+      summary: Delete a post
+      x-roles: [admin, editor]
+      tags: [staff, posts]
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Post deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/staff/posts/{id}/publish:
+    patch:
+      operationId: publishPost
+      summary: Publish or unpublish a post
+      x-roles: [admin, editor]
+      tags: [staff, posts]
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PublishPostRequest"
+      responses:
+        "200":
+          description: Publish state updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/staff/events:
+    get:
+      operationId: staffGetEvents
+      summary: List all events (staff view)
+      x-roles: [admin, editor]
+      tags: [staff, events]
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/LimitParam"
+        - name: upcoming
+          in: query
+          schema:
+            type: string
+            enum: ["true", "false"]
+      responses:
+        "200":
+          description: Paginated events
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageEvent"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      operationId: createEvent
+      summary: Create an event
+      x-roles: [admin, editor]
+      tags: [staff, events]
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEventRequest"
+      responses:
+        "201":
+          description: Event created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          description: ends_at is before event_date
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/staff/events/{id}:
+    patch:
+      operationId: updateEvent
+      summary: Update an event
+      x-roles: [admin, editor]
+      tags: [staff, events]
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateEventRequest"
+      responses:
+        "200":
+          description: Event updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      operationId: deleteEvent
+      summary: Delete an event
+      x-roles: [admin, editor]
+      tags: [staff, events]
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Event deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/staff/media:
+    get:
+      operationId: staffGetMedia
+      summary: List media (staff view)
+      x-roles: [admin, editor]
+      tags: [staff, media]
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/LimitParam"
+        - name: kind
+          in: query
+          schema:
+            type: string
+            enum: [image, video, audio, document]
+      responses:
+        "200":
+          description: Paginated media
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageMedia"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      operationId: uploadMedia
+      summary: Upload a media file
+      description: |
+        Multipart upload. Accepted MIME types: PNG, JPEG, WebP, PDF, MP4, WebM, MP3, OGG.
+        Maximum size configured by `MEDIA_MAX_MB` (default 50 MB).
+      x-roles: [admin, editor]
+      tags: [staff, media]
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                title:
+                  type: string
+                  maxLength: 180
+              required: [file]
+      responses:
+        "201":
+          description: File uploaded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadMediaResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "413":
+          description: Payload too large
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "422":
+          description: File type not supported
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/staff/media/{id}:
+    delete:
+      operationId: deleteMedia
+      summary: Delete a media item
+      x-roles: [admin, editor]
+      tags: [staff, media]
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Media deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/staff/contact-messages:
+    get:
+      operationId: listContactMessages
+      summary: List contact messages (staff inbox)
+      description: Filtered by status, paginated, newest first.
+      x-roles: [admin, editor]
+      tags: [staff, contact]
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/LimitParam"
+        - name: status
+          in: query
+          description: Filter by message status
+          schema:
+            type: string
+            enum: [new, read, replied]
+      responses:
+        "200":
+          description: Paginated contact messages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageContactMessage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          description: Invalid status filter value
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/staff/contact-messages/{id}:
+    patch:
+      operationId: updateContactMessageStatus
+      summary: Update a contact message status
+      x-roles: [admin, editor]
+      tags: [staff, contact]
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateContactMessageStatusRequest"
+      responses:
+        "200":
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContactMessage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # ═══════════════════════════════════════
+  # Admin only
+  # ═══════════════════════════════════════
+  /api/admin/users:
+    get:
+      operationId: adminGetUsers
+      summary: List all users
+      x-roles: [admin]
+      tags: [admin, users]
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Array of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      operationId: adminCreateUser
+      summary: Create a user account (admin)
+      x-roles: [admin]
+      tags: [admin, users]
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserRequest"
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/admin/users/{id}:
+    patch:
+      operationId: adminUpdateUser
+      summary: Update a user account
+      x-roles: [admin]
+      tags: [admin, users]
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+      responses:
+        "200":
+          description: User updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      operationId: adminDeleteUser
+      summary: Delete a user account
+      description: |
+        Returns 400 if attempting self-deletion, 409 if deleting the last admin account.
+      x-roles: [admin]
+      tags: [admin, users]
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: User deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Cannot delete own account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Cannot delete the last admin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/admin/volunteers:
+    get:
+      operationId: adminGetVolunteers
+      summary: List volunteers with total contribution hours
+      x-roles: [admin]
+      tags: [admin, volunteers]
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Array of volunteers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Volunteer"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/admin/volunteers/{id}/contributions:
+    post:
+      operationId: adminAddContribution
+      summary: Record volunteer contribution hours
+      x-roles: [admin]
+      tags: [admin, volunteers]
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Volunteer user ID
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddContributionRequest"
+      responses:
+        "201":
+          description: Contribution recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/admin/volunteer-applications:
+    get:
+      operationId: adminListVolunteerApplications
+      summary: List volunteer applications (admin)
+      x-roles: [admin]
+      tags: [admin, volunteers]
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/LimitParam"
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, approved, declined]
+      responses:
+        "200":
+          description: Paginated volunteer applications
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageVolunteerApplicationReview"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/admin/volunteer-applications/{id}:
+    patch:
+      operationId: adminReviewVolunteerApplication
+      summary: Approve or decline a volunteer application
+      description: Approval promotes a `user` account to `volunteer` role in the same transaction.
+      x-roles: [admin]
+      tags: [admin, volunteers]
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewVolunteerApplicationRequest"
+      responses:
+        "200":
+          description: Application reviewed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VolunteerApplicationReviewDTO"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/admin/events/{id}/signups:
+    get:
+      operationId: adminListEventAttendees
+      summary: List attendees for an event
+      x-roles: [admin]
+      tags: [admin, events]
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Event ID
+          schema:
+            type: integer
+            format: int64
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/LimitParam"
+      responses:
+        "200":
+          description: Paginated event attendees
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageEventAttendee"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
