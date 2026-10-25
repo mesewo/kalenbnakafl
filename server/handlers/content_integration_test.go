@@ -93,14 +93,18 @@ func TestPostLocaleFallbackAndLaterAmharicTranslation(t *testing.T) {
 	if created.Code != http.StatusCreated {
 		t.Fatalf("create status=%d body=%s", created.Code, created.Body)
 	}
+	var id int32
+	if err := db.QueryRow(`SELECT id FROM posts WHERE slug='bilingual-story'`).Scan(&id); err != nil {
+		t.Fatal(err)
+	}
+	published := authRequest(r, http.MethodPatch, fmt.Sprintf("/api/staff/posts/%d/publish", id), `{"published":true}`, cookie)
+	if published.Code != http.StatusOK {
+		t.Fatalf("publish status=%d body=%s", published.Code, published.Body)
+	}
 	detail := authRequest(r, http.MethodGet, "/api/posts/bilingual-story?lang=am", "")
 	var post models.Post
 	if detail.Code != http.StatusOK || json.Unmarshal(detail.Body.Bytes(), &post) != nil || post.Title != "Bilingual story" || post.Language != "en" || !post.Fallback {
 		t.Fatalf("fallback response status=%d post=%#v body=%s", detail.Code, post, detail.Body)
-	}
-	var id int32
-	if err := db.QueryRow(`SELECT id FROM posts WHERE slug='bilingual-story'`).Scan(&id); err != nil {
-		t.Fatal(err)
 	}
 	updated := authRequest(r, http.MethodPatch, fmt.Sprintf("/api/staff/posts/%d", id), `{"translations":{"am":{"title":"አማርኛ ታሪክ","content":"የአማርኛ ይዘት"}}}`, cookie)
 	if updated.Code != http.StatusOK {
