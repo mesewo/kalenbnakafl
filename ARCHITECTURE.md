@@ -226,7 +226,7 @@ erDiagram
   }
 ```
 
-Posts/events are `translations`-ready: if multi-language content (not just UI) is required, add `post_translations(post_id, locale, title, content, slug)` — decision pending in Questions (ROADMAP).
+Content text lives in `post_translations`, `event_translations`, and `media_translations` for `en` and `am`; slugs, event dates, publication state, media paths, and other language-neutral fields stay on base rows. Migration 0006 backfills existing text as English and maintains a GIN-indexed `post_search` vector across translations. Migration 0007 removes legacy text columns after application queries use the translation tables. Public reads accept `?lang`, then `Accept-Language`, default to English, and report `language` and `fallback`; staff list reads include available translations. Staff writes send a `translations` map, and updates change one locale at a time. Handler messages use the internal English/Amharic catalog; drafted Amharic text is listed in `docs/i18n-review.md` for native review.
 
 ### Target API (v1, all under `/api/v1`, documented in `docs/openapi.yaml`)
 

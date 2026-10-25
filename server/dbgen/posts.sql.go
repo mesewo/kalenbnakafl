@@ -11,11 +11,23 @@ import (
 	"time"
 )
 
+const countPostTranslations = `-- name: CountPostTranslations :one
+SELECT count(*)::bigint FROM post_translations WHERE post_id = $1
+`
+
+func (q *Queries) CountPostTranslations(ctx context.Context, postID int32) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countPostTranslations, postID)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const countPosts = `-- name: CountPosts :one
 SELECT count(*)::bigint
 FROM posts AS p
+JOIN post_search AS ps ON ps.post_id = p.id
 WHERE ($1::boolean OR p.published = true)
-  AND ($2::text IS NULL OR p.search_vector @@ plainto_tsquery('simple', $2::text))
+  AND ($2::text IS NULL OR ps.search_vector @@ plainto_tsquery('simple', $2::text))
 `
 
 type CountPostsParams struct {
@@ -30,28 +42,23 @@ func (q *Queries) CountPosts(ctx context.Context, arg CountPostsParams) (int64, 
 	return column_1, err
 }
 
-const createPost = `-- name: CreatePost :exec
-INSERT INTO posts (slug, title, content, author_id, published, cover_media_id, updated_at)
-VALUES ($1, $2, $3, $4, false, $5, CURRENT_TIMESTAMP)
+const createPost = `-- name: CreatePost :one
+INSERT INTO posts (slug, author_id, published, cover_media_id, updated_at)
+VALUES ($1, $2, false, $3, CURRENT_TIMESTAMP)
+RETURNING id
 `
 
 type CreatePostParams struct {
 	Slug         string        `json:"slug"`
-	Title        string        `json:"title"`
-	Content      string        `json:"content"`
 	AuthorID     sql.NullInt32 `json:"author_id"`
 	CoverMediaID sql.NullInt32 `json:"cover_media_id"`
 }
 
-func (q *Queries) CreatePost(ctx context.Context, arg CreatePostParams) error {
-	_, err := q.db.ExecContext(ctx, createPost,
-		arg.Slug,
-		arg.Title,
-		arg.Content,
-		arg.AuthorID,
-		arg.CoverMediaID,
-	)
-	return err
+func (q *Queries) CreatePost(ctx context.Context, arg CreatePostParams) (int32, error) {
+	row := q.db.QueryRowContext(ctx, createPost, arg.Slug, arg.AuthorID, arg.CoverMediaID)
+	var id int32
+	err := row.Scan(&id)
+	return id, err
 }
 
 const deletePost = `-- name: DeletePost :execrows
@@ -66,28 +73,51 @@ func (q *Queries) DeletePost(ctx context.Context, id int32) (int64, error) {
 	return result.RowsAffected()
 }
 
+const deletePostTranslation = `-- name: DeletePostTranslation :execrows
+DELETE FROM post_translations WHERE post_id = $1 AND locale = $2
+`
+
+type DeletePostTranslationParams struct {
+	PostID int32  `json:"post_id"`
+	Locale string `json:"locale"`
+}
+
+func (q *Queries) DeletePostTranslation(ctx context.Context, arg DeletePostTranslationParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deletePostTranslation, arg.PostID, arg.Locale)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const getPostBySlug = `-- name: GetPostBySlug :one
-SELECT p.id, p.slug, p.title, p.content,
+SELECT p.id, p.slug,
+       en.title AS en_title, en.content AS en_content,
+       am.title AS am_title, am.content AS am_content,
        COALESCE(p.author_id, 0) AS author_id,
        COALESCE(u.name, '') AS author_name,
        p.published, p.published_at, p.cover_media_id, p.created_at, p.updated_at
 FROM posts AS p
+LEFT JOIN post_translations AS en ON en.post_id = p.id AND en.locale = 'en'
+LEFT JOIN post_translations AS am ON am.post_id = p.id AND am.locale = 'am'
 LEFT JOIN users AS u ON u.id = p.author_id
 WHERE p.slug = $1 AND p.published = true
 `
 
 type GetPostBySlugRow struct {
-	ID           int32         `json:"id"`
-	Slug         string        `json:"slug"`
-	Title        string        `json:"title"`
-	Content      string        `json:"content"`
-	AuthorID     int32         `json:"author_id"`
-	AuthorName   string        `json:"author_name"`
-	Published    bool          `json:"published"`
-	PublishedAt  sql.NullTime  `json:"published_at"`
-	CoverMediaID sql.NullInt32 `json:"cover_media_id"`
-	CreatedAt    time.Time     `json:"created_at"`
-	UpdatedAt    time.Time     `json:"updated_at"`
+	ID           int32          `json:"id"`
+	Slug         string         `json:"slug"`
+	EnTitle      sql.NullString `json:"en_title"`
+	EnContent    sql.NullString `json:"en_content"`
+	AmTitle      sql.NullString `json:"am_title"`
+	AmContent    sql.NullString `json:"am_content"`
+	AuthorID     int32          `json:"author_id"`
+	AuthorName   string         `json:"author_name"`
+	Published    bool           `json:"published"`
+	PublishedAt  sql.NullTime   `json:"published_at"`
+	CoverMediaID sql.NullInt32  `json:"cover_media_id"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
 }
 
 func (q *Queries) GetPostBySlug(ctx context.Context, slug string) (GetPostBySlugRow, error) {
@@ -96,8 +126,10 @@ func (q *Queries) GetPostBySlug(ctx context.Context, slug string) (GetPostBySlug
 	err := row.Scan(
 		&i.ID,
 		&i.Slug,
-		&i.Title,
-		&i.Content,
+		&i.EnTitle,
+		&i.EnContent,
+		&i.AmTitle,
+		&i.AmContent,
 		&i.AuthorID,
 		&i.AuthorName,
 		&i.Published,
@@ -110,15 +142,20 @@ func (q *Queries) GetPostBySlug(ctx context.Context, slug string) (GetPostBySlug
 }
 
 const listPosts = `-- name: ListPosts :many
-SELECT p.id, p.slug, p.title, p.content,
+SELECT p.id, p.slug,
+       en.title AS en_title, en.content AS en_content,
+       am.title AS am_title, am.content AS am_content,
        COALESCE(p.author_id, 0) AS author_id,
        COALESCE(u.name, '') AS author_name,
        p.published, p.published_at, p.cover_media_id,
        p.created_at, p.updated_at
 FROM posts AS p
+LEFT JOIN post_translations AS en ON en.post_id = p.id AND en.locale = 'en'
+LEFT JOIN post_translations AS am ON am.post_id = p.id AND am.locale = 'am'
 LEFT JOIN users AS u ON u.id = p.author_id
+JOIN post_search AS ps ON ps.post_id = p.id
 WHERE ($1::boolean OR p.published = true)
-  AND ($2::text IS NULL OR p.search_vector @@ plainto_tsquery('simple', $2::text))
+  AND ($2::text IS NULL OR ps.search_vector @@ plainto_tsquery('simple', $2::text))
 ORDER BY COALESCE(p.published_at, p.created_at) DESC
 LIMIT $4::integer OFFSET $3::integer
 `
@@ -131,17 +168,19 @@ type ListPostsParams struct {
 }
 
 type ListPostsRow struct {
-	ID           int32         `json:"id"`
-	Slug         string        `json:"slug"`
-	Title        string        `json:"title"`
-	Content      string        `json:"content"`
-	AuthorID     int32         `json:"author_id"`
-	AuthorName   string        `json:"author_name"`
-	Published    bool          `json:"published"`
-	PublishedAt  sql.NullTime  `json:"published_at"`
-	CoverMediaID sql.NullInt32 `json:"cover_media_id"`
-	CreatedAt    time.Time     `json:"created_at"`
-	UpdatedAt    time.Time     `json:"updated_at"`
+	ID           int32          `json:"id"`
+	Slug         string         `json:"slug"`
+	EnTitle      sql.NullString `json:"en_title"`
+	EnContent    sql.NullString `json:"en_content"`
+	AmTitle      sql.NullString `json:"am_title"`
+	AmContent    sql.NullString `json:"am_content"`
+	AuthorID     int32          `json:"author_id"`
+	AuthorName   string         `json:"author_name"`
+	Published    bool           `json:"published"`
+	PublishedAt  sql.NullTime   `json:"published_at"`
+	CoverMediaID sql.NullInt32  `json:"cover_media_id"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
 }
 
 func (q *Queries) ListPosts(ctx context.Context, arg ListPostsParams) ([]ListPostsRow, error) {
@@ -161,8 +200,10 @@ func (q *Queries) ListPosts(ctx context.Context, arg ListPostsParams) ([]ListPos
 		if err := rows.Scan(
 			&i.ID,
 			&i.Slug,
-			&i.Title,
-			&i.Content,
+			&i.EnTitle,
+			&i.EnContent,
+			&i.AmTitle,
+			&i.AmContent,
 			&i.AuthorID,
 			&i.AuthorName,
 			&i.Published,
@@ -182,6 +223,16 @@ func (q *Queries) ListPosts(ctx context.Context, arg ListPostsParams) ([]ListPos
 		return nil, err
 	}
 	return items, nil
+}
+
+const lockPost = `-- name: LockPost :one
+SELECT id FROM posts WHERE id = $1 FOR UPDATE
+`
+
+func (q *Queries) LockPost(ctx context.Context, id int32) (int32, error) {
+	row := q.db.QueryRowContext(ctx, lockPost, id)
+	err := row.Scan(&id)
+	return id, err
 }
 
 const publishPost = `-- name: PublishPost :execrows
@@ -205,33 +256,47 @@ func (q *Queries) PublishPost(ctx context.Context, arg PublishPostParams) (int64
 	return result.RowsAffected()
 }
 
-const updatePost = `-- name: UpdatePost :execrows
+const updatePostFields = `-- name: UpdatePostFields :execrows
 UPDATE posts
 SET slug = COALESCE($1, slug),
-    title = $2, content = $3,
-    cover_media_id = COALESCE($4, cover_media_id),
+    cover_media_id = COALESCE($2, cover_media_id),
     updated_at = CURRENT_TIMESTAMP
-WHERE id = $5
+WHERE id = $3
 `
 
-type UpdatePostParams struct {
+type UpdatePostFieldsParams struct {
 	Slug         sql.NullString `json:"slug"`
-	Title        string         `json:"title"`
-	Content      string         `json:"content"`
 	CoverMediaID sql.NullInt32  `json:"cover_media_id"`
 	ID           int32          `json:"id"`
 }
 
-func (q *Queries) UpdatePost(ctx context.Context, arg UpdatePostParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, updatePost,
-		arg.Slug,
-		arg.Title,
-		arg.Content,
-		arg.CoverMediaID,
-		arg.ID,
-	)
+func (q *Queries) UpdatePostFields(ctx context.Context, arg UpdatePostFieldsParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updatePostFields, arg.Slug, arg.CoverMediaID, arg.ID)
 	if err != nil {
 		return 0, err
 	}
 	return result.RowsAffected()
+}
+
+const upsertPostTranslation = `-- name: UpsertPostTranslation :exec
+INSERT INTO post_translations(post_id, locale, title, content)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT (post_id, locale) DO UPDATE SET title = EXCLUDED.title, content = EXCLUDED.content
+`
+
+type UpsertPostTranslationParams struct {
+	PostID  int32  `json:"post_id"`
+	Locale  string `json:"locale"`
+	Title   string `json:"title"`
+	Content string `json:"content"`
+}
+
+func (q *Queries) UpsertPostTranslation(ctx context.Context, arg UpsertPostTranslationParams) error {
+	_, err := q.db.ExecContext(ctx, upsertPostTranslation,
+		arg.PostID,
+		arg.Locale,
+		arg.Title,
+		arg.Content,
+	)
+	return err
 }

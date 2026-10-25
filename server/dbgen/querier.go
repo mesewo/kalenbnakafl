@@ -15,24 +15,28 @@ type Querier interface {
 	CountAdmins(ctx context.Context) (int64, error)
 	CountContactMessages(ctx context.Context, status sql.NullString) (int64, error)
 	CountEventAttendees(ctx context.Context, eventID int32) (int64, error)
+	CountEventTranslations(ctx context.Context, eventID int32) (int64, error)
 	CountEvents(ctx context.Context, upcoming bool) (int64, error)
 	CountMedia(ctx context.Context, kind sql.NullString) (int64, error)
 	CountMyEventSignups(ctx context.Context, userID int32) (int64, error)
+	CountPostTranslations(ctx context.Context, postID int32) (int64, error)
 	CountPosts(ctx context.Context, arg CountPostsParams) (int64, error)
 	CountVolunteerApplications(ctx context.Context, status sql.NullString) (int64, error)
 	CreateAdminIfMissing(ctx context.Context, arg CreateAdminIfMissingParams) error
 	CreateContact(ctx context.Context, arg CreateContactParams) error
-	CreateEvent(ctx context.Context, arg CreateEventParams) error
+	CreateEvent(ctx context.Context, arg CreateEventParams) (int32, error)
 	CreateEventSignup(ctx context.Context, arg CreateEventSignupParams) (int64, error)
-	CreateMedia(ctx context.Context, arg CreateMediaParams) error
-	CreatePost(ctx context.Context, arg CreatePostParams) error
+	CreateMedia(ctx context.Context, arg CreateMediaParams) (int32, error)
+	CreatePost(ctx context.Context, arg CreatePostParams) (int32, error)
 	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) error
 	CreateUser(ctx context.Context, arg CreateUserParams) error
 	CreateVolunteerApplication(ctx context.Context, arg CreateVolunteerApplicationParams) error
 	DeleteEvent(ctx context.Context, id int32) (int64, error)
 	DeleteEventSignup(ctx context.Context, arg DeleteEventSignupParams) (int64, error)
+	DeleteEventTranslation(ctx context.Context, arg DeleteEventTranslationParams) (int64, error)
 	DeleteMedia(ctx context.Context, id int32) (int64, error)
 	DeletePost(ctx context.Context, id int32) (int64, error)
+	DeletePostTranslation(ctx context.Context, arg DeletePostTranslationParams) (int64, error)
 	DeleteUser(ctx context.Context, id int32) (int64, error)
 	GetEventByID(ctx context.Context, id int32) (GetEventByIDRow, error)
 	GetEventDate(ctx context.Context, id int32) (time.Time, error)
@@ -52,6 +56,8 @@ type Querier interface {
 	ListVolunteerApplications(ctx context.Context, arg ListVolunteerApplicationsParams) ([]ListVolunteerApplicationsRow, error)
 	ListVolunteers(ctx context.Context) ([]ListVolunteersRow, error)
 	LockActiveRefreshToken(ctx context.Context, tokenHash string) (int32, error)
+	LockEvent(ctx context.Context, id int32) (int32, error)
+	LockPost(ctx context.Context, id int32) (int32, error)
 	LockVolunteerApplication(ctx context.Context, id int32) (LockVolunteerApplicationRow, error)
 	PromoteApplicantIfUser(ctx context.Context, userID int32) (int64, error)
 	PublishPost(ctx context.Context, arg PublishPostParams) (int64, error)
@@ -60,12 +66,15 @@ type Querier interface {
 	RevokeRefreshToken(ctx context.Context, tokenHash string) error
 	RevokeRefreshTokenByHash(ctx context.Context, tokenHash string) error
 	UpdateContactMessageStatus(ctx context.Context, arg UpdateContactMessageStatusParams) (int64, error)
-	UpdateEvent(ctx context.Context, arg UpdateEventParams) (int64, error)
+	UpdateEventFields(ctx context.Context, arg UpdateEventFieldsParams) (int64, error)
 	UpdateManagedUser(ctx context.Context, arg UpdateManagedUserParams) (int64, error)
-	UpdatePost(ctx context.Context, arg UpdatePostParams) (int64, error)
+	UpdatePostFields(ctx context.Context, arg UpdatePostFieldsParams) (int64, error)
 	UpdateProfile(ctx context.Context, arg UpdateProfileParams) (int64, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
 	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error
+	UpsertEventTranslation(ctx context.Context, arg UpsertEventTranslationParams) error
+	UpsertMediaTranslation(ctx context.Context, arg UpsertMediaTranslationParams) error
+	UpsertPostTranslation(ctx context.Context, arg UpsertPostTranslationParams) error
 }
 
 var _ Querier = (*Queries)(nil)

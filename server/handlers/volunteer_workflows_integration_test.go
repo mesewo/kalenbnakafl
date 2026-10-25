@@ -235,7 +235,10 @@ func TestEventSignupsAndAttendees(t *testing.T) {
 func insertPastEvent(t *testing.T, db *sql.DB) int32 {
 	t.Helper()
 	var id int32
-	if err := db.QueryRow(`INSERT INTO events(title,description,event_date) VALUES('Past signup event','Past event',CURRENT_TIMESTAMP - INTERVAL '1 day') RETURNING id`).Scan(&id); err != nil {
+	if err := db.QueryRow(`INSERT INTO events(event_date) VALUES(CURRENT_TIMESTAMP - INTERVAL '1 day') RETURNING id`).Scan(&id); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO event_translations(event_id,locale,title,description,location) VALUES($1,'en','Past signup event','Past event','')`, id); err != nil {
 		t.Fatal(err)
 	}
 	return id

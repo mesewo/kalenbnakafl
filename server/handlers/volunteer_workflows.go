@@ -47,7 +47,7 @@ func authenticatedUserID(c *gin.Context) (int32, bool) {
 	value, exists := c.Get("user_id")
 	id, ok := value.(int)
 	if !exists || !ok || id < 1 || int64(id) > int64(1<<31-1) {
-		httpx.Fail(c, http.StatusUnauthorized, "Authentication required")
+		httpx.Fail(c, http.StatusUnauthorized, "volunteers.authentication_required")
 		return 0, false
 	}
 	return int32(id), true
@@ -69,11 +69,11 @@ func (a *API) CreateVolunteerApplication(c *gin.Context) {
 	}
 	user, err := a.q.GetUserByID(c.Request.Context(), userID)
 	if err != nil {
-		httpx.Fail(c, http.StatusInternalServerError, "Could not verify account")
+		httpx.Fail(c, http.StatusInternalServerError, "volunteers.could_not_verify_account")
 		return
 	}
 	if user.Role != "user" {
-		httpx.Fail(c, http.StatusConflict, "Only regular members can apply to volunteer")
+		httpx.Fail(c, http.StatusConflict, "volunteers.only_regular_members_can_apply_to_volunteer")
 		return
 	}
 	var input struct {
@@ -82,14 +82,14 @@ func (a *API) CreateVolunteerApplication(c *gin.Context) {
 		Message      string `json:"message"`
 	}
 	if !httpx.BindJSON(c, &input) {
-		httpx.Fail(c, http.StatusBadRequest, "Skills and availability are required")
+		httpx.Fail(c, http.StatusBadRequest, "volunteers.skills_and_availability_are_required")
 		return
 	}
 	input.Skills = clean(input.Skills)
 	input.Availability = clean(input.Availability)
 	input.Message = clean(input.Message)
 	if !validateText(input.Skills, 2000) || !validateText(input.Availability, 1000) || len(input.Message) > 5000 {
-		httpx.Fail(c, http.StatusBadRequest, "Skills and availability are required and must be within the length limits")
+		httpx.Fail(c, http.StatusBadRequest, "volunteers.skills_and_availability_are_required_and_must_be_within_the_length_limits")
 		return
 	}
 	err = a.q.CreateVolunteerApplication(c.Request.Context(), dbgen.CreateVolunteerApplicationParams{
@@ -98,13 +98,13 @@ func (a *API) CreateVolunteerApplication(c *gin.Context) {
 	if err != nil {
 		var postgresErr *pq.Error
 		if errors.As(err, &postgresErr) && postgresErr.Code == "23505" {
-			httpx.Fail(c, http.StatusConflict, "A volunteer application already exists")
+			httpx.Fail(c, http.StatusConflict, "volunteers.a_volunteer_application_already_exists")
 			return
 		}
-		httpx.Fail(c, http.StatusInternalServerError, "Could not submit volunteer application")
+		httpx.Fail(c, http.StatusInternalServerError, "volunteers.could_not_submit_volunteer_application")
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"message": "Volunteer application submitted"})
+	httpx.Success(c, http.StatusCreated, "volunteers.submitted")
 }
 
 func (a *API) GetMyVolunteerApplication(c *gin.Context) {
@@ -114,11 +114,11 @@ func (a *API) GetMyVolunteerApplication(c *gin.Context) {
 	}
 	row, err := a.q.GetMyVolunteerApplication(c.Request.Context(), userID)
 	if errors.Is(err, sql.ErrNoRows) {
-		httpx.Fail(c, http.StatusNotFound, "Volunteer application not found")
+		httpx.Fail(c, http.StatusNotFound, "volunteers.not_found")
 		return
 	}
 	if err != nil {
-		httpx.Fail(c, http.StatusInternalServerError, "Could not fetch volunteer application")
+		httpx.Fail(c, http.StatusInternalServerError, "volunteers.could_not_fetch_volunteer_application")
 		return
 	}
 	c.JSON(http.StatusOK, applicationDTO(row))
@@ -127,7 +127,7 @@ func (a *API) GetMyVolunteerApplication(c *gin.Context) {
 func (a *API) ListVolunteerApplications(c *gin.Context) {
 	status := strings.TrimSpace(c.Query("status"))
 	if status != "" && status != "pending" && status != "approved" && status != "declined" {
-		httpx.Fail(c, http.StatusUnprocessableEntity, "Status must be pending, approved, or declined")
+		httpx.Fail(c, http.StatusUnprocessableEntity, "volunteers.status_must_be_pending_approved_or_declined")
 		return
 	}
 	page, limit, offset := pageArgs(c)
@@ -135,12 +135,12 @@ func (a *API) ListVolunteerApplications(c *gin.Context) {
 	ctx := c.Request.Context()
 	rows, err := a.q.ListVolunteerApplications(ctx, dbgen.ListVolunteerApplicationsParams{Status: statusArg, RowOffset: offset, PageSize: int32(limit)})
 	if err != nil {
-		httpx.Fail(c, http.StatusInternalServerError, "Could not fetch volunteer applications")
+		httpx.Fail(c, http.StatusInternalServerError, "volunteers.could_not_fetch_volunteer_applications")
 		return
 	}
 	total, err := a.q.CountVolunteerApplications(ctx, statusArg)
 	if err != nil {
-		httpx.Fail(c, http.StatusInternalServerError, "Could not count volunteer applications")
+		httpx.Fail(c, http.StatusInternalServerError, "volunteers.could_not_count_volunteer_applications")
 		return
 	}
 	items := make([]VolunteerApplicationReviewDTO, 0, len(rows))
@@ -161,18 +161,18 @@ func (a *API) ReviewVolunteerApplication(c *gin.Context) {
 		return
 	}
 	if int64(id) > int64(1<<31-1) {
-		httpx.Fail(c, http.StatusNotFound, "Volunteer application not found")
+		httpx.Fail(c, http.StatusNotFound, "volunteers.not_found")
 		return
 	}
 	var input struct {
 		Status string `json:"status"`
 	}
 	if !httpx.BindJSON(c, &input) {
-		httpx.Fail(c, http.StatusBadRequest, "Invalid application status")
+		httpx.Fail(c, http.StatusBadRequest, "volunteers.invalid_application_status")
 		return
 	}
 	if input.Status != "approved" && input.Status != "declined" {
-		httpx.Fail(c, http.StatusUnprocessableEntity, "Status must be approved or declined")
+		httpx.Fail(c, http.StatusUnprocessableEntity, "volunteers.status_must_be_approved_or_declined")
 		return
 	}
 	reviewerID, ok := authenticatedUserID(c)
@@ -182,40 +182,40 @@ func (a *API) ReviewVolunteerApplication(c *gin.Context) {
 	ctx := c.Request.Context()
 	tx, err := a.db.BeginTx(ctx, nil)
 	if err != nil {
-		httpx.Fail(c, http.StatusInternalServerError, "Could not review volunteer application")
+		httpx.Fail(c, http.StatusInternalServerError, "volunteers.could_not_review_volunteer_application")
 		return
 	}
 	defer func() { _ = tx.Rollback() }()
 	queries := a.q.WithTx(tx)
 	application, err := queries.LockVolunteerApplication(ctx, int32(id))
 	if errors.Is(err, sql.ErrNoRows) {
-		httpx.Fail(c, http.StatusNotFound, "Volunteer application not found")
+		httpx.Fail(c, http.StatusNotFound, "volunteers.not_found")
 		return
 	}
 	if err != nil {
-		httpx.Fail(c, http.StatusInternalServerError, "Could not review volunteer application")
+		httpx.Fail(c, http.StatusInternalServerError, "volunteers.could_not_review_volunteer_application")
 		return
 	}
 	if application.Status != "pending" {
-		httpx.Fail(c, http.StatusConflict, "Volunteer application has already been reviewed")
+		httpx.Fail(c, http.StatusConflict, "volunteers.has_already_been_reviewed")
 		return
 	}
 	_, err = queries.ReviewVolunteerApplication(ctx, dbgen.ReviewVolunteerApplicationParams{Status: input.Status, ReviewedBy: sql.NullInt32{Int32: reviewerID, Valid: true}, ID: int32(id)})
 	if err != nil {
-		httpx.Fail(c, http.StatusInternalServerError, "Could not review volunteer application")
+		httpx.Fail(c, http.StatusInternalServerError, "volunteers.could_not_review_volunteer_application")
 		return
 	}
 	if input.Status == "approved" {
 		if _, err := queries.PromoteApplicantIfUser(ctx, application.UserID); err != nil {
-			httpx.Fail(c, http.StatusInternalServerError, "Could not approve volunteer application")
+			httpx.Fail(c, http.StatusInternalServerError, "volunteers.could_not_approve_volunteer_application")
 			return
 		}
 	}
 	if err := tx.Commit(); err != nil {
-		httpx.Fail(c, http.StatusInternalServerError, "Could not review volunteer application")
+		httpx.Fail(c, http.StatusInternalServerError, "volunteers.could_not_review_volunteer_application")
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Volunteer application reviewed"})
+	httpx.Success(c, http.StatusOK, "volunteers.reviewed")
 }
 
 func (a *API) SignupForEvent(c *gin.Context) {
@@ -224,7 +224,7 @@ func (a *API) SignupForEvent(c *gin.Context) {
 		return
 	}
 	if int64(eventID) > int64(1<<31-1) {
-		httpx.Fail(c, http.StatusNotFound, "Event not found")
+		httpx.Fail(c, http.StatusNotFound, "events.not_found")
 		return
 	}
 	userID, ok := authenticatedUserID(c)
@@ -234,40 +234,40 @@ func (a *API) SignupForEvent(c *gin.Context) {
 	ctx := c.Request.Context()
 	event, err := a.q.GetEventByID(ctx, int32(eventID))
 	if errors.Is(err, sql.ErrNoRows) {
-		httpx.Fail(c, http.StatusNotFound, "Event not found")
+		httpx.Fail(c, http.StatusNotFound, "events.not_found")
 		return
 	}
 	if err != nil {
-		httpx.Fail(c, http.StatusInternalServerError, "Could not check event")
+		httpx.Fail(c, http.StatusInternalServerError, "events.could_not_check_event")
 		return
 	}
 	if event.EventDate.Before(time.Now()) {
-		httpx.Fail(c, http.StatusUnprocessableEntity, "Sign-up is closed for past events")
+		httpx.Fail(c, http.StatusUnprocessableEntity, "events.sign_up_is_closed_for_past_events")
 		return
 	}
 	rows, err := a.q.CreateEventSignup(ctx, dbgen.CreateEventSignupParams{EventID: int32(eventID), UserID: userID})
 	if err != nil {
-		httpx.Fail(c, http.StatusInternalServerError, "Could not sign up for event")
+		httpx.Fail(c, http.StatusInternalServerError, "events.could_not_sign_up_for_event")
 		return
 	}
 	if rows == 0 {
 		currentDate, err := a.q.GetEventDate(ctx, int32(eventID))
 		if errors.Is(err, sql.ErrNoRows) {
-			httpx.Fail(c, http.StatusNotFound, "Event not found")
+			httpx.Fail(c, http.StatusNotFound, "events.not_found")
 			return
 		}
 		if err != nil {
-			httpx.Fail(c, http.StatusInternalServerError, "Could not check event")
+			httpx.Fail(c, http.StatusInternalServerError, "events.could_not_check_event")
 			return
 		}
 		if currentDate.Before(time.Now()) {
-			httpx.Fail(c, http.StatusUnprocessableEntity, "Sign-up is closed for past events")
+			httpx.Fail(c, http.StatusUnprocessableEntity, "events.sign_up_is_closed_for_past_events")
 			return
 		}
-		httpx.Fail(c, http.StatusConflict, "You are already signed up for this event")
+		httpx.Fail(c, http.StatusConflict, "events.you_are_already_signed_up_for_this_event")
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"message": "Event sign-up saved"})
+	httpx.Success(c, http.StatusCreated, "events.sign_up_saved")
 }
 
 func (a *API) CancelEventSignup(c *gin.Context) {
@@ -276,7 +276,7 @@ func (a *API) CancelEventSignup(c *gin.Context) {
 		return
 	}
 	if int64(eventID) > int64(1<<31-1) {
-		httpx.Fail(c, http.StatusNotFound, "Event not found")
+		httpx.Fail(c, http.StatusNotFound, "events.not_found")
 		return
 	}
 	userID, ok := authenticatedUserID(c)
@@ -284,17 +284,17 @@ func (a *API) CancelEventSignup(c *gin.Context) {
 		return
 	}
 	if _, err := a.q.GetEventByID(c.Request.Context(), int32(eventID)); errors.Is(err, sql.ErrNoRows) {
-		httpx.Fail(c, http.StatusNotFound, "Event not found")
+		httpx.Fail(c, http.StatusNotFound, "events.not_found")
 		return
 	} else if err != nil {
-		httpx.Fail(c, http.StatusInternalServerError, "Could not check event")
+		httpx.Fail(c, http.StatusInternalServerError, "events.could_not_check_event")
 		return
 	}
 	if _, err := a.q.DeleteEventSignup(c.Request.Context(), dbgen.DeleteEventSignupParams{EventID: int32(eventID), UserID: userID}); err != nil {
-		httpx.Fail(c, http.StatusInternalServerError, "Could not cancel event sign-up")
+		httpx.Fail(c, http.StatusInternalServerError, "events.could_not_cancel_event_sign_up")
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Event sign-up cancelled"})
+	httpx.Success(c, http.StatusOK, "events.sign_up_cancelled")
 }
 
 func (a *API) ListMyEventSignups(c *gin.Context) {
@@ -306,12 +306,12 @@ func (a *API) ListMyEventSignups(c *gin.Context) {
 	ctx := c.Request.Context()
 	rows, err := a.q.ListMyEventSignups(ctx, dbgen.ListMyEventSignupsParams{UserID: userID, RowOffset: offset, PageSize: int32(limit)})
 	if err != nil {
-		httpx.Fail(c, http.StatusInternalServerError, "Could not fetch event sign-ups")
+		httpx.Fail(c, http.StatusInternalServerError, "events.could_not_fetch_event_sign_ups")
 		return
 	}
 	total, err := a.q.CountMyEventSignups(ctx, userID)
 	if err != nil {
-		httpx.Fail(c, http.StatusInternalServerError, "Could not count event sign-ups")
+		httpx.Fail(c, http.StatusInternalServerError, "events.could_not_count_event_sign_ups")
 		return
 	}
 	items := make([]models.Event, 0, len(rows))
@@ -327,26 +327,26 @@ func (a *API) ListEventAttendees(c *gin.Context) {
 		return
 	}
 	if int64(eventID) > int64(1<<31-1) {
-		httpx.Fail(c, http.StatusNotFound, "Event not found")
+		httpx.Fail(c, http.StatusNotFound, "events.not_found")
 		return
 	}
 	ctx := c.Request.Context()
 	if _, err := a.q.GetEventByID(ctx, int32(eventID)); errors.Is(err, sql.ErrNoRows) {
-		httpx.Fail(c, http.StatusNotFound, "Event not found")
+		httpx.Fail(c, http.StatusNotFound, "events.not_found")
 		return
 	} else if err != nil {
-		httpx.Fail(c, http.StatusInternalServerError, "Could not check event")
+		httpx.Fail(c, http.StatusInternalServerError, "events.could_not_check_event")
 		return
 	}
 	page, limit, offset := pageArgs(c)
 	rows, err := a.q.ListEventAttendees(ctx, dbgen.ListEventAttendeesParams{EventID: int32(eventID), RowOffset: offset, PageSize: int32(limit)})
 	if err != nil {
-		httpx.Fail(c, http.StatusInternalServerError, "Could not fetch event attendees")
+		httpx.Fail(c, http.StatusInternalServerError, "events.could_not_fetch_event_attendees")
 		return
 	}
 	total, err := a.q.CountEventAttendees(ctx, int32(eventID))
 	if err != nil {
-		httpx.Fail(c, http.StatusInternalServerError, "Could not count event attendees")
+		httpx.Fail(c, http.StatusInternalServerError, "events.could_not_count_event_attendees")
 		return
 	}
 	items := make([]EventAttendeeDTO, 0, len(rows))

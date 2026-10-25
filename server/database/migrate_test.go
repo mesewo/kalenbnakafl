@@ -144,7 +144,7 @@ func TestMigration0002BackfillsRowsCreatedBy0001(t *testing.T) {
 	if _, err := db.Exec(`INSERT INTO posts(title,content,author_id,published) VALUES ('Hello, World!','body',1,true),('Hello World','body',1,false),('አማርኛ','body',1,false)`); err != nil {
 		t.Fatalf("insert pre-0002 posts: %v", err)
 	}
-	if _, err := provider.Up(ctx); err != nil {
+	if _, err := provider.UpTo(ctx, 2); err != nil {
 		t.Fatalf("apply migration 0002 over existing rows: %v", err)
 	}
 	rows, err := db.Query(`SELECT title,slug,published_at FROM posts ORDER BY id`)
@@ -201,7 +201,7 @@ func TestMigration0003BackfillsMediaKinds(t *testing.T) {
 			t.Fatalf("insert legacy media %q: %v", mediaType, err)
 		}
 	}
-	if _, err := provider.Up(ctx); err != nil {
+	if _, err := provider.UpTo(ctx, 3); err != nil {
 		t.Fatalf("apply media kind migration: %v", err)
 	}
 	rows, err := db.Query(`SELECT media_type,kind FROM media ORDER BY id`)
@@ -244,7 +244,7 @@ func TestMigration0004PreservesExistingContactRows(t *testing.T) {
 	if _, err := db.ExecContext(ctx, `INSERT INTO contacts(name,email,message) VALUES ('Legacy Contact','legacy-contact@example.org','Existing message')`); err != nil {
 		t.Fatalf("insert legacy contact: %v", err)
 	}
-	if _, err := provider.Up(ctx); err != nil {
+	if _, err := provider.UpTo(ctx, 4); err != nil {
 		t.Fatalf("apply contact inbox migration: %v", err)
 	}
 	var id int32
@@ -280,7 +280,7 @@ func TestMigration0005CreatesVolunteerWorkflowsWithExistingData(t *testing.T) {
 	if _, err := db.ExecContext(ctx, `INSERT INTO events(title,description,event_date) VALUES ('Existing event','Existing data',CURRENT_TIMESTAMP + INTERVAL '3 days')`); err != nil {
 		t.Fatalf("insert pre-migration event: %v", err)
 	}
-	if _, err := provider.Up(ctx); err != nil {
+	if _, err := provider.UpTo(ctx, 5); err != nil {
 		t.Fatalf("apply migration 0005: %v", err)
 	}
 	var usersTable, signupsTable sql.NullString
@@ -293,5 +293,62 @@ func TestMigration0005CreatesVolunteerWorkflowsWithExistingData(t *testing.T) {
 	var preserved int
 	if err := db.QueryRowContext(ctx, `SELECT count(*) FROM events WHERE title='Existing event'`).Scan(&preserved); err != nil || preserved != 1 {
 		t.Fatalf("pre-existing event data not preserved: count=%d err=%v", preserved, err)
+	}
+}
+
+func TestMigration0006BackfillsTranslationsAnd0007DropsLegacyText(t *testing.T) {
+	db := testDatabase(t)
+	ctx := context.Background()
+	provider, err := newMigrationProvider(db)
+	if err != nil {
+		t.Fatalf("create provider: %v", err)
+	}
+	if _, err := provider.UpTo(ctx, 5); err != nil {
+		t.Fatalf("apply migrations through 0005: %v", err)
+	}
+	if _, err := db.Exec(`INSERT INTO users(name,email,password,role) VALUES('Bilingual','bilingual@example.org','hash','admin')`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO posts(slug,title,content,author_id,published) VALUES('bilingual-post','Legacy English title','Legacy English body',1,true)`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO events(title,description,location,event_date) VALUES('Legacy event','Legacy description','Legacy place',CURRENT_TIMESTAMP)`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO media(title,file_path,kind) VALUES('Legacy media','/uploads/legacy.png','image')`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := provider.UpTo(ctx, 6); err != nil {
+		t.Fatalf("apply translation migration: %v", err)
+	}
+	var title, body, vector string
+	if err := db.QueryRow(`SELECT t.title,t.content,ps.search_vector::text FROM post_translations t JOIN post_search ps ON ps.post_id=t.post_id WHERE t.locale='en'`).Scan(&title, &body, &vector); err != nil {
+		t.Fatal(err)
+	}
+	if title != "Legacy English title" || body != "Legacy English body" || !strings.Contains(vector, "legacy") {
+		t.Fatalf("backfill title=%q body=%q vector=%q", title, body, vector)
+	}
+	var locale, eventTitle, eventDesc, eventLocation, mediaTitle string
+	if err := db.QueryRow(`SELECT locale,title,description,location FROM event_translations`).Scan(&locale, &eventTitle, &eventDesc, &eventLocation); err != nil {
+		t.Fatal(err)
+	}
+	if locale != "en" || eventTitle != "Legacy event" || eventDesc != "Legacy description" || eventLocation != "Legacy place" {
+		t.Fatalf("event translation %q %q %q %q", locale, eventTitle, eventDesc, eventLocation)
+	}
+	if err := db.QueryRow(`SELECT title FROM media_translations`).Scan(&mediaTitle); err != nil || mediaTitle != "Legacy media" {
+		t.Fatalf("media title=%q err=%v", mediaTitle, err)
+	}
+	if _, err := provider.UpTo(ctx, 7); err != nil {
+		t.Fatalf("drop legacy fields: %v", err)
+	}
+	var legacyColumn sql.NullString
+	if err := db.QueryRow(`SELECT column_name FROM information_schema.columns WHERE table_schema=current_schema() AND table_name='posts' AND column_name='title'`).Scan(&legacyColumn); err != sql.ErrNoRows {
+		t.Fatalf("posts.title still exists or lookup failed: %v", err)
+	}
+	if _, err := provider.DownTo(ctx, 6); err != nil {
+		t.Fatalf("restore legacy fields: %v", err)
+	}
+	if _, err := provider.UpTo(ctx, 7); err != nil {
+		t.Fatalf("reapply legacy-field removal: %v", err)
 	}
 }

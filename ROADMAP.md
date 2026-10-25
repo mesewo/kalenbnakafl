@@ -2,10 +2,10 @@
 
 ### Current state / next step
 
-- Verification guidance and Copilot instructions are in place; generated API types are reproducible and frontend checks pass.
-- Volunteer applications now accept only one review; repeat reviews return the standard 409 conflict envelope.
-- Backend build, formatting, vet, tests, and sqlc diff pass; PostgreSQL integration tests skipped because `DATABASE_URL_TEST` is unset.
-- Next: rerun integration tests and Compose smoke when the test database and Docker Engine are available.
+- Bilingual backend content is implemented with `en`/`am` translations, localized message keys, and migrations 0006/0007.
+- Verification: backend Go tests/build/vet, sqlc drift, OpenAPI route parity, generated frontend types, lint, TypeScript, format check, and production build pass. `go test ./...` also passes with PostgreSQL-backed tests enabled after updating the locale fallback fixture to publish its post first.
+- Not verified: Compose smoke could not connect to the Docker Engine.
+- Next: complete the Compose smoke before checking off bilingual delivery.
 
 **Goal:** a repo and a live demo that survive a 10-minute recruiter/hiring-manager review for a *senior full-stack* role: one-command startup, real security, real tests, CI, docs, and a polished, working UI.
 
@@ -72,7 +72,8 @@
 - [ ] Contact: inbox for staff, status workflow, optional email notification
 - [ ] Volunteers: application → pending/approved; event sign-ups
 - [ ] Membership: status + admin management
-- [ ] OpenAPI spec `docs/openapi.yaml` kept in sync (Swagger UI at `/docs` in dev)
+- [x] OpenAPI spec `docs/openapi.yaml` kept in sync; static Redoc viewer at `docs/api.html`
+- [ ] Bilingual content: translation tables, fallback metadata, translated search, localized messages, and staff translation management (verify against PostgreSQL before completion)
 
 **Exit:** every UI button in the current dashboard has a real endpoint behind it; every endpoint documented in OpenAPI.
 
@@ -211,7 +212,9 @@
 | `cd server && go tool sqlc diff -f ../sqlc.yaml && go tool goose -dir db/migrations validate && go build ./... && go vet ./... && go test ./...` (volunteer applications and event sign-ups) | Passed; PostgreSQL integration tests skipped because `DATABASE_URL_TEST` was unset. | 2026-10-24 |
 | `cd front-end && npm run lint && npx tsc --noEmit && npm run format:check && npm run build` (volunteer applications and event sign-ups) | Passed; lint reported 7 warnings and 0 errors; TypeScript, format check, and build passed. Next.js warned that Baseline browser data is stale. | 2026-10-24 |
 | `docker compose up --build -d` (volunteer applications and event sign-ups smoke) | Failed before startup: Docker Engine named pipe was unavailable. Register/apply/approve/sign-up smoke was not run. | 2026-10-24 |
-### Phase 0 baseline run — 2026-10-20
+| `cd server && gofmt -l . && go build ./... && go vet ./... && go test -count=1 ./... && go tool sqlc diff -f ../sqlc.yaml && go tool goose -dir db/migrations validate` (bilingual content) | Passed with no gofmt output or sqlc diff; PostgreSQL-backed migration/content cases skipped because `DATABASE_URL_TEST` was unset. | 2026-10-25 |
+| `cd front-end && npm run gen:api && npm run lint && npx tsc --noEmit && npm run format:check && npm run build` (bilingual content) | Passed; API generation was idempotent; lint reported 7 warnings and 0 errors; TypeScript, format check, and production build passed. Next warned Baseline browser data is stale. | 2026-10-25 |
+| `docker compose up --build -d` (bilingual content smoke) | Failed before startup: Docker Engine named pipe was unavailable. | 2026-10-25 |### Phase 0 baseline run — 2026-10-20
 
 | Command | Exact result |
 |---------|--------------|

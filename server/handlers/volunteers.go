@@ -14,14 +14,14 @@ import (
 func (a *API) GetVolunteers(c *gin.Context) {
 	rows, err := a.q.ListVolunteers(c.Request.Context())
 	if err != nil {
-		httpx.Fail(c, http.StatusInternalServerError, "Failed to fetch volunteers")
+		httpx.Fail(c, http.StatusInternalServerError, "volunteers.failed_to_fetch_volunteers")
 		return
 	}
 	items := make([]models.Volunteer, 0, len(rows))
 	for _, row := range rows {
 		hours, err := strconv.ParseFloat(row.TotalHours, 64)
 		if err != nil {
-			httpx.Fail(c, http.StatusInternalServerError, "Failed to fetch volunteers")
+			httpx.Fail(c, http.StatusInternalServerError, "volunteers.failed_to_fetch_volunteers")
 			return
 		}
 		items = append(items, models.Volunteer{
@@ -43,7 +43,7 @@ func (a *API) AddContribution(c *gin.Context) {
 		ContributionDate string  `json:"contribution_date"`
 	}
 	if !httpx.BindJSON(c, &input) || input.Hours <= 0 || input.Hours > 1000 {
-		httpx.Fail(c, http.StatusBadRequest, "Hours must be greater than zero")
+		httpx.Fail(c, http.StatusBadRequest, "volunteers.hours_must_be_greater_than_zero")
 		return
 	}
 	createdBy, _ := c.Get("user_id")
@@ -56,8 +56,8 @@ func (a *API) AddContribution(c *gin.Context) {
 		Notes: clean(input.Notes), ContributionDate: input.ContributionDate, CreatedBy: createdByID,
 	})
 	if err != nil {
-		httpx.Fail(c, http.StatusInternalServerError, "Could not record contribution")
+		httpx.Fail(c, http.StatusInternalServerError, "volunteers.could_not_record_contribution")
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"message": "Contribution recorded"})
+	httpx.Success(c, http.StatusCreated, "volunteers.contribution_recorded")
 }

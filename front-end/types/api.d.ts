@@ -634,6 +634,18 @@ export interface components {
       created_at?: string;
       /** Format: date-time */
       updated_at?: string;
+      /** @enum {string} */
+      language: "en" | "am";
+      fallback: boolean;
+      translations?: components["schemas"]["PostTranslations"];
+    };
+    PostTranslation: {
+      title: string;
+      content: string;
+    };
+    PostTranslations: {
+      en?: components["schemas"]["PostTranslation"];
+      am?: components["schemas"]["PostTranslation"];
     };
     Event: {
       /** Format: int64 */
@@ -647,6 +659,19 @@ export interface components {
       location: string;
       /** Format: date-time */
       created_at?: string;
+      /** @enum {string} */
+      language: "en" | "am";
+      fallback: boolean;
+      translations?: components["schemas"]["EventTranslations"];
+    };
+    EventTranslation: {
+      title: string;
+      description: string;
+      location: string;
+    };
+    EventTranslations: {
+      en?: components["schemas"]["EventTranslation"];
+      am?: components["schemas"]["EventTranslation"];
     };
     Media: {
       /** Format: int64 */
@@ -661,6 +686,17 @@ export interface components {
       kind: "image" | "video" | "audio" | "document";
       /** Format: date-time */
       created_at?: string;
+      /** @enum {string} */
+      language: "en" | "am";
+      fallback: boolean;
+      translations?: components["schemas"]["MediaTranslations"];
+    };
+    MediaTranslation: {
+      title: string;
+    };
+    MediaTranslations: {
+      en?: components["schemas"]["MediaTranslation"];
+      am?: components["schemas"]["MediaTranslation"];
     };
     /** @description Contact message as returned to staff */
     ContactMessage: {
@@ -793,16 +829,17 @@ export interface components {
       message: string;
     };
     CreatePostRequest: {
-      title: string;
-      content: string;
+      translations: components["schemas"]["PostTranslations"];
       slug?: string;
       /** Format: int64 */
       cover_media_id?: number;
     };
     UpdatePostRequest: {
-      title: string;
-      content: string;
-      slug: string;
+      translations: {
+        en?: components["schemas"]["PostTranslation"] | null;
+        am?: components["schemas"]["PostTranslation"] | null;
+      };
+      slug?: string;
       /** Format: int64 */
       cover_media_id?: number;
     };
@@ -810,8 +847,7 @@ export interface components {
       published: boolean;
     };
     CreateEventRequest: {
-      title: string;
-      description: string;
+      translations: components["schemas"]["EventTranslations"];
       /**
        * Format: date-time
        * @description RFC3339 datetime
@@ -822,16 +858,16 @@ export interface components {
        * @description Optional; must be after event_date
        */
       ends_at?: string;
-      location?: string;
     };
     UpdateEventRequest: {
-      title: string;
-      description: string;
+      translations: {
+        en?: components["schemas"]["EventTranslation"] | null;
+        am?: components["schemas"]["EventTranslation"] | null;
+      };
       /** Format: date-time */
       event_date: string;
       /** Format: date-time */
       ends_at?: string;
-      location?: string;
     };
     UpdateProfileRequest: {
       name: string;
@@ -946,6 +982,8 @@ export interface components {
     };
   };
   parameters: {
+    /** @description Requested locale; defaults from Accept-Language when omitted. */
+    LanguageParam: "en" | "am";
     PageParam: number;
     LimitParam: number;
   };
@@ -1108,6 +1146,8 @@ export interface operations {
   getPosts: {
     parameters: {
       query?: {
+        /** @description Requested locale; defaults from Accept-Language when omitted. */
+        lang?: components["parameters"]["LanguageParam"];
         page?: components["parameters"]["PageParam"];
         limit?: components["parameters"]["LimitParam"];
         /** @description Full-text search query */
@@ -1128,12 +1168,24 @@ export interface operations {
           "application/json": components["schemas"]["PagePost"];
         };
       };
+      /** @description Unsupported language locale */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
       500: components["responses"]["InternalServerError"];
     };
   };
   getPostBySlug: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Requested locale; defaults from Accept-Language when omitted. */
+        lang?: components["parameters"]["LanguageParam"];
+      };
       header?: never;
       path: {
         slug: string;
@@ -1152,12 +1204,23 @@ export interface operations {
         };
       };
       404: components["responses"]["NotFound"];
+      /** @description Unsupported language locale */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
       500: components["responses"]["InternalServerError"];
     };
   };
   getEvents: {
     parameters: {
       query?: {
+        /** @description Requested locale; defaults from Accept-Language when omitted. */
+        lang?: components["parameters"]["LanguageParam"];
         page?: components["parameters"]["PageParam"];
         limit?: components["parameters"]["LimitParam"];
         /** @description When "true", return only future events sorted ascending */
@@ -1178,12 +1241,24 @@ export interface operations {
           "application/json": components["schemas"]["PageEvent"];
         };
       };
+      /** @description Unsupported language locale */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
       500: components["responses"]["InternalServerError"];
     };
   };
   getEventByID: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Requested locale; defaults from Accept-Language when omitted. */
+        lang?: components["parameters"]["LanguageParam"];
+      };
       header?: never;
       path: {
         id: number;
@@ -1203,12 +1278,23 @@ export interface operations {
       };
       400: components["responses"]["BadRequest"];
       404: components["responses"]["NotFound"];
+      /** @description Unsupported language locale */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
       500: components["responses"]["InternalServerError"];
     };
   };
   getMedia: {
     parameters: {
       query?: {
+        /** @description Requested locale; defaults from Accept-Language when omitted. */
+        lang?: components["parameters"]["LanguageParam"];
         page?: components["parameters"]["PageParam"];
         limit?: components["parameters"]["LimitParam"];
         /** @description Filter by media kind */
@@ -1229,7 +1315,7 @@ export interface operations {
           "application/json": components["schemas"]["PageMedia"];
         };
       };
-      /** @description Invalid kind value */
+      /** @description Invalid kind or unsupported language locale */
       422: {
         headers: {
           [name: string]: unknown;
@@ -1479,6 +1565,8 @@ export interface operations {
   staffGetPosts: {
     parameters: {
       query?: {
+        /** @description Requested locale; defaults from Accept-Language when omitted. */
+        lang?: components["parameters"]["LanguageParam"];
         page?: components["parameters"]["PageParam"];
         limit?: components["parameters"]["LimitParam"];
         q?: string;
@@ -1500,6 +1588,15 @@ export interface operations {
       };
       401: components["responses"]["Unauthorized"];
       403: components["responses"]["Forbidden"];
+      /** @description Unsupported language locale */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
       500: components["responses"]["InternalServerError"];
     };
   };
@@ -1522,7 +1619,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["Post"];
+          "application/json": components["schemas"]["MessageResponse"];
         };
       };
       400: components["responses"]["BadRequest"];
@@ -1587,7 +1684,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["Post"];
+          "application/json": components["schemas"]["MessageResponse"];
         };
       };
       400: components["responses"]["BadRequest"];
@@ -1641,6 +1738,8 @@ export interface operations {
   staffGetEvents: {
     parameters: {
       query?: {
+        /** @description Requested locale; defaults from Accept-Language when omitted. */
+        lang?: components["parameters"]["LanguageParam"];
         page?: components["parameters"]["PageParam"];
         limit?: components["parameters"]["LimitParam"];
         upcoming?: "true" | "false";
@@ -1662,6 +1761,15 @@ export interface operations {
       };
       401: components["responses"]["Unauthorized"];
       403: components["responses"]["Forbidden"];
+      /** @description Unsupported language locale */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
       500: components["responses"]["InternalServerError"];
     };
   };
@@ -1684,7 +1792,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["Event"];
+          "application/json": components["schemas"]["MessageResponse"];
         };
       };
       400: components["responses"]["BadRequest"];
@@ -1749,7 +1857,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["Event"];
+          "application/json": components["schemas"]["MessageResponse"];
         };
       };
       400: components["responses"]["BadRequest"];
@@ -1763,6 +1871,8 @@ export interface operations {
   staffGetMedia: {
     parameters: {
       query?: {
+        /** @description Requested locale; defaults from Accept-Language when omitted. */
+        lang?: components["parameters"]["LanguageParam"];
         page?: components["parameters"]["PageParam"];
         limit?: components["parameters"]["LimitParam"];
         kind?: "image" | "video" | "audio" | "document";
@@ -1784,6 +1894,15 @@ export interface operations {
       };
       401: components["responses"]["Unauthorized"];
       403: components["responses"]["Forbidden"];
+      /** @description Unsupported language locale */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
       500: components["responses"]["InternalServerError"];
     };
   };
@@ -1799,7 +1918,8 @@ export interface operations {
         "multipart/form-data": {
           /** Format: binary */
           file: string;
-          title?: string;
+          /** @description JSON object with at least one en/am title, e.g. {"en":{"title":"Photo"}}. */
+          translations: string;
         };
       };
     };

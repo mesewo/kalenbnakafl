@@ -21,13 +21,10 @@ type ContactMessage struct {
 }
 
 type Event struct {
-	ID          int32        `json:"id"`
-	Title       string       `json:"title"`
-	Description string       `json:"description"`
-	EventDate   time.Time    `json:"event_date"`
-	CreatedAt   time.Time    `json:"created_at"`
-	Location    string       `json:"location"`
-	EndsAt      sql.NullTime `json:"ends_at"`
+	ID        int32        `json:"id"`
+	EventDate time.Time    `json:"event_date"`
+	CreatedAt time.Time    `json:"created_at"`
+	EndsAt    sql.NullTime `json:"ends_at"`
 }
 
 type EventSignup struct {
@@ -36,9 +33,16 @@ type EventSignup struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type EventTranslation struct {
+	EventID     int32  `json:"event_id"`
+	Locale      string `json:"locale"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Location    string `json:"location"`
+}
+
 type Media struct {
 	ID           int32          `json:"id"`
-	Title        string         `json:"title"`
 	FilePath     string         `json:"file_path"`
 	MediaType    sql.NullString `json:"media_type"`
 	OriginalName sql.NullString `json:"original_name"`
@@ -49,10 +53,14 @@ type Media struct {
 	Kind         string         `json:"kind"`
 }
 
+type MediaTranslation struct {
+	MediaID int32  `json:"media_id"`
+	Locale  string `json:"locale"`
+	Title   string `json:"title"`
+}
+
 type Post struct {
 	ID           int32         `json:"id"`
-	Title        string        `json:"title"`
-	Content      string        `json:"content"`
 	AuthorID     sql.NullInt32 `json:"author_id"`
 	Published    bool          `json:"published"`
 	CreatedAt    time.Time     `json:"created_at"`
@@ -60,7 +68,18 @@ type Post struct {
 	Slug         string        `json:"slug"`
 	PublishedAt  sql.NullTime  `json:"published_at"`
 	CoverMediaID sql.NullInt32 `json:"cover_media_id"`
-	SearchVector interface{}   `json:"search_vector"`
+}
+
+type PostSearch struct {
+	PostID       int32       `json:"post_id"`
+	SearchVector interface{} `json:"search_vector"`
+}
+
+type PostTranslation struct {
+	PostID  int32  `json:"post_id"`
+	Locale  string `json:"locale"`
+	Title   string `json:"title"`
+	Content string `json:"content"`
 }
 
 type RefreshToken struct {
