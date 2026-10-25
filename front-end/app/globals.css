@@ -688,6 +688,16 @@ button {
   }
 }
 @media (max-width: 680px) {
+  .dashboard-topbar {
+    flex-wrap: wrap;
+  }
+  .dashboard-topbar > div {
+    flex-wrap: wrap;
+  }
+  .dashboard-brand {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
   .nav-links,
   .nav-actions {
     display: none;

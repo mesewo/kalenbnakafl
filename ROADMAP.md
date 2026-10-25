@@ -2,11 +2,11 @@
 
 ### Current state / next step
 
-- Public routes now live under `[locale]/(site)` and dashboard routes under `[locale]/dashboard`; `/dashboard/*` receives locale-prefix handling.
-- Dashboard shell, overview, profile, role labels, auth redirects, and language switching use the selected locale; dates and event datetime fields are locale-aware.
-- Updated the dashboard locale Playwright test to wait for login navigation, then switch languages using the dashboard control.
-- ESLint, TypeScript, and Playwright test discovery passed; full authenticated Playwright execution still requires the Compose stack and admin credentials.
-- Next: rerun the Playwright specs in CI/Compose and have a native Amharic speaker review `docs/i18n-review.md`.
+- Public routes are localized under `[locale]/(site)` and dashboard routes under `[locale]/dashboard`; dashboard dates and locale switching follow the selected language.
+- Corrected two malformed Amharic characters and regenerated the review catalog; `npm run check:i18n` now validates all 247 messages.
+- Added narrow-screen dashboard top-bar wrapping; a mocked-auth Playwright browser check measured no horizontal overflow at 360px or 1280px in either locale.
+- Frontend lint (0 errors; 5 existing warnings), TypeScript, format check, production build, Playwright discovery, and `git diff --check` passed.
+- Next: rerun the authenticated Compose smoke in CI and have a native Amharic speaker review `docs/i18n-review.md`.
 **Goal:** a repo and a live demo that survive a 10-minute recruiter/hiring-manager review for a *senior full-stack* role: one-command startup, real security, real tests, CI, docs, and a polished, working UI.
 
 **Rhythm:** each phase = 1–3 focused sessions (≈2–4 h each) with Gemini. Finish a phase's *Exit criteria* before starting the next. Total ≈ 3–4 weeks part-time.
