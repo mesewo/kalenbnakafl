@@ -134,7 +134,7 @@ func createAuthUser(t *testing.T, q *dbgen.Queries, name, email, password, role 
 
 func TestRegisterDuplicateEmailAndLogin(t *testing.T) {
 	_, _, r := authTestApp(t)
-	password := "a-long-test-password"
+	password := "a-long-secure-passphrase"
 	body := `{"name":"Test User","email":"Case@Example.org","password":"` + password + `"}`
 	if got := authRequest(r, http.MethodPost, "/api/register", body).Code; got != http.StatusCreated {
 		t.Fatalf("first register status = %d", got)

@@ -6,7 +6,9 @@
 - Go format, vet, tests, sqlc diff, and API Docker image build passed; local Go tests used Go 1.27.0, while the image uses Go 1.27.3.
 - `govulncheck` v1.6.0 ran with Go 1.27.3: zero vulnerabilities in called code or imported packages; one required but unreachable module advisory remains.
 - Trivy's local database download stalled and timed out, so the rebuilt image still needs a fresh CI Trivy scan.
-- Next: run the Security workflow and confirm both API and frontend image scans pass.
+- Fixed an auth integration fixture whose password contained the test user's name, triggering the intended password-identity rejection; all handler tests passed with PostgreSQL enabled.
+- Full `go test ./...` was attempted but another handler integration test hit its 15-second migration timeout while packages ran concurrently; CI should confirm the complete run.
+- Next: rerun backend CI and investigate the independent migration timeout if it recurs.
 **Goal:** a repo and a live demo that survive a 10-minute recruiter/hiring-manager review for a *senior full-stack* role: one-command startup, real security, real tests, CI, docs, and a polished, working UI.
 
 **Rhythm:** each phase = 1–3 focused sessions (≈2–4 h each) with Gemini. Finish a phase's *Exit criteria* before starting the next. Total ≈ 3–4 weeks part-time.
