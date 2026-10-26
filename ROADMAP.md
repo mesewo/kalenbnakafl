@@ -3,10 +3,11 @@
 ### Current state / next step
 
 - Backend security hardening now has shared password policy, dummy-hash login checks, refresh-token revocation/cleanup, and CI security scans.
+- Pinned `govulncheck` to v1.6.0, whose Go 1.25 requirement is compatible with the repository's Go 1.25.4 toolchain.
 - Go build, vet, tests, formatting, and sqlc diff passed; PostgreSQL-dependent integration tests were skipped because `DATABASE_URL_TEST` was unset.
 - Frontend lint, TypeScript, formatting, catalog validation, API type generation, and production build passed; lint reports existing hook warnings.
-- Docker Engine access was unavailable, so disposable PostgreSQL integration verification and Compose smoke were not run.
-- Next: run DB-backed security integration tests and Compose smoke in CI; obtain native review of `docs/i18n-review.md`.
+- Docker Engine access was unavailable, so disposable PostgreSQL integration verification and Compose smoke were not run; the Govulncheck version is validated separately.
+- Next: confirm the pinned govulncheck scan in CI; run DB-backed security integration tests and Compose smoke, and obtain native review of `docs/i18n-review.md`.
 **Goal:** a repo and a live demo that survive a 10-minute recruiter/hiring-manager review for a *senior full-stack* role: one-command startup, real security, real tests, CI, docs, and a polished, working UI.
 
 **Rhythm:** each phase = 1–3 focused sessions (≈2–4 h each) with Gemini. Finish a phase's *Exit criteria* before starting the next. Total ≈ 3–4 weeks part-time.
