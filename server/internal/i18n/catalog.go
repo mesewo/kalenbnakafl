@@ -28,6 +28,11 @@ var catalogEn = map[string]string{
 	"auth.name_valid_email_and_password_of_at_least_12_characters_are_required": "Name, valid email, and password of at least 12 characters are required",
 	"auth.password_hashing_failed":                                          "Password hashing failed",
 	"auth.password_must_be_at_least_12_characters":                          "Password must be at least 12 characters",
+	"auth.password_too_short":                                               "Password must contain at least 12 characters.",
+	"auth.password_too_long":                                                "Password must not exceed 72 bytes.",
+	"auth.password_too_common":                                              "This password is too common. Choose another one.",
+	"auth.password_contains_identity":                                       "Password must not contain your name or email address.",
+	"auth.password_policy_invalid":                                          "Password does not meet the password policy.",
 	"auth.refresh_session_expired":                                          "Refresh session expired",
 	"auth.refresh_session_missing":                                          "Refresh session missing",
 	"auth.signed_out":                                                       "Signed out",
@@ -143,6 +148,11 @@ var catalogEn = map[string]string{
 }
 
 var catalogAm = map[string]string{
+	"auth.password_too_short":                             "የይለፍ ቃሉ ቢያንስ 12 ቁምፊዎች ሊኖሩት ይገባል።",
+	"auth.password_too_long":                              "የይለፍ ቃሉ ከ72 ባይት መብለጥ የለበትም።",
+	"auth.password_too_common":                            "ይህ የይለፍ ቃል በጣም በብዛት የሚጠቀሙት ስለሆነ ሌላ ይምረጡ።",
+	"auth.password_contains_identity":                     "የይለፍ ቃሉ ስምዎን ወይም ኢሜይልዎን መያዝ የለበትም።",
+	"auth.password_policy_invalid":                        "የይለፍ ቃሉ የይለፍ ቃል መስፈርቱን አያሟላም።",
 	"common.locale_invalid":                               "\u124b\u1295\u124b\u12cd en \u12c8\u12ed\u121d am \u1218\u1206\u1295 \u12a0\u1208\u1260\u1275",
 	"contact.name_valid_email_and_a_message_are_required": "\u1235\u121d \u12a5\u1293 \u1218\u120d\u12a5\u12ad\u1275 \u12eb\u1235\u1348\u120b\u1309",
 	"contact.status_must_be_read_or_replied":              "ሁኔታው የተነበበ ወይም መልስ የተሰጠው መሆን አለበት",

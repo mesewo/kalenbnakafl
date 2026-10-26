@@ -441,6 +441,19 @@ components:
       required: [items, page, limit, total]
 
     # ──────────── request bodies ────────────
+    PasswordInput:
+      type: string
+      minLength: 12
+      x-maxBytes: 72
+      description: At least 12 Unicode characters and at most 72 UTF-8 bytes; common passwords and values containing the account name or email are rejected.
+
+    OptionalPasswordInput:
+      oneOf:
+        - $ref: "#/components/schemas/PasswordInput"
+        - type: string
+          maxLength: 0
+      description: Omit or send an empty string to leave the existing password unchanged; otherwise the full password policy applies.
+
     RegisterRequest:
       type: object
       properties:
@@ -451,8 +464,7 @@ components:
           type: string
           format: email
         password:
-          type: string
-          minLength: 12
+          $ref: "#/components/schemas/PasswordInput"
       required: [name, email, password]
 
     LoginRequest:
@@ -566,9 +578,7 @@ components:
           type: string
           format: email
         password:
-          type: string
-          minLength: 8
-          description: Optional; when provided, updates the password
+          $ref: "#/components/schemas/OptionalPasswordInput"
       required: [name, email]
 
     CreateUserRequest:
@@ -581,8 +591,7 @@ components:
           type: string
           format: email
         password:
-          type: string
-          minLength: 12
+          $ref: "#/components/schemas/PasswordInput"
         role:
           $ref: "#/components/schemas/UserRole"
       required: [name, email, password, role]
@@ -598,6 +607,8 @@ components:
           format: email
         role:
           $ref: "#/components/schemas/UserRole"
+        password:
+          $ref: "#/components/schemas/OptionalPasswordInput"
       required: [name, email, role]
 
     AddContributionRequest:
@@ -756,6 +767,8 @@ paths:
                 $ref: "#/components/schemas/User"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
         "409":
           description: Email already registered
           content:
@@ -770,7 +783,8 @@ paths:
       operationId: login
       summary: Log in and receive session cookies
       description: |
-        Verifies credentials and sets two `HttpOnly` cookies:
+        Verifies credentials and sets two `HttpOnly` cookies. Unknown accounts and incorrect
+        passwords receive the same 401 response; unknown accounts use a dummy bcrypt comparison.
         - `access_token`: JWT, 15-minute TTL
         - `refresh_token`: opaque token, 7-day TTL
 
@@ -1099,6 +1113,8 @@ paths:
                 $ref: "#/components/schemas/User"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
@@ -1835,6 +1851,8 @@ paths:
                 $ref: "#/components/schemas/User"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -1874,6 +1892,8 @@ paths:
                 $ref: "#/components/schemas/User"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":

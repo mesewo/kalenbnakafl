@@ -144,6 +144,7 @@ func run() error {
 	if err := database.BootstrapAdmin(ctx, q, cfg); err != nil {
 		return err
 	}
+	go database.RunRefreshTokenCleanup(ctx, q, time.Hour)
 	r, err := newRouter(cfg, db, q)
 	if err != nil {
 		return err

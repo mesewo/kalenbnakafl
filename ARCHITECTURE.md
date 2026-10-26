@@ -30,6 +30,10 @@ All API errors use `{"error":{"code":"...","message":"...","details":{}}}`. Stab
 
 Access JWTs use a typed claim structure and accept only HS256. Parsing requires issuer, issue time, expiry, positive user ID, and a recognized role; malformed claims return unauthorized. Session cookies are `HttpOnly; SameSite=Lax` in every environment and `Secure` except in development. For POST, PUT, PATCH, and DELETE requests carrying an access or refresh cookie, the API requires an allowed `Origin`, or an allowed `Referer` when `Origin` is absent. Login, registration, and contact are exempt because they do not read or rely on an existing session. Login attempts use a fixed-window key of trusted client IP plus lowercased email; register and contact use client IP. Rejections include `Retry-After`. The in-memory limiter sweeps expired entries at most every 30 seconds and caps its map at 10,000 keys.
 
+## Security hardening
+
+Login performs a bcrypt comparison for missing accounts using a process-startup dummy hash and returns the same 401 response as an incorrect password. Registration, admin creation/reset, profile password changes, bootstrap, and configuration validation share `internal/auth.ValidatePassword`: at least 12 Unicode characters, no more than 72 UTF-8 bytes, rejects a small common-password list, and rejects passwords containing the account name or email. Password-policy errors use localized catalog keys and return 422. Password changes and role changes transactionally revoke all active refresh tokens for the affected user. A cancellable hourly task deletes expired refresh-token rows. CI runs govulncheck, full-history Gitleaks, high/critical Trivy scans for API and frontend images, and a failing high/critical production npm audit; Dependabot checks Go modules, npm, Docker, and GitHub Actions weekly.
+
 ## 1. Current state
 
 ```mermaid

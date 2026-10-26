@@ -34,6 +34,7 @@ type Querier interface {
 	DeleteEvent(ctx context.Context, id int32) (int64, error)
 	DeleteEventSignup(ctx context.Context, arg DeleteEventSignupParams) (int64, error)
 	DeleteEventTranslation(ctx context.Context, arg DeleteEventTranslationParams) (int64, error)
+	DeleteExpiredRefreshTokens(ctx context.Context) (int64, error)
 	DeleteMedia(ctx context.Context, id int32) (int64, error)
 	DeletePost(ctx context.Context, id int32) (int64, error)
 	DeletePostTranslation(ctx context.Context, arg DeletePostTranslationParams) (int64, error)
@@ -65,6 +66,7 @@ type Querier interface {
 	ReviewVolunteerApplication(ctx context.Context, arg ReviewVolunteerApplicationParams) (int64, error)
 	RevokeRefreshToken(ctx context.Context, tokenHash string) error
 	RevokeRefreshTokenByHash(ctx context.Context, tokenHash string) error
+	RevokeUserRefreshTokens(ctx context.Context, userID int32) error
 	UpdateContactMessageStatus(ctx context.Context, arg UpdateContactMessageStatusParams) (int64, error)
 	UpdateEventFields(ctx context.Context, arg UpdateEventFieldsParams) (int64, error)
 	UpdateManagedUser(ctx context.Context, arg UpdateManagedUserParams) (int64, error)

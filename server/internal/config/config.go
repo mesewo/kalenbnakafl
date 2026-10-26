@@ -2,6 +2,8 @@ package config
 
 import (
 	"fmt"
+	"kalenbnakafl/internal/auth"
+	"kalenbnakafl/internal/i18n"
 	"os"
 	"strconv"
 	"strings"
@@ -94,8 +96,10 @@ func (c Config) validationProblems() []string {
 	if (c.AdminEmail == "") != (c.AdminPassword == "") {
 		problems = append(problems, "ADMIN_EMAIL and ADMIN_PASSWORD must be set together")
 	}
-	if c.AdminPassword != "" && len(c.AdminPassword) < 12 {
-		problems = append(problems, "ADMIN_PASSWORD must be at least 12 characters")
+	if c.AdminPassword != "" {
+		if err := auth.ValidatePassword(c.AdminPassword, c.AdminEmail, "Administrator"); err != nil {
+			problems = append(problems, "ADMIN_PASSWORD: "+i18n.Text("en", err.Error()))
+		}
 	}
 	if strings.TrimSpace(c.UploadDir) == "" {
 		problems = append(problems, "UPLOAD_DIR must not be empty")

@@ -163,6 +163,20 @@ func TestRegisterDuplicateEmailAndLogin(t *testing.T) {
 	if bad.Code != http.StatusUnauthorized {
 		t.Fatalf("bad password status = %d, want 401", bad.Code)
 	}
+	unknown := authRequest(r, http.MethodPost, "/api/login", `{"email":"unknown@example.org","password":"wrong-password"}`)
+	if unknown.Code != http.StatusUnauthorized {
+		t.Fatalf("unknown-account status = %d, want 401", unknown.Code)
+	}
+	var badBody, unknownBody map[string]any
+	if err := json.Unmarshal(bad.Body.Bytes(), &badBody); err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(unknown.Body.Bytes(), &unknownBody); err != nil {
+		t.Fatal(err)
+	}
+	if badBody["error"].(map[string]any)["message"] != unknownBody["error"].(map[string]any)["message"] {
+		t.Fatalf("known and unknown login errors differ: %s / %s", bad.Body, unknown.Body)
+	}
 }
 
 func TestRefreshRotationAndConcurrentSingleUse(t *testing.T) {

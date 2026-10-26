@@ -35,9 +35,8 @@ jobs:
       - run: npx tsc --noEmit
       - run: npm run format:check
       - run: npm run build
-      - name: Audit production dependencies (informational)
-        run: npm audit --omit=dev
-        continue-on-error: true
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
 
   content-smoke:
     runs-on: ubuntu-latest

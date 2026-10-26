@@ -12,7 +12,9 @@ import (
 	_ "github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
 	"kalenbnakafl/dbgen"
+	"kalenbnakafl/internal/auth"
 	"kalenbnakafl/internal/config"
+	"kalenbnakafl/internal/i18n"
 )
 
 func Connect(ctx context.Context, cfg config.Config) (*sql.DB, *dbgen.Queries, error) {
@@ -57,8 +59,11 @@ func BootstrapAdmin(ctx context.Context, q *dbgen.Queries, cfg config.Config) er
 	if email == "" && password == "" {
 		return nil
 	}
-	if email == "" || len(password) < 12 {
-		return errors.New("ADMIN_EMAIL and an ADMIN_PASSWORD of at least 12 characters are required together")
+	if email == "" {
+		return errors.New("ADMIN_EMAIL and ADMIN_PASSWORD are required together")
+	}
+	if err := auth.ValidatePassword(password, email, "Administrator"); err != nil {
+		return fmt.Errorf("invalid ADMIN_PASSWORD: %s", i18n.Text("en", err.Error()))
 	}
 	count, err := q.CountAdmins(ctx)
 	if err != nil {

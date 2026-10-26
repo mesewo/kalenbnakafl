@@ -76,6 +76,19 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
 	return err
 }
 
+const deleteExpiredRefreshTokens = `-- name: DeleteExpiredRefreshTokens :execrows
+DELETE FROM refresh_tokens
+WHERE expires_at <= CURRENT_TIMESTAMP
+`
+
+func (q *Queries) DeleteExpiredRefreshTokens(ctx context.Context) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteExpiredRefreshTokens)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const deleteUser = `-- name: DeleteUser :execrows
 DELETE FROM users WHERE id = $1
 `
@@ -239,6 +252,17 @@ WHERE token_hash = $1
 
 func (q *Queries) RevokeRefreshTokenByHash(ctx context.Context, tokenHash string) error {
 	_, err := q.db.ExecContext(ctx, revokeRefreshTokenByHash, tokenHash)
+	return err
+}
+
+const revokeUserRefreshTokens = `-- name: RevokeUserRefreshTokens :exec
+UPDATE refresh_tokens
+SET revoked_at = CURRENT_TIMESTAMP
+WHERE user_id = $1 AND revoked_at IS NULL
+`
+
+func (q *Queries) RevokeUserRefreshTokens(ctx context.Context, userID int32) error {
+	_, err := q.db.ExecContext(ctx, revokeUserRefreshTokens, userID)
 	return err
 }
 

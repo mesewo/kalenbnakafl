@@ -811,11 +811,15 @@ export interface components {
       /** Format: int64 */
       total: number;
     };
+    /** @description At least 12 Unicode characters and at most 72 UTF-8 bytes; common passwords and values containing the account name or email are rejected. */
+    PasswordInput: string;
+    /** @description Omit or send an empty string to leave the existing password unchanged; otherwise the full password policy applies. */
+    OptionalPasswordInput: components["schemas"]["PasswordInput"] | string;
     RegisterRequest: {
       name: string;
       /** Format: email */
       email: string;
-      password: string;
+      password: components["schemas"]["PasswordInput"];
     };
     LoginRequest: {
       /** Format: email */
@@ -873,14 +877,13 @@ export interface components {
       name: string;
       /** Format: email */
       email: string;
-      /** @description Optional; when provided, updates the password */
-      password?: string;
+      password?: components["schemas"]["OptionalPasswordInput"];
     };
     CreateUserRequest: {
       name: string;
       /** Format: email */
       email: string;
-      password: string;
+      password: components["schemas"]["PasswordInput"];
       role: components["schemas"]["UserRole"];
     };
     UpdateUserRequest: {
@@ -888,6 +891,7 @@ export interface components {
       /** Format: email */
       email: string;
       role: components["schemas"]["UserRole"];
+      password?: components["schemas"]["OptionalPasswordInput"];
     };
     AddContributionRequest: {
       /** Format: double */
@@ -1025,6 +1029,7 @@ export interface operations {
           "application/json": components["schemas"]["ErrorEnvelope"];
         };
       };
+      422: components["responses"]["UnprocessableEntity"];
       500: components["responses"]["InternalServerError"];
     };
   };
@@ -1405,6 +1410,7 @@ export interface operations {
           "application/json": components["schemas"]["ErrorEnvelope"];
         };
       };
+      422: components["responses"]["UnprocessableEntity"];
       500: components["responses"]["InternalServerError"];
     };
   };
@@ -2101,6 +2107,7 @@ export interface operations {
       401: components["responses"]["Unauthorized"];
       403: components["responses"]["Forbidden"];
       409: components["responses"]["Conflict"];
+      422: components["responses"]["UnprocessableEntity"];
       500: components["responses"]["InternalServerError"];
     };
   };
@@ -2177,6 +2184,7 @@ export interface operations {
       403: components["responses"]["Forbidden"];
       404: components["responses"]["NotFound"];
       409: components["responses"]["Conflict"];
+      422: components["responses"]["UnprocessableEntity"];
       500: components["responses"]["InternalServerError"];
     };
   };

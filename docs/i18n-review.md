@@ -4,6 +4,11 @@ Every Amharic string below was drafted for this change and **needs native review
 
 | Message key | Draft |
 |---|---|
+| `auth.password_too_short` | የይለፍ ቃሉ ቢያንስ 12 ቁምፊዎች ሊኖሩት ይገባል። |
+| `auth.password_too_long` | የይለፍ ቃሉ ከ72 ባይት መብለጥ የለበትም። |
+| `auth.password_too_common` | ይህ የይለፍ ቃል በጣም በብዛት የሚጠቀሙት ስለሆነ ሌላ ይምረጡ። |
+| `auth.password_contains_identity` | የይለፍ ቃሉ ስምዎን ወይም ኢሜይልዎን መያዝ የለበትም። |
+| `auth.password_policy_invalid` | የይለፍ ቃሉ የይለፍ ቃል መስፈርቱን አያሟላም። |
 | `common.locale_invalid` | ቋንቋው en ወይም am መሆን አለበት |
 | `contact.name_valid_email_and_a_message_are_required` | ስም እና መልእክት ያስፈልጋል |
 | `posts.translations_are_required_and_must_be_valid` | ቢያንስ አንድ ትክክለኛ የግጽፍ ትርጉም ያስፈልጋል |
@@ -199,7 +204,7 @@ Every Amharic string below was drafted for this change and **needs native review
 | `auth.password` | የይለፍ ቃል |
 | `auth.logging` | በመግባት ላይ… |
 | `auth.login` | ይግቡ |
-| `auth.new` | በካለን ብናካፍል አዲስ ነዎት? |
+| `auth.new` | ለካለን ብናካፍል አዲስ ነዎት? |
 | `auth.create` | መለያ ይፍጠሩ |
 | `auth.join` | ሥራውን ይቀላቀሉ |
 | `auth.membership` | የማኅበረሰብ አባልነት |
