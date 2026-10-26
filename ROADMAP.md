@@ -2,12 +2,11 @@
 
 ### Current state / next step
 
-- Backend security hardening now has shared password policy, dummy-hash login checks, refresh-token revocation/cleanup, and CI security scans.
-- Pinned `govulncheck` to v1.6.0, whose Go 1.25 requirement is compatible with the repository's Go 1.25.4 toolchain.
-- Go build, vet, tests, formatting, and sqlc diff passed; PostgreSQL-dependent integration tests were skipped because `DATABASE_URL_TEST` was unset.
-- Frontend lint, TypeScript, formatting, catalog validation, API type generation, and production build passed; lint reports existing hook warnings.
-- Docker Engine access was unavailable, so disposable PostgreSQL integration verification and Compose smoke were not run; the Govulncheck version is validated separately.
-- Next: confirm the pinned govulncheck scan in CI; run DB-backed security integration tests and Compose smoke, and obtain native review of `docs/i18n-review.md`.
+- Updated the API to Go 1.27.3 / Alpine 3.23 and upgraded x/crypto, x/net, x/text, and quic-go to patched releases.
+- Go format, vet, tests, sqlc diff, and API Docker image build passed; local Go tests used Go 1.27.0, while the image uses Go 1.27.3.
+- `govulncheck` v1.6.0 ran with Go 1.27.3: zero vulnerabilities in called code or imported packages; one required but unreachable module advisory remains.
+- Trivy's local database download stalled and timed out, so the rebuilt image still needs a fresh CI Trivy scan.
+- Next: run the Security workflow and confirm both API and frontend image scans pass.
 **Goal:** a repo and a live demo that survive a 10-minute recruiter/hiring-manager review for a *senior full-stack* role: one-command startup, real security, real tests, CI, docs, and a polished, working UI.
 
 **Rhythm:** each phase = 1–3 focused sessions (≈2–4 h each) with Gemini. Finish a phase's *Exit criteria* before starting the next. Total ≈ 3–4 weeks part-time.
