@@ -2,13 +2,11 @@
 
 ### Current state / next step
 
-- Updated the API to Go 1.27.3 / Alpine 3.23 and upgraded x/crypto, x/net, x/text, and quic-go to patched releases.
-- Go format, vet, tests, sqlc diff, and API Docker image build passed; local Go tests used Go 1.27.0, while the image uses Go 1.27.3.
-- `govulncheck` v1.6.0 ran with Go 1.27.3: zero vulnerabilities in called code or imported packages; one required but unreachable module advisory remains.
-- Trivy's local database download stalled and timed out, so the rebuilt image still needs a fresh CI Trivy scan.
-- Fixed an auth integration fixture whose password contained the test user's name, triggering the intended password-identity rejection; all handler tests passed with PostgreSQL enabled.
-- Full `go test ./...` was attempted but another handler integration test hit its 15-second migration timeout while packages ran concurrently; CI should confirm the complete run.
-- Next: rerun backend CI and investigate the independent migration timeout if it recurs.
+- Updated the frontend runtime image to apply Alpine security updates and launch Next.js without bundled npm/yarn; the API runtime image also upgrades Alpine packages.
+- Upgraded Next.js and npm audit fixes; frontend lint, TypeScript, formatting, i18n, build, and `npm audit` pass. Lint reports five existing hook dependency warnings and no errors.
+- Pinned `eslint-plugin-react-hooks` to 7.0.1 to avoid newly introduced set-state lint errors without disabling rules; API type generation is reproducible.
+- Corrected the reported Playwright failures and stabilized public event polling, timezone expectations, and dashboard-suite timeout; all seven E2E tests pass.
+- Both Docker images build and npm audits report zero vulnerabilities; local Scout requires sign-in and the prior Trivy database download timed out. Next: rerun high/critical Trivy scans in CI.
 **Goal:** a repo and a live demo that survive a 10-minute recruiter/hiring-manager review for a *senior full-stack* role: one-command startup, real security, real tests, CI, docs, and a polished, working UI.
 
 **Rhythm:** each phase = 1–3 focused sessions (≈2–4 h each) with Gemini. Finish a phase's *Exit criteria* before starting the next. Total ≈ 3–4 weeks part-time.
@@ -229,6 +227,12 @@
 | `cd server && gofmt -l . && go vet ./... && go test ./... && go tool sqlc diff -f ../sqlc.yaml` (bilingual frontend part 2b) | Passed; gofmt listed no files, all packages passed (some cached), and sqlc diff was clean. | 2026-10-25 |
 | `cd front-end && npm run check:i18n && npm run report:unused-messages && npm run lint && npx tsc --noEmit && npm run format:check && npm run build && npm run test:e2e -- --list` (bilingual frontend part 2b) | Passed; 411 bilingual messages validated, unused-key report ran, lint had 5 hook warnings and 0 errors, TypeScript/format/build passed, and 7 Playwright specs were discovered. Build required elevated permissions after the sandbox native-binding failure. | 2026-10-25 |
 | `docker compose -f ../docker-compose.yaml up --build -d` (bilingual frontend part 2b) | Docker access succeeded with elevation, but the frontend image build stalled at `npm ci`; stopped before containers started, so Playwright browser flows were not executed. | 2026-10-25 |
+| `cd front-end && npm run gen:api` (frontend CI fixes) | Passed; generated API types were unchanged on regeneration. | 2026-10-26 |
+| `cd front-end && npm run lint && npx tsc --noEmit && npm run format:check && npm run check:i18n && npm run build` (frontend CI fixes) | Passed; lint had five pre-existing hook dependency warnings and no errors; TypeScript, format, 411-message catalog validation, and production build passed. | 2026-10-26 |
+| `cd front-end && npm audit --audit-level=high && npm audit --omit=dev --audit-level=high` (frontend CI fixes) | Passed; both dependency trees reported zero vulnerabilities. | 2026-10-26 |
+| `docker compose build` and isolated `docker compose -p kalenbnakafl-validation up -d --wait` | Passed; API, database, and frontend became healthy; isolated validation containers/network were removed after testing, volumes retained. | 2026-10-26 |
+| `cd front-end && CI=true npm run test:e2e` (frontend CI fixes) | Passed; all 7 Playwright tests passed. | 2026-10-26 |
+| `docker scout cves --only-severity critical,high` (API and frontend images) | Not run; Docker Scout requires Docker account sign-in. Trivy remains configured in CI; the prior local vulnerability-database download timed out. | 2026-10-26 |
 
 ### Phase 0 baseline run — 2026-10-20
 

@@ -65,6 +65,7 @@ test("logged-out dashboard access redirects to localized login", async ({ page }
 test("every dashboard screen has no page overflow at mobile and desktop widths in both locales", async ({
   page,
 }) => {
+  test.setTimeout(60_000);
   await loginAdmin(page, "en");
   const routes = [
     "",

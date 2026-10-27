@@ -35,7 +35,8 @@ export interface paths {
     put?: never;
     /**
      * Log in and receive session cookies
-     * @description Verifies credentials and sets two `HttpOnly` cookies:
+     * @description Verifies credentials and sets two `HttpOnly` cookies. Unknown accounts and incorrect
+     *     passwords receive the same 401 response; unknown accounts use a dummy bcrypt comparison.
      *     - `access_token`: JWT, 15-minute TTL
      *     - `refresh_token`: opaque token, 7-day TTL
      *
