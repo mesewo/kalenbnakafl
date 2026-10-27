@@ -2,9 +2,12 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { useApiWakeup } from "@/lib/use-api-wakeup";
 
 export default function ContactForm() {
   const t = useTranslations("contact");
+  const common = useTranslations("common");
+  const isWaking = useApiWakeup();
   const [formData, setFormData] = useState({ name: "", email: "", message: "" });
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
@@ -33,6 +36,11 @@ export default function ContactForm() {
           <h2>{t("formTitle")}</h2>
         </div>
       </div>
+      {isWaking && (
+        <div className="status" role="status" aria-live="polite" style={{ marginBottom: "1rem" }}>
+          {common("serverWaking")}
+        </div>
+      )}
       {status && (
         <div
           className={`status status-${status.type}`}

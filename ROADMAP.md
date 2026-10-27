@@ -2,11 +2,12 @@
 
 ### Current state / next step
 
-- Updated the frontend runtime image to apply Alpine security updates and launch Next.js without bundled npm/yarn; the API runtime image also upgrades Alpine packages.
-- Upgraded Next.js and npm audit fixes; frontend lint, TypeScript, formatting, i18n, build, and `npm audit` pass. Lint reports five existing hook dependency warnings and no errors.
-- Pinned `eslint-plugin-react-hooks` to 7.0.1 to avoid newly introduced set-state lint errors without disabling rules; API type generation is reproducible.
-- Corrected the reported Playwright failures and stabilized public event polling, timezone expectations, and dashboard-suite timeout; all seven E2E tests pass.
-- Both Docker images build and npm audits report zero vulnerabilities; local Scout requires sign-in and the prior Trivy database download timed out. Next: rerun high/critical Trivy scans in CI.
+- Frontend hardening: standalone non-root image, runtime `API_INTERNAL_URL` proxy, report-only CSP/security headers, branded tab icon, ISR build/runtime fallbacks, and system font stacks to avoid network-dependent Google Fonts downloads during builds.
+- Login, contact, event signup, and dashboard API requests display translated wake-up feedback and retry up to three times; EN/AM catalog review entries are present.
+- Frontend unit tests (4), TypeScript, lint (5 existing hook warnings), formatting, i18n validation, production build, and the two focused hardening Playwright tests pass. The full Playwright suite could not be validated locally because its admin credentials are not configured.
+- A fresh standalone Docker image build passed after switching to system font stacks; the image runs as `nextjs`, `/healthz` returns 200, and the runtime API proxy/security headers work. Both focused hardening Playwright tests passed against the image. Full Compose rebuild previously stalled on the Go module proxy TLS handshake.
+- With the API unreachable, the production build succeeds and Next prerenders localized home/about/contact/volunteer and auth routes with 60-second revalidation. Blog/event listings remain on-demand because they read `searchParams` for pagination; their API data is still cached for 60 seconds.
+- Next: run the full content Playwright suite with its ephemeral admin credentials in CI, review CSP reports before enforcement, and verify HTTPS/HSTS plus CI Trivy before production.
 **Goal:** a repo and a live demo that survive a 10-minute recruiter/hiring-manager review for a *senior full-stack* role: one-command startup, real security, real tests, CI, docs, and a polished, working UI.
 
 **Rhythm:** each phase = 1–3 focused sessions (≈2–4 h each) with Gemini. Finish a phase's *Exit criteria* before starting the next. Total ≈ 3–4 weeks part-time.

@@ -4,10 +4,12 @@ import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch, type EventItem, type PageResponse } from "@/lib/api";
+import { useApiWakeup } from "@/lib/use-api-wakeup";
 
 export default function EventSignup({ event }: { event: EventItem }) {
   const t = useTranslations("events");
   const common = useTranslations("common");
+  const isWaking = useApiWakeup();
   const locale = useLocale();
   const { user, isLoading } = useAuth();
   const [signed, setSigned] = useState(false);
@@ -48,6 +50,11 @@ export default function EventSignup({ event }: { event: EventItem }) {
     );
   return (
     <>
+      {isWaking && (
+        <p className="status" role="status" aria-live="polite">
+          {common("serverWaking")}
+        </p>
+      )}
       <button className="btn btn-sun btn-small" onClick={() => void toggle()} disabled={busy}>
         {busy ? t("saving") : signed ? t("cancel") : t("signup")}
       </button>

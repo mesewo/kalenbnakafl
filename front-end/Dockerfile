@@ -1,21 +1,29 @@
-FROM node:20-alpine AS builder
+FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
+
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ARG API_INTERNAL_URL=http://api:8080
 ENV API_INTERNAL_URL=$API_INTERNAL_URL
+ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
-FROM node:20-alpine
+
+FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
-COPY package.json package-lock.json ./
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
 RUN apk upgrade --no-cache \
-    && npm ci --omit=dev \
-    && npm cache clean --force \
-    && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx /opt/yarn-v1.22.22
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
+    && addgroup --system --gid 1001 nodejs \
+    && adduser --system --uid 1001 nextjs
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+USER nextjs
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=5 CMD node -e "const req=require('http').get('http://127.0.0.1:3000/healthz', r => { r.resume(); if (r.statusCode !== 200) process.exitCode=1 }); req.setTimeout(9000, () => req.destroy(new Error('timeout'))); req.on('error', () => process.exit(1))"
-CMD ["node", "node_modules/next/dist/bin/next", "start"]
+CMD ["node", "server.js"]

@@ -13,6 +13,11 @@
   --navy: #152238;
   --green: #355c4a;
   --danger: #b93835;
+  --font-dm-sans: "DM Sans", "Segoe UI", "Noto Sans Ethiopic", "Ebrima", Arial, sans-serif;
+  --font-fraunces:
+    Fraunces, "Iowan Old Style", "Palatino Linotype", "Noto Serif Ethiopic", Georgia, serif;
+  --font-noto-sans: "Noto Sans Ethiopic", "Ebrima", sans-serif;
+  --font-noto-serif: "Noto Serif Ethiopic", "Nyala", Georgia, serif;
 }
 * {
   box-sizing: border-box;

@@ -2,18 +2,30 @@ import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { Link } from "@/i18n/navigation";
-import { fetchPublic } from "@/lib/server-api";
-import { formatDate, type Post } from "@/lib/api";
+import { fetchPublic, PublicApiError } from "@/lib/server-api";
+import { formatDate, type PageResponse, type Post } from "@/lib/api";
 import { localizedMetadata } from "@/lib/metadata";
+import { withEmptyArrayOnFailure } from "@/lib/server-api-core.mjs";
 
 export const revalidate = 60;
+export const dynamicParams = true;
 type Props = { params: Promise<{ locale: "en" | "am"; slug: string }> };
+
+export async function generateStaticParams({ params }: { params: { locale: string } }) {
+  const locale = params.locale;
+  if (locale !== "en" && locale !== "am") return [];
+  return withEmptyArrayOnFailure(async () => {
+    const result = await fetchPublic<PageResponse<Post>>("/posts?limit=50", locale);
+    return result?.items.map((post) => ({ slug: post.slug })) ?? [];
+  });
+}
+
 async function getPost(slug: string, locale: "en" | "am"): Promise<Post | null> {
   try {
     return await fetchPublic<Post>(`/posts/${encodeURIComponent(slug)}`, locale);
   } catch (error) {
-    if (error instanceof Error && error.message.includes("404")) return null;
-    return null;
+    if (error instanceof PublicApiError && error.status === 404) return null;
+    throw error;
   }
 }
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

@@ -5,9 +5,12 @@ import { useEffect, useState } from "react";
 import { useRouter } from "@/i18n/navigation";
 import AuthCard from "@/components/AuthCard";
 import { useAuth } from "@/context/AuthContext";
+import { useApiWakeup } from "@/lib/use-api-wakeup";
 export default function LoginPage() {
   const t = useTranslations("auth");
+  const common = useTranslations("common");
   const { login, user, isLoading } = useAuth();
+  const isWaking = useApiWakeup();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -39,6 +42,11 @@ export default function LoginPage() {
     <>
       <AuthCard title={t("welcome")} eyebrow={t("member")}>
         <form onSubmit={submit}>
+          {isWaking && (
+            <div className="status" role="status" aria-live="polite">
+              {common("serverWaking")}
+            </div>
+          )}
           <div className="field">
             <label htmlFor="login-email">{t("email")}</label>
             <input

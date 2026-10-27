@@ -43,6 +43,7 @@ Every Amharic string below was drafted for this change and **needs native review
 | `common.fallback` | ገና ወደዚህ ቋንቋ አልተተረጎመም፤ የእንግሊዝኛው እየታየ ነው |
 | `common.requestTimedOut` | ጥያቄው ለመጠናቀቅ ብዙ ጊዜ ወስዷል። እባክዎ እንደገና ይሞክሩ። |
 | `common.serviceUnavailable` | ከአገልግሎቱ ጋር መገናኘት አልቻልንም። እባክዎ ግንኙነትዎን ያረጋግጡና እንደገና ይሞክሩ። |
+| `common.serverWaking` | ሰርቨሩ እየነቃ ነው፤ እንደገና እየሞከርን ነው… |
 | `metadata.title` | ካለን ብናካፍል \| የማኅበረሰብ ድርጅት |
 | `metadata.description` | ሰዎች ለማኅበረሰባቸው እንዲያገለግሉ፣ እንዲማሩና ለውጥ እንዲያመጡ የሚያገናኝ ድርጅት። |
 | `metadata.brand` | ካለን ብናካፍል |

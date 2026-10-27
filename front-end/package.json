@@ -12,6 +12,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test:e2e": "playwright test",
+    "test:unit": "node --test lib/server-api.test.mjs",
     "gen:api": "openapi-typescript ../docs/openapi.yaml -o types/api.d.ts && prettier --write types/api.d.ts"
   },
   "dependencies": {

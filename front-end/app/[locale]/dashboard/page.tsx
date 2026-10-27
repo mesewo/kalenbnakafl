@@ -94,7 +94,7 @@ export default function DashboardPage() {
               <strong
                 style={{
                   display: "block",
-                  fontFamily: "Fraunces, Georgia, serif",
+                  fontFamily: "var(--font-fraunces), Georgia, serif",
                   fontSize: "3rem",
                   marginTop: ".6rem",
                 }}
