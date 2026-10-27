@@ -17,7 +17,9 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
+# The runtime needs Node, not npm; omit npm's bundled packages from the scanned image.
 RUN apk upgrade --no-cache \
+    && npm uninstall --global npm \
     && addgroup --system --gid 1001 nodejs \
     && adduser --system --uid 1001 nextjs
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./

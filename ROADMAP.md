@@ -2,12 +2,11 @@
 
 ### Current state / next step
 
-- Frontend hardening: standalone non-root image, runtime `API_INTERNAL_URL` proxy, report-only CSP/security headers, branded tab icon, ISR build/runtime fallbacks, and system font stacks to avoid network-dependent Google Fonts downloads during builds.
-- Login, contact, event signup, and dashboard API requests display translated wake-up feedback and retry up to three times; EN/AM catalog review entries are present.
-- Frontend unit tests (4), TypeScript, lint (5 existing hook warnings), formatting, i18n validation, production build, and the two focused hardening Playwright tests pass. The full Playwright suite could not be validated locally because its admin credentials are not configured.
-- A fresh standalone Docker image build passed after switching to system font stacks; the image runs as `nextjs`, `/healthz` returns 200, and the runtime API proxy/security headers work. Both focused hardening Playwright tests passed against the image. Full Compose rebuild previously stalled on the Go module proxy TLS handshake.
-- With the API unreachable, the production build succeeds and Next prerenders localized home/about/contact/volunteer and auth routes with 60-second revalidation. Blog/event listings remain on-demand because they read `searchParams` for pagination; their API data is still cached for 60 seconds.
-- Next: run the full content Playwright suite with its ephemeral admin credentials in CI, review CSP reports before enforcement, and verify HTTPS/HSTS plus CI Trivy before production.
+- Frontend hardening: standalone non-root image, runtime `API_INTERNAL_URL` proxy, report-only CSP/security headers, branded icon, ISR build fallback, system font stacks, and translated API wake-up retries.
+- Frontend unit tests (4), TypeScript, i18n (412 messages), formatting, production build, and focused hardening Playwright tests pass; lint has five existing hook warnings.
+- Standalone image build/runtime checks pass (`nextjs`, `/healthz` 200, proxy works); Trivy now reports zero HIGH/CRITICAL after removing unused global npm. The attached run reached the frontend scan, so the preceding API scan step did not fail.
+- With the API unavailable, the build prerenders localized home/about/contact/volunteer and auth routes with 60-second revalidation; blog/event pagination routes render on demand, while their API data remains cached 60 seconds.
+- Next: run full content Playwright in CI with ephemeral admin credentials, review CSP reports, verify HTTPS/HSTS and confirm the API image scan in the latest workflow run.
 **Goal:** a repo and a live demo that survive a 10-minute recruiter/hiring-manager review for a *senior full-stack* role: one-command startup, real security, real tests, CI, docs, and a polished, working UI.
 
 **Rhythm:** each phase = 1–3 focused sessions (≈2–4 h each) with Gemini. Finish a phase's *Exit criteria* before starting the next. Total ≈ 3–4 weeks part-time.
