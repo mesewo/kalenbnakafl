@@ -1,0 +1,54 @@
+name: Production deployment
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    uses: ./.github/workflows/backend.yml
+
+  frontend:
+    uses: ./.github/workflows/frontend.yml
+
+  deploy:
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Validate deployment settings
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          RENDER_API_URL: ${{ vars.RENDER_API_URL }}
+          VERCEL_BASE_URL: ${{ vars.VERCEL_BASE_URL }}
+        run: |
+          test -n "$RENDER_DEPLOY_HOOK_URL" || { echo "Missing RENDER_DEPLOY_HOOK_URL secret"; exit 1; }
+          test -n "$RENDER_API_URL" || { echo "Missing RENDER_API_URL repository variable"; exit 1; }
+          test -n "$VERCEL_BASE_URL" || { echo "Missing VERCEL_BASE_URL repository variable"; exit 1; }
+      - name: Trigger Render deployment
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: curl --fail --silent --show-error --request POST "$RENDER_DEPLOY_HOOK_URL"
+      - name: Smoke test production API and site
+        env:
+          RENDER_API_URL: ${{ vars.RENDER_API_URL }}
+          VERCEL_BASE_URL: ${{ vars.VERCEL_BASE_URL }}
+        run: |
+          set -euo pipefail
+          api="${RENDER_API_URL%/}"
+          site="${VERCEL_BASE_URL%/}"
+          for attempt in $(seq 1 36); do
+            if curl --fail --silent "$api/healthz" >/dev/null \
+              && curl --fail --silent "$site/en" >/dev/null \
+              && curl --fail --silent "$site/am" >/dev/null \
+              && curl --fail --silent "$site/api/posts" >/dev/null; then
+              echo "Production API and localized site smoke checks passed."
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Production smoke checks did not pass within six minutes." >&2
+          exit 1

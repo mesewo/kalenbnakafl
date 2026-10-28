@@ -4,7 +4,7 @@ Two views: **Current** (what the code does today) and **Target** (what the roadm
 
 ## Runtime configuration
 
-The process loads and validates environment settings once into `internal/config.Config` before opening the database. Invalid settings are reported together and stop startup. `TRUSTED_PROXIES` is a comma-separated list of trusted proxy CIDRs or addresses. The binary defaults to no trusted proxies; Compose pins its private default network to `172.21.0.0/24` and trusts that CIDR.
+The process loads and validates environment settings once into `internal/config.Config` before opening the database. Invalid settings are reported together and stop startup. `TRUSTED_PROXIES` is a comma-separated list of trusted proxy CIDRs or addresses. The binary defaults to no trusted proxies; Compose pins its private default network to `172.21.0.0/24` and trusts that CIDR. `TRUST_FORWARDED_HEADERS` is a separate, opt-in platform handoff: the API accepts a single client IP only when the Next.js proxy supplies it with the matching `FORWARDED_HEADERS_SECRET`. Never trust caller-supplied `X-Forwarded-For`.
 
 | Setting | Default / validation | Purpose |
 |---|---|---|
@@ -20,11 +20,14 @@ The process loads and validates environment settings once into `internal/config.
 | `S3_PATH_STYLE` | `true` | Use path-style bucket addressing for MinIO and compatible endpoints |
 | `MEDIA_MAX_MB` | `50`; positive integer | Maximum uploaded media size |
 | `DB_CONNECT_RETRIES` | `8`; positive integer | Database connection retry count |
+| `DB_MAX_OPEN_CONNS`, `DB_MAX_IDLE_CONNS` | `5`, `2` | Conservative PostgreSQL pool limits |
+| `TRUST_FORWARDED_HEADERS` | `false` | Enable the authenticated client-IP handoff from the platform proxy |
+| `FORWARDED_HEADERS_SECRET` | required when forwarding trust is enabled | Shared server-only secret between Next.js proxy and API |
 | `MIGRATE_ON_START` | `false` in the binary; Compose sets `true` | Apply embedded migrations before serving |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | both optional; set together, password at least 12 characters | First-admin bootstrap |
 | `TRUSTED_PROXIES` | empty in the binary; Compose defaults to `172.21.0.0/24` | Explicit Gin trusted proxy CIDRs or addresses |
 
-The HTTP server uses bounded read/write/idle timeouts and graceful SIGINT/SIGTERM shutdown. `/healthz` is liveness and does not query dependencies; `/readyz` and the `/health` alias check PostgreSQL and the selected storage backend with a two-second deadline. The container healthchecks use `/readyz`.
+The HTTP server uses bounded read/write/idle timeouts and graceful SIGINT/SIGTERM shutdown. `/healthz` is liveness and does not query dependencies; `/readyz` and the `/health` alias check PostgreSQL and the selected storage backend with a two-second deadline. Database startup and readiness pings retry transient failures. The driver retries transient connection errors only for conservative plain `SELECT` reads outside transactions; function calls, lock clauses, comments, and multi-statement queries are excluded. Writes and transactional queries are not retried because they could have side effects. Idle connections are retired after one minute. The container healthchecks use `/readyz`.
 
 ## HTTP logging, errors, and request limits
 
@@ -39,6 +42,12 @@ Access JWTs use a typed claim structure and accept only HS256. Parsing requires 
 Login performs a bcrypt comparison for missing accounts using a process-startup dummy hash and returns the same 401 response as an incorrect password. Registration, admin creation/reset, profile password changes, bootstrap, and configuration validation share `internal/auth.ValidatePassword`: at least 12 Unicode characters, no more than 72 UTF-8 bytes, rejects a small common-password list, and rejects passwords containing the account name or email. Password-policy errors use localized catalog keys and return 422. Password changes and role changes transactionally revoke all active refresh tokens for the affected user. A cancellable hourly task deletes expired refresh-token rows. CI runs govulncheck, full-history Gitleaks, high/critical Trivy scans for API and frontend images, and a failing high/critical production npm audit; Dependabot checks Go modules, npm, Docker, and GitHub Actions weekly.
 
 ## 1. Current state
+
+### Optional free-tier demo deployment
+
+The deployment configuration targets Render (Go API), Neon (PostgreSQL direct endpoint), Vercel (Next.js), and private Backblaze B2 buckets (media and backups). The browser uses a same-origin `/api` route through Vercel, so session cookies remain first-party; the API still checks the exact site origin and sets `Secure` cookies in production. Vercel's platform-provided client IP is forwarded only through the secret-authenticated Next.js proxy handoff. The API remains publicly reachable, so this protects forwarded-IP integrity but is not a network firewall.
+
+Render Free may sleep and has no production availability guarantee; Vercel Hobby is restricted to personal, non-commercial use. GitHub keepalive and scheduled reset/backup workflows are best-effort. Use paid plans that satisfy actual availability, privacy, and usage requirements for organizational service. See [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) and [ADR-010](./docs/adr/0010-free-tier-hosting.md).
 
 ```mermaid
 flowchart LR
@@ -309,3 +318,4 @@ Keep one file per decision in `docs/adr/NNNN-title.md` (Context · Decision · C
 - **ADR-006 / ADR-009** Pluggable media storage: local disk by default, S3-compatible private bucket for durable deployment storage; see [ADR-009](./docs/adr/0009-object-storage-backends.md).
 - **ADR-007** `next-intl` for UI i18n; content translation strategy (pending).
 - **ADR-008** Tailwind v4 CSS-first tokens; no JS config.
+- **ADR-010** Render/Neon/Vercel/B2 combination for a non-commercial demo only; see [ADR-010](./docs/adr/0010-free-tier-hosting.md).

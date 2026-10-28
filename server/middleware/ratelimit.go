@@ -74,7 +74,7 @@ func (l *MemoryLimiter) Allow(key string, limit int, window time.Duration) (bool
 var defaultLimiter Limiter = NewMemoryLimiter(10000)
 
 func LimitRequests(limit int, window time.Duration) gin.HandlerFunc {
-	return LimitRequestsWithLimiter(defaultLimiter, limit, window, func(c *gin.Context) string { return c.FullPath() + "\x00" + c.ClientIP() })
+	return LimitRequestsWithLimiter(defaultLimiter, limit, window, func(c *gin.Context) string { return c.FullPath() + "\x00" + httpx.ClientIP(c) })
 }
 
 // LimitLoginRequests keys attempts by trusted client IP and normalized email.
@@ -91,7 +91,7 @@ func LimitLoginRequests(limiter Limiter, limit int, window time.Duration) gin.Ha
 			Email string `json:"email"`
 		}
 		_ = json.Unmarshal(body, &input)
-		return c.ClientIP() + "\x00" + strings.ToLower(strings.TrimSpace(input.Email))
+		return httpx.ClientIP(c) + "\x00" + strings.ToLower(strings.TrimSpace(input.Email))
 	})
 }
 

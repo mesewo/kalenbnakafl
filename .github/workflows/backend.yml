@@ -1,11 +1,17 @@
 name: backend
 
 on:
+  workflow_call:
   push:
     paths:
       - "server/**"
       - "infra/minio/**"
       - "docker-compose.yaml"
+      - "render.yaml"
+      - ".github/workflows/deployment.yml"
+      - ".github/workflows/database-backup.yml"
+      - ".github/workflows/demo-reset.yml"
+      - "docs/DEPLOYMENT.md"
       - "sqlc.yaml"
       - "Makefile"
       - ".github/workflows/backend.yml"
@@ -14,6 +20,11 @@ on:
       - "server/**"
       - "infra/minio/**"
       - "docker-compose.yaml"
+      - "render.yaml"
+      - ".github/workflows/deployment.yml"
+      - ".github/workflows/database-backup.yml"
+      - ".github/workflows/demo-reset.yml"
+      - "docs/DEPLOYMENT.md"
       - "sqlc.yaml"
       - "Makefile"
       - ".github/workflows/backend.yml"

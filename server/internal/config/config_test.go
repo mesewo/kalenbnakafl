@@ -129,3 +129,48 @@ func TestLoadS3PathStyleCanBeDisabled(t *testing.T) {
 		t.Fatal("S3_PATH_STYLE=false was not applied")
 	}
 }
+
+func TestLoadProductionProxyAndDatabasePoolSettings(t *testing.T) {
+	env := validEnv()
+	env["TRUST_FORWARDED_HEADERS"] = "true"
+	env["FORWARDED_HEADERS_SECRET"] = strings.Repeat("x", 32)
+	env["DB_MAX_OPEN_CONNS"] = "5"
+	env["DB_MAX_IDLE_CONNS"] = "2"
+	cfg, err := loadEnv(env)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !cfg.TrustForwardedHeaders || cfg.ForwardedHeadersSecret == "" ||
+		cfg.DBMaxOpenConns != 5 || cfg.DBMaxIdleConns != 2 {
+		t.Fatalf("unexpected production settings: %+v", cfg)
+	}
+}
+
+func TestLoadForwardedHeadersRequiresSecret(t *testing.T) {
+	env := validEnv()
+	env["TRUST_FORWARDED_HEADERS"] = "true"
+	_, err := loadEnv(env)
+	if err == nil || !strings.Contains(err.Error(), "FORWARDED_HEADERS_SECRET is required") {
+		t.Fatalf("error = %v, want forwarded secret validation", err)
+	}
+}
+
+func TestLoadRejectsNeonPoolerWithMigrations(t *testing.T) {
+	env := validEnv()
+	env["DATABASE_URL"] = "postgres://user:pass@ep-example-pooler.eu-central-1.aws.neon.tech/app?sslmode=require"
+	env["MIGRATE_ON_START"] = "true"
+	_, err := loadEnv(env)
+	if err == nil || !strings.Contains(err.Error(), "Neon direct endpoint") {
+		t.Fatalf("error = %v, want Neon direct endpoint validation", err)
+	}
+}
+
+func TestLoadRejectsIdlePoolLargerThanOpenPool(t *testing.T) {
+	env := validEnv()
+	env["DB_MAX_OPEN_CONNS"] = "3"
+	env["DB_MAX_IDLE_CONNS"] = "4"
+	_, err := loadEnv(env)
+	if err == nil || !strings.Contains(err.Error(), "DB_MAX_IDLE_CONNS must be between") {
+		t.Fatalf("error = %v, want pool size validation", err)
+	}
+}

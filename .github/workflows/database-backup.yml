@@ -1,0 +1,58 @@
+name: Weekly Neon backup
+
+on:
+  schedule:
+    - cron: "17 2 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.B2_BACKUP_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.B2_BACKUP_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: ${{ vars.B2_REGION }}
+      B2_REGION: ${{ vars.B2_REGION }}
+      B2_ENDPOINT: ${{ vars.B2_ENDPOINT }}
+      B2_BACKUP_BUCKET: ${{ vars.B2_BACKUP_BUCKET }}
+    steps:
+      - name: Install PostgreSQL and S3 clients
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes awscli jq postgresql-client
+      - name: Validate backup configuration
+        env:
+          NEON_DIRECT_DATABASE_URL: ${{ secrets.NEON_DIRECT_DATABASE_URL }}
+        run: |
+          test -n "$NEON_DIRECT_DATABASE_URL" || { echo "Missing NEON_DIRECT_DATABASE_URL secret"; exit 1; }
+          test -n "$AWS_ACCESS_KEY_ID" || { echo "Missing B2_BACKUP_ACCESS_KEY_ID secret"; exit 1; }
+          test -n "$AWS_SECRET_ACCESS_KEY" || { echo "Missing B2_BACKUP_SECRET_ACCESS_KEY secret"; exit 1; }
+          test -n "$B2_ENDPOINT" || { echo "Missing B2_ENDPOINT repository variable"; exit 1; }
+          test -n "$B2_REGION" || { echo "Missing B2_REGION repository variable"; exit 1; }
+          test -n "$B2_BACKUP_BUCKET" || { echo "Missing B2_BACKUP_BUCKET repository variable"; exit 1; }
+      - name: Dump Neon database and upload encrypted-in-transit archive
+        env:
+          NEON_DIRECT_DATABASE_URL: ${{ secrets.NEON_DIRECT_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/kalenbnakafl-$(date -u +%Y%m%dT%H%M%SZ).dump"
+          pg_dump --no-owner --no-acl --format=custom "$NEON_DIRECT_DATABASE_URL" --file="$archive"
+          aws --endpoint-url "$B2_ENDPOINT" s3 cp "$archive" \
+            "s3://${B2_BACKUP_BUCKET}/neon-backups/$(basename "$archive")" \
+            --region "$AWS_DEFAULT_REGION" --only-show-errors
+      - name: Retain the eight newest backups
+        run: |
+          set -euo pipefail
+          aws --endpoint-url "$B2_ENDPOINT" s3api list-objects-v2 \
+            --bucket "$B2_BACKUP_BUCKET" --prefix neon-backups/ \
+            --region "$AWS_DEFAULT_REGION" --output json \
+            | jq -r '(.Contents // []) | sort_by(.LastModified) | if length > 8 then .[0:(length - 8)][] | .Key else empty end' \
+            | while IFS= read -r key; do
+                [ -n "$key" ] || continue
+                aws --endpoint-url "$B2_ENDPOINT" s3api delete-object \
+                  --bucket "$B2_BACKUP_BUCKET" --key "$key" \
+                  --region "$AWS_DEFAULT_REGION" >/dev/null
+              done

@@ -14,25 +14,29 @@ import (
 const defaultMediaMaxMB int64 = 50
 
 type Config struct {
-	Port              string
-	AppEnv            string
-	DatabaseURL       string
-	JWTSecret         []byte
-	CORSOrigins       []string
-	UploadDir         string
-	MediaMaxMB        int64
-	DBConnectRetries  int
-	MigrateOnStart    bool
-	AdminEmail        string
-	AdminPassword     string
-	TrustedProxies    []string
-	StorageDriver     string
-	S3Endpoint        string
-	S3Region          string
-	S3Bucket          string
-	S3AccessKeyID     string
-	S3SecretAccessKey string
-	S3PathStyle       bool
+	Port                   string
+	AppEnv                 string
+	DatabaseURL            string
+	JWTSecret              []byte
+	CORSOrigins            []string
+	UploadDir              string
+	MediaMaxMB             int64
+	DBConnectRetries       int
+	MigrateOnStart         bool
+	AdminEmail             string
+	AdminPassword          string
+	TrustedProxies         []string
+	TrustForwardedHeaders  bool
+	ForwardedHeadersSecret string
+	StorageDriver          string
+	S3Endpoint             string
+	S3Region               string
+	S3Bucket               string
+	S3AccessKeyID          string
+	S3SecretAccessKey      string
+	S3PathStyle            bool
+	DBMaxOpenConns         int
+	DBMaxIdleConns         int
 }
 
 func Environment(key string) string { return os.Getenv(key) }
@@ -45,26 +49,37 @@ func Load() (Config, error) {
 // injectable so validation can be tested without changing process environment.
 func LoadFrom(getenv func(string) string) (Config, error) {
 	cfg := Config{
-		Port:              valueOr(getenv("PORT"), "8080"),
-		AppEnv:            valueOr(getenv("APP_ENV"), "development"),
-		DatabaseURL:       strings.TrimSpace(getenv("DATABASE_URL")),
-		JWTSecret:         []byte(getenv("JWT_SECRET")),
-		CORSOrigins:       splitList(getenv("CORS_ORIGINS")),
-		UploadDir:         valueOr(getenv("UPLOAD_DIR"), "/data/uploads"),
-		MediaMaxMB:        defaultMediaMaxMB,
-		DBConnectRetries:  8,
-		AdminEmail:        strings.TrimSpace(getenv("ADMIN_EMAIL")),
-		AdminPassword:     getenv("ADMIN_PASSWORD"),
-		TrustedProxies:    splitList(getenv("TRUSTED_PROXIES")),
-		StorageDriver:     valueOr(getenv("STORAGE_DRIVER"), "local"),
-		S3Endpoint:        strings.TrimSpace(getenv("S3_ENDPOINT")),
-		S3Region:          strings.TrimSpace(getenv("S3_REGION")),
-		S3Bucket:          strings.TrimSpace(getenv("S3_BUCKET")),
-		S3AccessKeyID:     strings.TrimSpace(getenv("S3_ACCESS_KEY_ID")),
-		S3SecretAccessKey: strings.TrimSpace(getenv("S3_SECRET_ACCESS_KEY")),
-		S3PathStyle:       true,
+		Port:                   valueOr(getenv("PORT"), "8080"),
+		AppEnv:                 valueOr(getenv("APP_ENV"), "development"),
+		DatabaseURL:            strings.TrimSpace(getenv("DATABASE_URL")),
+		JWTSecret:              []byte(getenv("JWT_SECRET")),
+		CORSOrigins:            splitList(getenv("CORS_ORIGINS")),
+		UploadDir:              valueOr(getenv("UPLOAD_DIR"), "/data/uploads"),
+		MediaMaxMB:             defaultMediaMaxMB,
+		DBConnectRetries:       8,
+		AdminEmail:             strings.TrimSpace(getenv("ADMIN_EMAIL")),
+		AdminPassword:          getenv("ADMIN_PASSWORD"),
+		TrustedProxies:         splitList(getenv("TRUSTED_PROXIES")),
+		ForwardedHeadersSecret: getenv("FORWARDED_HEADERS_SECRET"),
+		StorageDriver:          valueOr(getenv("STORAGE_DRIVER"), "local"),
+		S3Endpoint:             strings.TrimSpace(getenv("S3_ENDPOINT")),
+		S3Region:               strings.TrimSpace(getenv("S3_REGION")),
+		S3Bucket:               strings.TrimSpace(getenv("S3_BUCKET")),
+		S3AccessKeyID:          strings.TrimSpace(getenv("S3_ACCESS_KEY_ID")),
+		S3SecretAccessKey:      strings.TrimSpace(getenv("S3_SECRET_ACCESS_KEY")),
+		S3PathStyle:            true,
+		DBMaxOpenConns:         5,
+		DBMaxIdleConns:         2,
 	}
 	var problems []string
+	if value := strings.TrimSpace(getenv("TRUST_FORWARDED_HEADERS")); value != "" {
+		trustForwarded, err := strconv.ParseBool(value)
+		if err != nil {
+			problems = append(problems, "TRUST_FORWARDED_HEADERS must be true or false")
+		} else {
+			cfg.TrustForwardedHeaders = trustForwarded
+		}
+	}
 	if value := strings.TrimSpace(getenv("S3_PATH_STYLE")); value != "" {
 		pathStyle, err := strconv.ParseBool(value)
 		if err != nil {
@@ -79,6 +94,22 @@ func LoadFrom(getenv func(string) string) (Config, error) {
 			problems = append(problems, "DB_CONNECT_RETRIES must be a positive integer")
 		} else {
 			cfg.DBConnectRetries = retries
+		}
+	}
+	if value := strings.TrimSpace(getenv("DB_MAX_OPEN_CONNS")); value != "" {
+		connections, err := strconv.Atoi(value)
+		if err != nil || connections < 1 {
+			problems = append(problems, "DB_MAX_OPEN_CONNS must be a positive integer")
+		} else {
+			cfg.DBMaxOpenConns = connections
+		}
+	}
+	if value := strings.TrimSpace(getenv("DB_MAX_IDLE_CONNS")); value != "" {
+		connections, err := strconv.Atoi(value)
+		if err != nil || connections < 0 {
+			problems = append(problems, "DB_MAX_IDLE_CONNS must be a non-negative integer")
+		} else {
+			cfg.DBMaxIdleConns = connections
 		}
 	}
 	if value := strings.TrimSpace(getenv("MEDIA_MAX_MB")); value != "" {
@@ -146,6 +177,26 @@ func (c Config) validationProblems() []string {
 				endpoint.User != nil || endpoint.RawQuery != "" || endpoint.Fragment != "" || (endpoint.Path != "" && endpoint.Path != "/") {
 				problems = append(problems, "S3_ENDPOINT must be an HTTP(S) origin without credentials, path, query, or fragment")
 			}
+		}
+	}
+	if c.TrustForwardedHeaders {
+		if strings.TrimSpace(c.ForwardedHeadersSecret) == "" {
+			problems = append(problems, "FORWARDED_HEADERS_SECRET is required when TRUST_FORWARDED_HEADERS=true")
+		}
+	} else if c.ForwardedHeadersSecret != "" {
+		problems = append(problems, "FORWARDED_HEADERS_SECRET requires TRUST_FORWARDED_HEADERS=true")
+	}
+	if c.DBMaxOpenConns < 1 {
+		problems = append(problems, "DB_MAX_OPEN_CONNS must be a positive integer")
+	}
+	if c.DBMaxIdleConns < 0 || c.DBMaxIdleConns > c.DBMaxOpenConns {
+		problems = append(problems, "DB_MAX_IDLE_CONNS must be between 0 and DB_MAX_OPEN_CONNS")
+	}
+	if c.MigrateOnStart {
+		databaseURL, err := url.Parse(c.DatabaseURL)
+		if err == nil && (databaseURL.Scheme == "postgres" || databaseURL.Scheme == "postgresql") &&
+			strings.Contains(strings.ToLower(databaseURL.Hostname()), "-pooler") {
+			problems = append(problems, "DATABASE_URL must use the Neon direct endpoint when MIGRATE_ON_START=true; transaction pooling breaks session advisory locks")
 		}
 	}
 	if c.MediaMaxMB < 1 {

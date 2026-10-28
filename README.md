@@ -13,6 +13,10 @@ See [ROADMAP.md](ROADMAP.md).
 
 API reference: open [`docs/api.html`](docs/api.html) for the Redoc view of [`docs/openapi.yaml`](docs/openapi.yaml).
 
+## Live demo
+
+The repository includes an optional deployment setup for a portfolio/demo using Render, Neon, Vercel, and private Backblaze B2 storage. No live URL or public demo credentials are published here; configure the provider accounts and share any demo editor/volunteer credentials privately. See the [deployment guide](docs/DEPLOYMENT.md) for setup, limitations, backups, and rollback steps. The free-tier combination is not a production hosting recommendation.
+
 ## Troubleshooting
 
 ### Docker reports “Pool overlaps with other one”
