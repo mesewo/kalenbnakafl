@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"kalenbnakafl/internal/httpx"
 	"net/http"
 	"strings"
@@ -17,12 +18,55 @@ import (
 	"github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
 	"kalenbnakafl/dbgen"
+	"kalenbnakafl/internal/auth"
 	"kalenbnakafl/internal/config"
 	"kalenbnakafl/models"
 	"kalenbnakafl/utils"
 )
 
 var allowedRoles = map[string]bool{"user": true, "volunteer": true, "editor": true, "admin": true}
+
+var dummyPasswordHash = newDummyPasswordHash()
+
+type passwordComparer func(hashedPassword, password []byte) error
+
+func newDummyPasswordHash() []byte {
+	randomPassword := make([]byte, 32)
+	if _, err := rand.Read(randomPassword); err != nil {
+		panic(fmt.Errorf("initialize dummy login hash: %w", err))
+	}
+	hash, err := bcrypt.GenerateFromPassword(randomPassword, bcrypt.DefaultCost)
+	if err != nil {
+		panic(fmt.Errorf("initialize dummy login hash: %w", err))
+	}
+	return hash
+}
+
+func compareLoginPassword(storedHash, password []byte, userExists bool, compare passwordComparer) bool {
+	if !userExists {
+		storedHash = dummyPasswordHash
+	}
+	validLength := len(password) <= auth.PasswordMaxBytes
+	if !validLength {
+		password = []byte("invalid oversized login candidate")
+	}
+	return compare(storedHash, password) == nil && validLength
+}
+
+func passwordPolicyMessage(err error) string {
+	switch {
+	case errors.Is(err, auth.ErrPasswordTooShort):
+		return "auth.password_too_short"
+	case errors.Is(err, auth.ErrPasswordTooLong):
+		return "auth.password_too_long"
+	case errors.Is(err, auth.ErrPasswordCommon):
+		return "auth.password_too_common"
+	case errors.Is(err, auth.ErrPasswordIdentity):
+		return "auth.password_contains_identity"
+	default:
+		return "auth.password_policy_invalid"
+	}
+}
 
 const accessCookie = "access_token"
 const refreshCookie = "refresh_token"
@@ -68,8 +112,12 @@ func requestContext(c *gin.Context) context.Context { return c.Request.Context()
 
 func (a *API) Register(c *gin.Context) {
 	var input models.UserInput
-	if !httpx.BindJSON(c, &input) || !validateText(input.Name, 120) || !validEmail(input.Email) || len(input.Password) < 12 {
+	if !httpx.BindJSON(c, &input) || !validateText(input.Name, 120) || !validEmail(input.Email) {
 		httpx.Fail(c, http.StatusBadRequest, "auth.name_valid_email_and_password_of_at_least_12_characters_are_required")
+		return
+	}
+	if err := auth.ValidatePassword(input.Password, input.Email, input.Name); err != nil {
+		httpx.Fail(c, http.StatusUnprocessableEntity, passwordPolicyMessage(err))
 		return
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
@@ -100,12 +148,17 @@ func (a *API) Login(c *gin.Context) {
 	}
 	ctx := requestContext(c)
 	row, err := a.q.GetUserByEmail(ctx, clean(input.Email))
-	if errors.Is(err, sql.ErrNoRows) || (err == nil && bcrypt.CompareHashAndPassword([]byte(row.Password), []byte(input.Password)) != nil) {
+	if errors.Is(err, sql.ErrNoRows) {
+		compareLoginPassword(nil, []byte(input.Password), false, bcrypt.CompareHashAndPassword)
 		httpx.Fail(c, http.StatusUnauthorized, "auth.invalid_email_or_password")
 		return
 	}
 	if err != nil {
 		httpx.Fail(c, http.StatusInternalServerError, "auth.could_not_log_in")
+		return
+	}
+	if !compareLoginPassword([]byte(row.Password), []byte(input.Password), true, bcrypt.CompareHashAndPassword) {
+		httpx.Fail(c, http.StatusUnauthorized, "auth.invalid_email_or_password")
 		return
 	}
 	refresh, err := newRefreshToken()
@@ -237,8 +290,12 @@ func (a *API) GetUsers(c *gin.Context) {
 
 func (a *API) CreateUser(c *gin.Context) {
 	var input models.UserInput
-	if !httpx.BindJSON(c, &input) || !validateText(input.Name, 120) || !validEmail(input.Email) || len(input.Password) < 12 || !allowedRoles[input.Role] {
+	if !httpx.BindJSON(c, &input) || !validateText(input.Name, 120) || !validEmail(input.Email) || !allowedRoles[input.Role] {
 		httpx.Fail(c, 400, "auth.name_email_password_and_a_valid_role_are_required")
+		return
+	}
+	if err := auth.ValidatePassword(input.Password, input.Email, input.Name); err != nil {
+		httpx.Fail(c, http.StatusUnprocessableEntity, passwordPolicyMessage(err))
 		return
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
@@ -296,8 +353,8 @@ func (a *API) UpdateUser(c *gin.Context) {
 	}
 	var password sql.NullString
 	if strings.TrimSpace(input.Password) != "" {
-		if len(input.Password) < 12 {
-			httpx.Fail(c, 400, "auth.password_must_be_at_least_12_characters")
+		if e := auth.ValidatePassword(input.Password, input.Email, input.Name); e != nil {
+			httpx.Fail(c, http.StatusUnprocessableEntity, passwordPolicyMessage(e))
 			return
 		}
 		hash, e := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
@@ -307,7 +364,14 @@ func (a *API) UpdateUser(c *gin.Context) {
 		}
 		password = sql.NullString{String: string(hash), Valid: true}
 	}
-	affected, err := a.q.UpdateManagedUser(ctx, dbgen.UpdateManagedUserParams{Name: clean(input.Name), Email: strings.ToLower(clean(input.Email)), Role: input.Role, Password: password, ID: int32(id)})
+	tx, err := a.db.BeginTx(ctx, nil)
+	if err != nil {
+		httpx.Fail(c, http.StatusInternalServerError, "auth.could_not_update_user")
+		return
+	}
+	defer func() { _ = tx.Rollback() }()
+	qtx := a.q.WithTx(tx)
+	affected, err := qtx.UpdateManagedUser(ctx, dbgen.UpdateManagedUserParams{Name: clean(input.Name), Email: strings.ToLower(clean(input.Email)), Role: input.Role, Password: password, ID: int32(id)})
 	if err != nil {
 		if isUniqueViolation(err) {
 			httpx.Fail(c, 409, "auth.could_not_update_user")
@@ -318,6 +382,16 @@ func (a *API) UpdateUser(c *gin.Context) {
 	}
 	if affected == 0 {
 		httpx.Fail(c, 404, "auth.could_not_update_user")
+		return
+	}
+	if password.Valid || target.Role != input.Role {
+		if err := qtx.RevokeUserRefreshTokens(ctx, int32(id)); err != nil {
+			httpx.Fail(c, http.StatusInternalServerError, "auth.could_not_update_user")
+			return
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		httpx.Fail(c, http.StatusInternalServerError, "auth.could_not_update_user")
 		return
 	}
 	httpx.Success(c, 200, "auth.updated")

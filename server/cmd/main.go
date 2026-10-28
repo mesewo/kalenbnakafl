@@ -6,11 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"mime"
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -51,7 +49,7 @@ func corsMiddleware(origins []string) gin.HandlerFunc {
 	}
 }
 
-func newRouter(cfg config.Config, db *sql.DB, q *dbgen.Queries) (*gin.Engine, error) {
+func newRouter(cfg config.Config, db *sql.DB, q *dbgen.Queries, mediaStorage storage.Storage) (*gin.Engine, error) {
 
 	if strings.EqualFold(cfg.AppEnv, "production") {
 		gin.SetMode(gin.ReleaseMode)
@@ -67,7 +65,12 @@ func newRouter(cfg config.Config, db *sql.DB, q *dbgen.Queries) (*gin.Engine, er
 		ctx, cancel := context.WithTimeout(c.Request.Context(), 2*time.Second)
 		defer cancel()
 		if err := database.Ping(ctx, db); err != nil {
-			httpx.Logger(c).Error("readiness check failed")
+			httpx.Logger(c).Error("readiness check failed", "operation", "database")
+			httpx.Write(c, http.StatusServiceUnavailable, "internal", "Service unavailable.", nil)
+			return
+		}
+		if err := mediaStorage.Check(ctx); err != nil {
+			httpx.Logger(c).Error("readiness check failed", "operation", "storage", "error_type", fmt.Sprintf("%T", err))
 			httpx.Write(c, http.StatusServiceUnavailable, "internal", "Service unavailable.", nil)
 			return
 		}
@@ -76,12 +79,14 @@ func newRouter(cfg config.Config, db *sql.DB, q *dbgen.Queries) (*gin.Engine, er
 	r.GET("/readyz", ready)
 	r.GET("/health", ready)
 	r.NoRoute(func(c *gin.Context) { httpx.Fail(c, http.StatusNotFound, "Not found") })
-	if err := os.MkdirAll(cfg.UploadDir, 0755); err != nil {
-		return nil, fmt.Errorf("create upload directory: %w", err)
+	if cfg.StorageDriver == "local" {
+		if err := os.MkdirAll(cfg.UploadDir, 0755); err != nil {
+			return nil, fmt.Errorf("create upload directory: %w", err)
+		}
 	}
-	r.GET("/uploads/*filepath", uploadFileHandler(storage.NewLocal(cfg.UploadDir)))
-	r.HEAD("/uploads/*filepath", uploadFileHandler(storage.NewLocal(cfg.UploadDir)))
-	routes.SetupRoutes(r, q, db, cfg)
+	r.GET("/uploads/*filepath", uploadFileHandler(mediaStorage))
+	r.HEAD("/uploads/*filepath", uploadFileHandler(mediaStorage))
+	routes.SetupRoutes(r, q, db, cfg, mediaStorage)
 	return r, nil
 }
 
@@ -91,9 +96,14 @@ func uploadFileHandler(store storage.Storage) gin.HandlerFunc {
 		c.Header("Content-Security-Policy", "default-src 'none'; sandbox")
 		c.Header("Cache-Control", "public, max-age=86400, immutable")
 		name := strings.TrimPrefix(c.Param("filepath"), "/")
-		file, err := store.Open(c.Request.Context(), name)
+		file, metadata, err := store.Open(c.Request.Context(), name)
 		if err != nil {
-			http.NotFound(c.Writer, c.Request)
+			if errors.Is(err, os.ErrNotExist) {
+				http.NotFound(c.Writer, c.Request)
+				return
+			}
+			httpx.Logger(c).Error("open served media object", "error_type", fmt.Sprintf("%T", err))
+			httpx.Internal(c, "Could not read media")
 			return
 		}
 		defer func() {
@@ -101,15 +111,10 @@ func uploadFileHandler(store storage.Storage) gin.HandlerFunc {
 				httpx.Logger(c).Error("close served media file", "error_type", fmt.Sprintf("%T", err))
 			}
 		}()
-		info, err := file.Stat()
-		if err != nil || info.IsDir() {
-			http.NotFound(c.Writer, c.Request)
-			return
+		if metadata.ContentType != "" {
+			c.Header("Content-Type", metadata.ContentType)
 		}
-		if contentType := mime.TypeByExtension(filepath.Ext(name)); contentType != "" {
-			c.Header("Content-Type", contentType)
-		}
-		http.ServeContent(c.Writer, c.Request, name, info.ModTime(), file)
+		http.ServeContent(c.Writer, c.Request, name, metadata.ModTime, file)
 	}
 }
 func configureLogger(appEnv string) {
@@ -127,6 +132,10 @@ func run() error {
 	configureLogger(cfg.AppEnv)
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	mediaStorage, err := storageForConfig(ctx, cfg)
+	if err != nil {
+		return fmt.Errorf("configure media storage: %w", err)
+	}
 	db, q, err := database.Connect(ctx, cfg)
 	if err != nil {
 		return err
@@ -144,7 +153,8 @@ func run() error {
 	if err := database.BootstrapAdmin(ctx, q, cfg); err != nil {
 		return err
 	}
-	r, err := newRouter(cfg, db, q)
+	go database.RunRefreshTokenCleanup(ctx, q, time.Hour)
+	r, err := newRouter(cfg, db, q, mediaStorage)
 	if err != nil {
 		return err
 	}
@@ -174,5 +184,20 @@ func run() error {
 			return fmt.Errorf("graceful shutdown: %w", err)
 		}
 		return <-serveErr
+	}
+}
+
+func storageForConfig(ctx context.Context, cfg config.Config) (storage.Storage, error) {
+	switch cfg.StorageDriver {
+	case "local":
+		return storage.NewLocal(cfg.UploadDir), nil
+	case "s3":
+		return storage.NewS3(ctx, storage.S3Config{
+			Endpoint: cfg.S3Endpoint, Region: cfg.S3Region, Bucket: cfg.S3Bucket,
+			AccessKeyID: cfg.S3AccessKeyID, SecretAccessKey: cfg.S3SecretAccessKey,
+			PathStyle: cfg.S3PathStyle,
+		})
+	default:
+		return nil, fmt.Errorf("unsupported storage driver %q", cfg.StorageDriver)
 	}
 }

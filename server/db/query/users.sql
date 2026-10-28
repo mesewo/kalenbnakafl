@@ -82,3 +82,12 @@ WHERE token_hash = sqlc.arg(token_hash) AND revoked_at IS NULL;
 UPDATE refresh_tokens
 SET revoked_at = CURRENT_TIMESTAMP
 WHERE token_hash = sqlc.arg(token_hash);
+
+-- name: RevokeUserRefreshTokens :exec
+UPDATE refresh_tokens
+SET revoked_at = CURRENT_TIMESTAMP
+WHERE user_id = sqlc.arg(user_id) AND revoked_at IS NULL;
+
+-- name: DeleteExpiredRefreshTokens :execrows
+DELETE FROM refresh_tokens
+WHERE expires_at <= CURRENT_TIMESTAMP;

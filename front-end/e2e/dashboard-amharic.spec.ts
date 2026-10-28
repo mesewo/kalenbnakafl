@@ -84,8 +84,7 @@ test("Amharic admin creates, publishes, edits, and deletes translated posts and 
   await dialog.getByRole("button", { name: dashboard.createEvent }).click();
   let eventRow = page.getByRole("row").filter({ hasText: eventTitle });
   await expect(eventRow).toBeVisible();
-  await page.goto("/am/events");
-  await expect(page.getByRole("heading", { name: eventTitle })).toBeVisible();
+  await waitForPublicContent(page, "/am/events", page.getByRole("heading", { name: eventTitle }));
 
   await page.goto("/am/dashboard/events");
   eventRow = page.getByRole("row").filter({ hasText: eventTitle });
@@ -128,7 +127,7 @@ test("volunteer sees localized profile, application, and event signup on Amharic
 }) => {
   test.setTimeout(90_000);
   const email = `volunteer-${suffix}@example.invalid`;
-  const password = `Volunteer-${suffix}-Aa1!`;
+  const password = "Bright-River-Safe-9402!";
   await login(page, "en");
   const seeded = await page.evaluate(
     async ({ email, password, suffix }) => {

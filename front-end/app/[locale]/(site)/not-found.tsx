@@ -1,7 +1,9 @@
-import { getTranslations } from "next-intl/server";
+"use client";
+
 import { Link } from "@/i18n/navigation";
-export default async function NotFound() {
-  const t = await getTranslations("errors");
+import { useTranslations } from "next-intl";
+export default function NotFound() {
+  const t = useTranslations("errors");
   return (
     <main id="main-content" className="section">
       <div className="container empty-state">

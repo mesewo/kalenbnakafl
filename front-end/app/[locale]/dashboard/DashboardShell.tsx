@@ -5,10 +5,13 @@ import { useTranslations } from "next-intl";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/context/AuthContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { useApiWakeup } from "@/lib/use-api-wakeup";
 
 export default function DashboardShell({ children }: { children: React.ReactNode }) {
   const { user, logout, isLoading } = useAuth();
   const t = useTranslations("dashboard");
+  const common = useTranslations("common");
+  const isWaking = useApiWakeup();
   const pathname = usePathname();
   const router = useRouter();
   useEffect(() => {
@@ -18,6 +21,11 @@ export default function DashboardShell({ children }: { children: React.ReactNode
     return (
       <div className="auth-wrap">
         <div className="empty-state">{t("checkingAccess")}</div>
+        {isWaking && (
+          <p role="status" aria-live="polite">
+            {common("serverWaking")}
+          </p>
+        )}
       </div>
     );
   }
@@ -71,6 +79,16 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           {item("/dashboard/profile", t("profile"))}
         </aside>
         <main className="dashboard-main" id="main-content">
+          {isWaking && (
+            <div
+              className="status"
+              role="status"
+              aria-live="polite"
+              style={{ marginBottom: "1rem" }}
+            >
+              {common("serverWaking")}
+            </div>
+          )}
           {children}
         </main>
       </div>

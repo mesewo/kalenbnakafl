@@ -20,6 +20,7 @@ import (
 	"kalenbnakafl/dbgen"
 	"kalenbnakafl/handlers"
 	"kalenbnakafl/internal/config"
+	"kalenbnakafl/internal/storage"
 	"kalenbnakafl/routes"
 	"kalenbnakafl/utils"
 )
@@ -84,7 +85,7 @@ func authTestAppWithConfig(t *testing.T, cfg config.Config) (*sql.DB, *dbgen.Que
 	gin.SetMode(gin.TestMode)
 	q := dbgen.New(db)
 	r := gin.New()
-	routes.SetupRoutes(r, q, db, cfg)
+	routes.SetupRoutes(r, q, db, cfg, storage.NewLocal(cfg.UploadDir))
 	return db, q, r
 }
 
@@ -134,7 +135,7 @@ func createAuthUser(t *testing.T, q *dbgen.Queries, name, email, password, role 
 
 func TestRegisterDuplicateEmailAndLogin(t *testing.T) {
 	_, _, r := authTestApp(t)
-	password := "a-long-test-password"
+	password := "a-long-secure-passphrase"
 	body := `{"name":"Test User","email":"Case@Example.org","password":"` + password + `"}`
 	if got := authRequest(r, http.MethodPost, "/api/register", body).Code; got != http.StatusCreated {
 		t.Fatalf("first register status = %d", got)
@@ -162,6 +163,20 @@ func TestRegisterDuplicateEmailAndLogin(t *testing.T) {
 	bad := authRequest(r, http.MethodPost, "/api/login", `{"email":"case@example.org","password":"wrong-password"}`)
 	if bad.Code != http.StatusUnauthorized {
 		t.Fatalf("bad password status = %d, want 401", bad.Code)
+	}
+	unknown := authRequest(r, http.MethodPost, "/api/login", `{"email":"unknown@example.org","password":"wrong-password"}`)
+	if unknown.Code != http.StatusUnauthorized {
+		t.Fatalf("unknown-account status = %d, want 401", unknown.Code)
+	}
+	var badBody, unknownBody map[string]any
+	if err := json.Unmarshal(bad.Body.Bytes(), &badBody); err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(unknown.Body.Bytes(), &unknownBody); err != nil {
+		t.Fatal(err)
+	}
+	if badBody["error"].(map[string]any)["message"] != unknownBody["error"].(map[string]any)["message"] {
+		t.Fatalf("known and unknown login errors differ: %s / %s", bad.Body, unknown.Body)
 	}
 }
 
@@ -230,7 +245,7 @@ func TestAdminGuardsAndRoleRecheck(t *testing.T) {
 	if got := authRequest(r, http.MethodDelete, fmt.Sprintf("/api/admin/users/%d", admin2), "", adminCookie(t, int(admin1), "admin")).Code; got != http.StatusOK {
 		t.Fatalf("delete second admin status=%d", got)
 	}
-	api := handlers.NewAPI(q, db, integrationConfig())
+	api := handlers.NewAPI(q, db, integrationConfig(), storage.NewLocal(t.TempDir()))
 	for _, tc := range []struct {
 		name, method, body string
 		invoke             func(*gin.Context)

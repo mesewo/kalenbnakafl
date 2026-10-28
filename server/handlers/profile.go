@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"errors"
+	"kalenbnakafl/internal/auth"
 	"kalenbnakafl/internal/httpx"
 	"net/http"
 	"strings"
@@ -47,8 +48,8 @@ func (a *API) UpdateProfile(c *gin.Context) {
 	}
 	var password sql.NullString
 	if strings.TrimSpace(input.Password) != "" {
-		if len(input.Password) < 8 {
-			httpx.Fail(c, 400, "profile.password_must_be_at_least_8_characters")
+		if err := auth.ValidatePassword(input.Password, input.Email, input.Name); err != nil {
+			httpx.Fail(c, http.StatusUnprocessableEntity, passwordPolicyMessage(err))
 			return
 		}
 		hash, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
@@ -58,7 +59,15 @@ func (a *API) UpdateProfile(c *gin.Context) {
 		}
 		password = sql.NullString{String: string(hash), Valid: true}
 	}
-	affected, err := a.q.UpdateProfile(c.Request.Context(), dbgen.UpdateProfileParams{Name: clean(input.Name), Email: strings.ToLower(clean(input.Email)), Password: password, ID: int32(id.(int))})
+	ctx := c.Request.Context()
+	tx, err := a.db.BeginTx(ctx, nil)
+	if err != nil {
+		httpx.Fail(c, http.StatusInternalServerError, "profile.could_not_update_profile_email_may_already_exist")
+		return
+	}
+	defer func() { _ = tx.Rollback() }()
+	qtx := a.q.WithTx(tx)
+	affected, err := qtx.UpdateProfile(ctx, dbgen.UpdateProfileParams{Name: clean(input.Name), Email: strings.ToLower(clean(input.Email)), Password: password, ID: int32(id.(int))})
 	if err != nil {
 		if isUniqueViolation(err) {
 			httpx.Fail(c, http.StatusConflict, "profile.could_not_update_profile_email_may_already_exist")
@@ -73,6 +82,16 @@ func (a *API) UpdateProfile(c *gin.Context) {
 	}
 	if affected == 0 {
 		httpx.Fail(c, http.StatusNotFound, "profile.profile_not_found")
+		return
+	}
+	if password.Valid {
+		if err := qtx.RevokeUserRefreshTokens(ctx, int32(id.(int))); err != nil {
+			httpx.Fail(c, http.StatusInternalServerError, "profile.could_not_update_profile_email_may_already_exist")
+			return
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		httpx.Fail(c, http.StatusInternalServerError, "profile.could_not_update_profile_email_may_already_exist")
 		return
 	}
 	httpx.Success(c, 200, "profile.profile_updated")

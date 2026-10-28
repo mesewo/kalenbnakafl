@@ -14,13 +14,17 @@ The process loads and validates environment settings once into `internal/config.
 | `JWT_SECRET` | required; at least 32 bytes | Signs access tokens |
 | `CORS_ORIGINS` | empty | Comma-separated allowed origins |
 | `UPLOAD_DIR` | `/data/uploads` | Uploaded media storage |
+| `STORAGE_DRIVER` | `local`; `local` or `s3` | Selects local disk or private S3-compatible object storage |
+| `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET` | optional with local storage; required with `s3` | S3-compatible endpoint origin, region, and private bucket |
+| `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | optional with local storage; required with `s3` | Static credentials; never returned to clients or logged |
+| `S3_PATH_STYLE` | `true` | Use path-style bucket addressing for MinIO and compatible endpoints |
 | `MEDIA_MAX_MB` | `50`; positive integer | Maximum uploaded media size |
 | `DB_CONNECT_RETRIES` | `8`; positive integer | Database connection retry count |
 | `MIGRATE_ON_START` | `false` in the binary; Compose sets `true` | Apply embedded migrations before serving |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | both optional; set together, password at least 12 characters | First-admin bootstrap |
 | `TRUSTED_PROXIES` | empty in the binary; Compose defaults to `172.21.0.0/24` | Explicit Gin trusted proxy CIDRs or addresses |
 
-The HTTP server uses bounded read/write/idle timeouts and graceful SIGINT/SIGTERM shutdown. `/healthz` is liveness and does not query PostgreSQL; `/readyz` and the `/health` alias check PostgreSQL with a two-second deadline. The container healthchecks use `/readyz`.
+The HTTP server uses bounded read/write/idle timeouts and graceful SIGINT/SIGTERM shutdown. `/healthz` is liveness and does not query dependencies; `/readyz` and the `/health` alias check PostgreSQL and the selected storage backend with a two-second deadline. The container healthchecks use `/readyz`.
 
 ## HTTP logging, errors, and request limits
 
@@ -29,6 +33,10 @@ The API configures `log/slog` with a text handler in development and JSON in pro
 All API errors use `{"error":{"code":"...","message":"...","details":{}}}`. Stable codes are `invalid_json`, `validation_failed`, `unauthorized`, `forbidden`, `not_found`, `conflict`, `rate_limited`, `payload_too_large`, and `internal`. Unexpected failures are logged with the request ID and return a generic message. The default request body limit is 1 MiB; media upload routes allow the configured file limit plus 1 MiB for multipart framing. The frontend API client extracts the nested message, safely handles non-JSON proxy errors, applies a 15-second request timeout (120 seconds for uploads), and signals session expiry on protected-route 401 responses.
 
 Access JWTs use a typed claim structure and accept only HS256. Parsing requires issuer, issue time, expiry, positive user ID, and a recognized role; malformed claims return unauthorized. Session cookies are `HttpOnly; SameSite=Lax` in every environment and `Secure` except in development. For POST, PUT, PATCH, and DELETE requests carrying an access or refresh cookie, the API requires an allowed `Origin`, or an allowed `Referer` when `Origin` is absent. Login, registration, and contact are exempt because they do not read or rely on an existing session. Login attempts use a fixed-window key of trusted client IP plus lowercased email; register and contact use client IP. Rejections include `Retry-After`. The in-memory limiter sweeps expired entries at most every 30 seconds and caps its map at 10,000 keys.
+
+## Security hardening
+
+Login performs a bcrypt comparison for missing accounts using a process-startup dummy hash and returns the same 401 response as an incorrect password. Registration, admin creation/reset, profile password changes, bootstrap, and configuration validation share `internal/auth.ValidatePassword`: at least 12 Unicode characters, no more than 72 UTF-8 bytes, rejects a small common-password list, and rejects passwords containing the account name or email. Password-policy errors use localized catalog keys and return 422. Password changes and role changes transactionally revoke all active refresh tokens for the affected user. A cancellable hourly task deletes expired refresh-token rows. CI runs govulncheck, full-history Gitleaks, high/critical Trivy scans for API and frontend images, and a failing high/critical production npm audit; Dependabot checks Go modules, npm, Docker, and GitHub Actions weekly.
 
 ## 1. Current state
 
@@ -72,13 +80,17 @@ flowchart LR
 | GET | `/me` · `/profile` | any user | authenticated profile reads |
 | PUT | `/profile` | any user | updates name/email and optionally password |
 | GET | `/healthz` | none | liveness; no database call |
-| GET | `/readyz` · `/health` | none | readiness; checks database connectivity |
+| GET | `/readyz` · `/health` | none | readiness; checks database and selected storage connectivity |
 
-Auth, refresh-token, profile, admin user, post, event, media, contact, and volunteer handlers use generated sqlc queries with request contexts and injected dependencies. Media is stored through a local-disk Storage interface using random content-derived extensions and atomic temporary-file renames; uploads are sniffed against the png/jpeg/webp/pdf/mp4/webm/mp3/ogg allowlist. `/uploads/*` sets nosniff, a restrictive CSP, immutable caching, and serves byte ranges without exposing directory listings. Media rows store a checked kind backfilled from existing media_type values. Handler and middleware database access no longer uses package-level database globals. Post and event public/staff lists use `{items,page,limit,total}` pagination (default 10, maximum 50). Post search uses the `simple` text-search configuration and a GIN index. Admin volunteer contribution recording remains under `/admin/volunteers`; applications use a separate review workflow, and event sign-ups are stored separately from volunteer status.
+Auth, refresh-token, profile, admin user, post, event, media, contact, and volunteer handlers use generated sqlc queries with request contexts and injected dependencies. Media uses a `Storage` interface with local-disk and S3-compatible drivers. Both store randomized keys with content-derived extensions; local writes publish via atomic temporary-file rename, while S3 uploads spool through a bounded temporary file into a private bucket without public ACLs. Uploads are sniffed against the png/jpeg/webp/pdf/mp4/webm/mp3/ogg allowlist. `/uploads/*` is served only by the API, sets nosniff and a restrictive CSP, applies immutable caching, and serves byte ranges; the S3 reader fetches byte ranges on seek instead of buffering entire objects. Readiness checks storage availability. Media rows store a checked kind backfilled from existing media_type values. Handler and middleware database access no longer uses package-level database globals. Post and event public/staff lists use `{items,page,limit,total}` pagination (default 10, maximum 50). Post search uses the `simple` text-search configuration and a GIN index. Admin volunteer contribution recording remains under `/admin/volunteers`; applications use a separate review workflow, and event sign-ups are stored separately from volunteer status.
 
 The staff dashboard post and event modals edit English and Amharic translations from staff list responses and submit the OpenAPI `translations` request shapes. Locale changes are sent one at a time because update handlers accept one locale per request; at least one complete translation must remain. Media uploads submit a JSON `translations` multipart field with one or both language titles. Dashboard pages use catalog labels for API roles and statuses, localized feedback, and locale aware controls; data tables scroll within their own wrappers and labels wrap for narrow screens. Playwright covers bilingual content editing, the contact inbox, volunteer sign-up, and dashboard viewport overflow against the Compose stack with an environment-bootstrapped admin account.
 
-The public frontend uses next-intl under `app/[locale]`, with `en` and `am`, `localePrefix: "always"`, and a `lang` cookie. Next.js 16 uses `proxy.ts` for locale detection; the first unprefixed visit uses the cookie or `Accept-Language` before redirecting to a prefixed URL. Public page entry points are Server Components with 60-second ISR, locale-aware API requests, canonical URLs, and hreflang alternates. Missing content translations display the API fallback note. Amharic dates use the shared `am-ET-u-ca-ethiopic` locale constant. Interface catalogs live in `front-end/messages/en.json` and `am.json`; drafted Amharic is recorded in `docs/i18n-review.md` for native review.
+The public frontend uses next-intl under `app/[locale]`, with `en` and `am`, `localePrefix: "always"`, and a `lang` cookie. Next.js 16 uses `proxy.ts` for locale detection; the first unprefixed visit uses the cookie or `Accept-Language` before redirecting to a prefixed URL. Public pages use locale-aware API requests, canonical URLs, and hreflang alternates. Home, about, contact, volunteer, auth, and post-detail routes are prerendered or revalidated; blog and event listings render on demand to support their `?page=` pagination, while their API data remains cached for 60 seconds. Missing content translations display the API fallback note. Amharic dates use the shared `am-ET-u-ca-ethiopic` locale constant. Interface catalogs live in `front-end/messages/en.json` and `am.json`; drafted Amharic is recorded in `docs/i18n-review.md` for native review.
+
+The frontend is built as a Next.js standalone image and runs as an unprivileged user. The production stage removes the base image's bundled npm CLI (npm is only needed in the dependency/build stages) to avoid shipping unused vulnerable package-manager dependencies. Its `/healthz` route is used for container liveness. `next.config.ts` adds HSTS, nosniff, referrer, permissions, and anti-framing headers; CSP is intentionally report-only until browser reports have been reviewed. The localized app metadata uses the Kalenbnakafl logo as its browser and Apple icon. Typography uses system font stacks (including Ethiopic-capable platform fonts where available) so clean production builds do not download Google Fonts.
+
+Public API requests use a 10-second fetch timeout and 60-second Next fetch revalidation. During production build, network/timeouts and API 5xx responses return an empty content fallback so static generation can finish; unexpected errors still fail the build. Failed fetch responses are not treated as content, so they are not added as successful API cache entries. At runtime, failures propagate to Next's ISR handler, which serves the last successful page while revalidation is retried. Post detail static params fall back to an empty list and retain `dynamicParams` so new slugs can render on demand. Browser `/api/*` requests are handled by a same-origin catch-all route that reads `API_INTERNAL_URL` per request; this avoids relying on external Next rewrites, whose destinations are serialized at build time. The build argument supplies the same variable for build-time public fetches, while the runtime environment controls requests after deployment. Both accept HTTPS API origins such as Render URLs. The proxy strips caller-provided forwarded-IP headers; until a trusted ingress integration is configured, API IP-based rate limits may aggregate requests from the frontend service. Browser calls retry timeouts and 502/503/504 responses up to three times with increasing delays and localized wake-up status.
 
 ### Current data model
 
@@ -101,13 +113,13 @@ flowchart TB
   P -->|/api/*| API[Go API<br/>Gin · slog · metrics]
   FE -->|server-side fetch<br/>internal network| API
   API --> DB[(PostgreSQL)]
-  API --> FS[(Media storage<br/>local volume → S3-compatible)]
+  API --> FS[(Media storage<br/>local volume or private S3-compatible bucket)]
   API -.->|optional| SMTP[Email: contact notifications]
   CI[GitHub Actions<br/>lint · test · build · scan] --> REG[Container registry]
   REG --> P
 ```
 
-**Why a same-origin reverse proxy:** the browser calls `/api/...` on the same host, so there is no CORS in production, cookies work with `SameSite=Lax`, and `NEXT_PUBLIC_API_URL` stops being environment-specific (the build-time/runtime trap in AUDIT F4). Server-side Next code talks to `http://api:8080` on the private network.
+**Why a same-origin reverse proxy:** the browser calls `/api/...` on the same host, so cookies work with `SameSite=Lax`, and `NEXT_PUBLIC_API_URL` stays environment-independent (the build-time/runtime trap in AUDIT F4). The frontend's runtime proxy reads `API_INTERNAL_URL` for each request; server-rendered public content uses the same variable during static generation and ISR.
 
 ### Go service layout (target)
 
@@ -261,7 +273,7 @@ front-end/
 └── types/ api.ts (generated)
 ```
 
-Rendering rules: public page entry points = Server Components + ISR (`revalidate: 60`); interactive forms and signup controls are client components. Dashboard routes use `/en/dashboard/*` and `/am/dashboard/*`, are client rendered, localized, and marked noindex. Public routes live under `[locale]/(site)` so the localized root layout can provide fonts and auth without the public header on staff pages. Auth state comes from the cookie session via `/me`, never from `localStorage`.
+Rendering rules: public page entry points = Server Components + ISR (`revalidate: 60`); interactive forms and signup controls are client components. Dashboard routes use `/en/dashboard/*` and `/am/dashboard/*`, are client rendered, localized, and marked noindex. Public routes live under `[locale]/(site)` so the localized root layout can provide locale and auth context without the public header on staff pages. Auth state comes from the cookie session via `/me`, never from `localStorage`.
 
 ## 3. Configuration (env)
 
@@ -276,9 +288,13 @@ Rendering rules: public page entry points = Server Components + ISR (`revalidate
 | `MIGRATE_ON_START` | api | `true` in development Compose | applies embedded Goose migrations before startup |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | api | | first-boot bootstrap only |
 | `UPLOAD_DIR` / `MEDIA_MAX_MB` | api | `/data/uploads` / `50` | local media disk root and per-upload limit |
+| `STORAGE_DRIVER` | api | `local` | Set to `s3` for private object storage |
+| `S3_ENDPOINT` / `S3_REGION` / `S3_BUCKET` | api | Compose MinIO defaults | Required with `STORAGE_DRIVER=s3`; endpoint must be an HTTP(S) origin |
+| `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` / `S3_PATH_STYLE` | api | Compose-only MinIO defaults / `true` | Private credentials and compatible endpoint addressing; do not use public bucket URLs |
+| Backblaze B2 mapping | api | — | Use `https://s3.<region>.backblazeb2.com`, the matching region and bucket, and a B2 application key ID/key; keep the bucket private |
 | `SMTP_*` | api | | optional contact notifications |
 | `NEXT_PUBLIC_SITE_URL` | web | `https://example.org` | SEO canonical/OG; build-time |
-| `API_INTERNAL_URL` | web | `http://api:8080` | server-side fetch; runtime |
+| `API_INTERNAL_URL` | web | `http://api:8080` | build-time public fetch and per-request runtime proxy; HTTP or HTTPS |
 | `POSTGRES_USER/PASSWORD/DB` | db | | from `.env`, never defaults in prod |
 
 ## 4. Architecture decision records (index)
@@ -290,6 +306,6 @@ Keep one file per decision in `docs/adr/NNNN-title.md` (Context · Decision · C
 - **ADR-003** `database/sql` + repository layer now; `pgx/v5` migration considered (lib/pq is maintenance-only).
 - **ADR-004** httpOnly cookie sessions (short JWT + rotating refresh) instead of `localStorage` tokens.
 - **ADR-005** Embedded Goose SQL migrations, applied before serving when `MIGRATE_ON_START=true` and serialized with PostgreSQL session advisory locking.
-- **ADR-006** Local-volume media storage behind a `Storage` interface; S3-compatible later.
+- **ADR-006 / ADR-009** Pluggable media storage: local disk by default, S3-compatible private bucket for durable deployment storage; see [ADR-009](./docs/adr/0009-object-storage-backends.md).
 - **ADR-007** `next-intl` for UI i18n; content translation strategy (pending).
 - **ADR-008** Tailwind v4 CSS-first tokens; no JS config.

@@ -15,6 +15,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"kalenbnakafl/handlers"
 	"kalenbnakafl/internal/i18n"
+	"kalenbnakafl/internal/storage"
 	"kalenbnakafl/models"
 )
 
@@ -345,7 +346,7 @@ func TestEventValidationMessagesUnchanged(t *testing.T) {
 
 func TestCreatePostForeignKeyErrorMapsTo422(t *testing.T) {
 	db, q, _ := authTestApp(t)
-	api := handlers.NewAPI(q, db, integrationConfig())
+	api := handlers.NewAPI(q, db, integrationConfig(), storage.NewLocal(t.TempDir()))
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)

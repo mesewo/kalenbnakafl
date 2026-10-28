@@ -38,10 +38,12 @@ test("admin content and public bilingual flows", async ({ page }) => {
   await postRow.getByRole("button", { name: "Publish" }).click();
   await expect(postRow).toContainText("Published");
   await waitForPublicContent(page, "/en/blog", page.getByRole("heading", { name: postTitle }));
-  await page.getByRole("link", { name: "Read the full note →" }).first().click();
+  const enPostCard = page.locator("article.card").filter({ hasText: postTitle });
+  await enPostCard.getByRole("link", { name: "Read the full note →" }).click();
   await expect(page.getByText(`English body ${suffix}`)).toBeVisible();
   await waitForPublicContent(page, "/am/blog", page.getByRole("heading", { name: amPostTitle }));
-  await page.getByRole("link", { name: "ሙሉ ታሪኩን ያንብቡ →" }).first().click();
+  const amPostCard = page.locator("article.card").filter({ hasText: amPostTitle });
+  await amPostCard.getByRole("link", { name: "ሙሉ ታሪኩን ያንብቡ →" }).click();
   await expect(page).toHaveURL(/\/am\/blog\//);
   await expect(page.getByText(`የአማርኛ ይዘት ${suffix}`)).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("lang", "am");
@@ -101,6 +103,7 @@ test("admin content and public bilingual flows", async ({ page }) => {
       new Intl.DateTimeFormat("am-ET-u-ca-ethiopic", {
         dateStyle: "medium",
         timeStyle: "short",
+        timeZone: "UTC",
       }).format(new Date(date)),
     new Date(eventStart).toISOString(),
   );

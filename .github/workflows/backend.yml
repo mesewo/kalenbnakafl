@@ -4,12 +4,16 @@ on:
   push:
     paths:
       - "server/**"
+      - "infra/minio/**"
+      - "docker-compose.yaml"
       - "sqlc.yaml"
       - "Makefile"
       - ".github/workflows/backend.yml"
   pull_request:
     paths:
       - "server/**"
+      - "infra/minio/**"
+      - "docker-compose.yaml"
       - "sqlc.yaml"
       - "Makefile"
       - ".github/workflows/backend.yml"
@@ -39,7 +43,9 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version-file: server/go.mod
-          cache-dependency-path: server/go.sum
+          cache-dependency-path: |
+            server/go.sum
+            infra/minio/version
       - name: Check migration round trip
         working-directory: server
         run: |
@@ -55,9 +61,38 @@ jobs:
       - name: Vet
         working-directory: server
         run: go vet ./...
-      - name: Test
+      - name: Test with MinIO
         working-directory: server
-        run: go test ./...
+        env:
+          GOBIN: ${{ runner.temp }}/minio-bin
+          MINIO_ROOT_USER: test-key-id
+          MINIO_ROOT_PASSWORD: test-secret-key-long
+          S3_TEST_ENDPOINT: http://localhost:9000
+          S3_TEST_REGION: us-east-1
+          S3_TEST_BUCKET: kalenbnakafl-test
+          S3_TEST_ACCESS_KEY_ID: test-key-id
+          S3_TEST_SECRET_ACCESS_KEY: test-secret-key-long
+          S3_TEST_PATH_STYLE: "true"
+        run: |
+          mkdir -p "$GOBIN" "$RUNNER_TEMP/minio-data"
+          MINIO_VERSION="$(cat ../infra/minio/version)"
+          go install -ldflags="-s -w" "github.com/minio/minio@${MINIO_VERSION}"
+          MINIO_ROOT_USER="$MINIO_ROOT_USER" MINIO_ROOT_PASSWORD="$MINIO_ROOT_PASSWORD" \
+            "$GOBIN/minio" server "$RUNNER_TEMP/minio-data" \
+            --address 0.0.0.0:9000 --console-address 0.0.0.0:9001 \
+            > "$RUNNER_TEMP/minio.log" 2>&1 &
+          minio_pid=$!
+          trap 'kill "$minio_pid" 2>/dev/null || true' EXIT
+          for attempt in {1..30}; do
+            if curl --fail --silent http://localhost:9000/minio/health/live > /dev/null; then
+              go test ./...
+              exit $?
+            fi
+            sleep 2
+          done
+          cat "$RUNNER_TEMP/minio.log" >&2
+          echo "MinIO did not become ready" >&2
+          exit 1
       - name: Lint
         uses: golangci/golangci-lint-action@v9
         with:

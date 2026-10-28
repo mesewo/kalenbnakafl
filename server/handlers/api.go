@@ -14,6 +14,6 @@ type API struct {
 	storage storage.Storage
 }
 
-func NewAPI(q *dbgen.Queries, db *sql.DB, cfg config.Config) *API {
-	return &API{q: q, db: db, cfg: cfg, storage: storage.NewLocal(cfg.UploadDir)}
+func NewAPI(q *dbgen.Queries, db *sql.DB, cfg config.Config, mediaStorage storage.Storage) *API {
+	return &API{q: q, db: db, cfg: cfg, storage: mediaStorage}
 }

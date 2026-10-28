@@ -24,7 +24,8 @@
     "error": "Something went wrong. Please try again.",
     "fallback": "Not yet translated, showing English",
     "requestTimedOut": "The request timed out. Please try again.",
-    "serviceUnavailable": "We could not reach the service. Please check your connection and try again."
+    "serviceUnavailable": "We could not reach the service. Please check your connection and try again.",
+    "serverWaking": "The server is waking up, trying again…"
   },
   "metadata": {
     "title": "Kalen Benakafil | Community NGO",

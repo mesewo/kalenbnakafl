@@ -18,8 +18,8 @@ export default async function HomePage({ params }: Props) {
   const t = await getTranslations("home");
   const common = await getTranslations("common");
   const [posts, events] = await Promise.all([
-    fetchPublic<PageResponse<Post>>("/posts?limit=2", locale).catch(() => null),
-    fetchPublic<PageResponse<EventItem>>("/events?upcoming=true&limit=2", locale).catch(() => null),
+    fetchPublic<PageResponse<Post>>("/posts?limit=2", locale),
+    fetchPublic<PageResponse<EventItem>>("/events?upcoming=true&limit=2", locale),
   ]);
   return (
     <>

@@ -2,12 +2,11 @@
 
 ### Current state / next step
 
-- Dashboard translations and Amharic content/inbox/volunteer E2E flows are in place; responsive overflow coverage spans both locales.
-- Fixed E2E selectors and publication synchronization, added the missing Amharic contact validation, and made public-content checks tolerate the 60-second ISR cache.
-- Corrected the English event-submit selector to match the catalog label, “Create an event.”
-- Focused checks passed: Go localization tests, Playwright lint/format/TypeScript, catalog validation (411 messages), test discovery (7 tests), and `git diff --check`.
-- The authenticated Compose E2E suite was not run locally because it mutates persistent data; CI provides an ephemeral database.
-- Next: rerun authenticated Playwright tests in CI and get native review of `docs/i18n-review.md`.
+- Media storage now has a seekable `Storage` contract with metadata, a local driver, and an AWS SDK v2 S3-compatible driver using private objects and range reads.
+- S3 configuration fails fast before database connection; `/readyz` checks the selected store. The Compose `s3` profile and backend CI use the same pinned MinIO source revision.
+- Backend formatting/build/vet/tests/sqlc diff, Compose config, and the S3 contract against local MinIO passed; PostgreSQL integration tests were skipped because `DATABASE_URL_TEST` was unset.
+- The Compose MinIO image build was canceled after an extended source dependency download; only its config and S3 behavior are verified locally. B2 and storage decisions are documented in `.env.example`, `ARCHITECTURE.md`, and ADR-009.
+- Media UX investigation found post cover selection missing, no event cover field, and no curated home slider; next decide whether to scope those as a separate schema/UI phase.
 **Goal:** a repo and a live demo that survive a 10-minute recruiter/hiring-manager review for a *senior full-stack* role: one-command startup, real security, real tests, CI, docs, and a polished, working UI.
 
 **Rhythm:** each phase = 1–3 focused sessions (≈2–4 h each) with Gemini. Finish a phase's *Exit criteria* before starting the next. Total ≈ 3–4 weeks part-time.
@@ -156,13 +155,20 @@
 ## Verified commands (fill in as confirmed)
 
 | Command | Result | Date |
+|---------|--------|------|
+| `cd server && gofmt -l . && go build ./... && go vet ./... && go test ./... && go tool sqlc diff -f ../sqlc.yaml` (pluggable S3 media storage) | Passed; formatting, build, vet, tests, and sqlc diff clean. PostgreSQL integration tests were skipped because `DATABASE_URL_TEST` was unset. | 2026-10-26 |
+| `cd server && go test ./internal/storage -run '^TestS3StorageContract$' -count=1` (pinned MinIO binary) | Passed against local MinIO; exercised bucket readiness/creation, upload, metadata, range seek/read, delete, and size/empty checks. | 2026-10-26 |
+| `docker compose --env-file .env.example -p kalenbnakafl-s3-check --profile s3 config --quiet` | Passed; Compose profile and environment interpolation validated. | 2026-10-26 |
+| `docker compose --env-file .env.example -p kalenbnakafl-s3-check --profile s3 build minio` | Not completed; canceled after an extended source-dependency download. The S3 contract passed against the pinned MinIO binary; CI uses the Go module cache rather than rebuilding the MinIO image. | 2026-10-26 |
 | `cd server && gofmt -l . && go vet ./... && go test ./... && go tool sqlc diff -f ../sqlc.yaml` (bilingual front-end part 2a) | Passed; gofmt listed no files, vet/tests passed all packages, and sqlc diff was clean. | 2026-10-25 |
 | `cd front-end && npm run lint && npx tsc --noEmit && npm run format:check && npm run check:i18n && npm run build` (bilingual front-end part 2a) | Passed; lint had 5 existing hook warnings and 0 errors; TypeScript, formatting, 247-message bilingual check, and production build passed. Next reported stale Baseline data. | 2026-10-25 |
 | `cd front-end && npm run test:e2e` (bilingual front-end part 2a) | Not run: Docker Engine pipe access was denied, so the Compose app/API test environment was unavailable. | 2026-10-25 |
-|---------|--------|------|
 | `cd server && go build ./... && gofmt -l . && go vet ./... && go test -count=1 ./... && go tool sqlc diff -f ../sqlc.yaml` (single-review volunteer workflow) | Passed; `gofmt -l .` listed no files and sqlc diff was clean. PostgreSQL integration tests skipped because `DATABASE_URL_TEST` was unset. | 2026-10-25 |
 | `cd front-end && npm run gen:api && npm run lint && npx tsc --noEmit && npm run format:check && npm run build` (single-review volunteer workflow) | Passed; lint reported 7 pre-existing warnings and 0 errors; TypeScript, format check, and build passed. Next.js reported stale Baseline browser data. | 2026-10-25 |
 | `docker compose up --build -d` (single-review volunteer workflow smoke) | Not run: Docker Engine named pipe was unavailable; Compose could not connect to the daemon. | 2026-10-25 |
+| `cd server && gofmt -l . && go build ./... && go vet ./... && go test ./... && go tool sqlc diff -f ../sqlc.yaml` (backend security hardening) | Passed; gofmt listed no files, build/vet/tests passed, and sqlc diff was clean. PostgreSQL integration cases skipped because `DATABASE_URL_TEST` was unset. | 2026-10-26 |
+| `cd front-end && npm run gen:api && npm run check:i18n && npm run lint && npx tsc --noEmit && npm run format:check && npm run build` (backend security hardening) | Passed; generation and 411-message catalog validation passed; lint had 5 existing hook warnings and 0 errors; TypeScript, formatting, and production build passed. Build required elevated permissions for the native SWC binding. | 2026-10-26 |
+| `docker compose up --build` / disposable PostgreSQL integration tests (backend security hardening) | Not run: Docker Engine named pipe access was denied. | 2026-10-26 |
 | `docker compose up --build` (clean clone) | Failed before start: required `.env` values missing; Docker config access denied. | 2026-10-20 |
 | `cd server && gofmt -l . && go vet ./... && go test ./...` (exhaustive registered-route matrix) | Passed; PostgreSQL integration tests ran against the configured test database, including every registered API route × guest/user/volunteer/editor/admin and removed route checks. `gofmt -l .` listed no files. | 2026-10-24 |
 | `golangci-lint run` (Prompt V, exhaustive route matrix) | Not run: `golangci-lint` is not installed in the local environment. | 2026-10-24 |
@@ -225,6 +231,12 @@
 | `cd server && gofmt -l . && go vet ./... && go test ./... && go tool sqlc diff -f ../sqlc.yaml` (bilingual frontend part 2b) | Passed; gofmt listed no files, all packages passed (some cached), and sqlc diff was clean. | 2026-10-25 |
 | `cd front-end && npm run check:i18n && npm run report:unused-messages && npm run lint && npx tsc --noEmit && npm run format:check && npm run build && npm run test:e2e -- --list` (bilingual frontend part 2b) | Passed; 411 bilingual messages validated, unused-key report ran, lint had 5 hook warnings and 0 errors, TypeScript/format/build passed, and 7 Playwright specs were discovered. Build required elevated permissions after the sandbox native-binding failure. | 2026-10-25 |
 | `docker compose -f ../docker-compose.yaml up --build -d` (bilingual frontend part 2b) | Docker access succeeded with elevation, but the frontend image build stalled at `npm ci`; stopped before containers started, so Playwright browser flows were not executed. | 2026-10-25 |
+| `cd front-end && npm run gen:api` (frontend CI fixes) | Passed; generated API types were unchanged on regeneration. | 2026-10-26 |
+| `cd front-end && npm run lint && npx tsc --noEmit && npm run format:check && npm run check:i18n && npm run build` (frontend CI fixes) | Passed; lint had five pre-existing hook dependency warnings and no errors; TypeScript, format, 411-message catalog validation, and production build passed. | 2026-10-26 |
+| `cd front-end && npm audit --audit-level=high && npm audit --omit=dev --audit-level=high` (frontend CI fixes) | Passed; both dependency trees reported zero vulnerabilities. | 2026-10-26 |
+| `docker compose build` and isolated `docker compose -p kalenbnakafl-validation up -d --wait` | Passed; API, database, and frontend became healthy; isolated validation containers/network were removed after testing, volumes retained. | 2026-10-26 |
+| `cd front-end && CI=true npm run test:e2e` (frontend CI fixes) | Passed; all 7 Playwright tests passed. | 2026-10-26 |
+| `docker scout cves --only-severity critical,high` (API and frontend images) | Not run; Docker Scout requires Docker account sign-in. Trivy remains configured in CI; the prior local vulnerability-database download timed out. | 2026-10-26 |
 
 ### Phase 0 baseline run — 2026-10-20
 

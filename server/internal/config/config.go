@@ -2,26 +2,37 @@ package config
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
+
+	"kalenbnakafl/internal/auth"
+	"kalenbnakafl/internal/i18n"
 )
 
 const defaultMediaMaxMB int64 = 50
 
 type Config struct {
-	Port             string
-	AppEnv           string
-	DatabaseURL      string
-	JWTSecret        []byte
-	CORSOrigins      []string
-	UploadDir        string
-	MediaMaxMB       int64
-	DBConnectRetries int
-	MigrateOnStart   bool
-	AdminEmail       string
-	AdminPassword    string
-	TrustedProxies   []string
+	Port              string
+	AppEnv            string
+	DatabaseURL       string
+	JWTSecret         []byte
+	CORSOrigins       []string
+	UploadDir         string
+	MediaMaxMB        int64
+	DBConnectRetries  int
+	MigrateOnStart    bool
+	AdminEmail        string
+	AdminPassword     string
+	TrustedProxies    []string
+	StorageDriver     string
+	S3Endpoint        string
+	S3Region          string
+	S3Bucket          string
+	S3AccessKeyID     string
+	S3SecretAccessKey string
+	S3PathStyle       bool
 }
 
 func Environment(key string) string { return os.Getenv(key) }
@@ -34,19 +45,34 @@ func Load() (Config, error) {
 // injectable so validation can be tested without changing process environment.
 func LoadFrom(getenv func(string) string) (Config, error) {
 	cfg := Config{
-		Port:             valueOr(getenv("PORT"), "8080"),
-		AppEnv:           valueOr(getenv("APP_ENV"), "development"),
-		DatabaseURL:      strings.TrimSpace(getenv("DATABASE_URL")),
-		JWTSecret:        []byte(getenv("JWT_SECRET")),
-		CORSOrigins:      splitList(getenv("CORS_ORIGINS")),
-		UploadDir:        valueOr(getenv("UPLOAD_DIR"), "/data/uploads"),
-		MediaMaxMB:       defaultMediaMaxMB,
-		DBConnectRetries: 8,
-		AdminEmail:       strings.TrimSpace(getenv("ADMIN_EMAIL")),
-		AdminPassword:    getenv("ADMIN_PASSWORD"),
-		TrustedProxies:   splitList(getenv("TRUSTED_PROXIES")),
+		Port:              valueOr(getenv("PORT"), "8080"),
+		AppEnv:            valueOr(getenv("APP_ENV"), "development"),
+		DatabaseURL:       strings.TrimSpace(getenv("DATABASE_URL")),
+		JWTSecret:         []byte(getenv("JWT_SECRET")),
+		CORSOrigins:       splitList(getenv("CORS_ORIGINS")),
+		UploadDir:         valueOr(getenv("UPLOAD_DIR"), "/data/uploads"),
+		MediaMaxMB:        defaultMediaMaxMB,
+		DBConnectRetries:  8,
+		AdminEmail:        strings.TrimSpace(getenv("ADMIN_EMAIL")),
+		AdminPassword:     getenv("ADMIN_PASSWORD"),
+		TrustedProxies:    splitList(getenv("TRUSTED_PROXIES")),
+		StorageDriver:     valueOr(getenv("STORAGE_DRIVER"), "local"),
+		S3Endpoint:        strings.TrimSpace(getenv("S3_ENDPOINT")),
+		S3Region:          strings.TrimSpace(getenv("S3_REGION")),
+		S3Bucket:          strings.TrimSpace(getenv("S3_BUCKET")),
+		S3AccessKeyID:     strings.TrimSpace(getenv("S3_ACCESS_KEY_ID")),
+		S3SecretAccessKey: strings.TrimSpace(getenv("S3_SECRET_ACCESS_KEY")),
+		S3PathStyle:       true,
 	}
 	var problems []string
+	if value := strings.TrimSpace(getenv("S3_PATH_STYLE")); value != "" {
+		pathStyle, err := strconv.ParseBool(value)
+		if err != nil {
+			problems = append(problems, "S3_PATH_STYLE must be true or false")
+		} else {
+			cfg.S3PathStyle = pathStyle
+		}
+	}
 	if value := strings.TrimSpace(getenv("DB_CONNECT_RETRIES")); value != "" {
 		retries, err := strconv.Atoi(value)
 		if err != nil || retries < 1 {
@@ -94,11 +120,33 @@ func (c Config) validationProblems() []string {
 	if (c.AdminEmail == "") != (c.AdminPassword == "") {
 		problems = append(problems, "ADMIN_EMAIL and ADMIN_PASSWORD must be set together")
 	}
-	if c.AdminPassword != "" && len(c.AdminPassword) < 12 {
-		problems = append(problems, "ADMIN_PASSWORD must be at least 12 characters")
+	if c.AdminPassword != "" {
+		if err := auth.ValidatePassword(c.AdminPassword, c.AdminEmail, "Administrator"); err != nil {
+			problems = append(problems, "ADMIN_PASSWORD: "+i18n.Text("en", err.Error()))
+		}
 	}
 	if strings.TrimSpace(c.UploadDir) == "" {
 		problems = append(problems, "UPLOAD_DIR must not be empty")
+	}
+	if c.StorageDriver != "local" && c.StorageDriver != "s3" {
+		problems = append(problems, "STORAGE_DRIVER must be local or s3")
+	}
+	if c.StorageDriver == "s3" {
+		for _, setting := range []struct{ name, value string }{
+			{"S3_ENDPOINT", c.S3Endpoint}, {"S3_REGION", c.S3Region}, {"S3_BUCKET", c.S3Bucket},
+			{"S3_ACCESS_KEY_ID", c.S3AccessKeyID}, {"S3_SECRET_ACCESS_KEY", c.S3SecretAccessKey},
+		} {
+			if setting.value == "" {
+				problems = append(problems, setting.name+" is required when STORAGE_DRIVER=s3")
+			}
+		}
+		if c.S3Endpoint != "" {
+			endpoint, err := url.ParseRequestURI(c.S3Endpoint)
+			if err != nil || (endpoint.Scheme != "http" && endpoint.Scheme != "https") || endpoint.Host == "" ||
+				endpoint.User != nil || endpoint.RawQuery != "" || endpoint.Fragment != "" || (endpoint.Path != "" && endpoint.Path != "/") {
+				problems = append(problems, "S3_ENDPOINT must be an HTTP(S) origin without credentials, path, query, or fragment")
+			}
+		}
 	}
 	if c.MediaMaxMB < 1 {
 		problems = append(problems, "MEDIA_MAX_MB must be a positive integer")

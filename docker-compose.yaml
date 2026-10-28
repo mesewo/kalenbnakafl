@@ -28,6 +28,13 @@ services:
       MEDIA_MAX_MB: ${MEDIA_MAX_MB:-50}
       TRUSTED_PROXIES: ${TRUSTED_PROXIES:-172.21.0.0/24}
       UPLOAD_DIR: /data/uploads
+      STORAGE_DRIVER: ${STORAGE_DRIVER:-local}
+      S3_ENDPOINT: ${S3_ENDPOINT:-http://minio:9000}
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_BUCKET: ${S3_BUCKET:-kalenbnakafl-media}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-minioadmin}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-minioadmin123}
+      S3_PATH_STYLE: ${S3_PATH_STYLE:-true}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       MIGRATE_ON_START: ${MIGRATE_ON_START:-true}
@@ -44,15 +51,28 @@ services:
       timeout: 5s
       retries: 5
       start_period: 20s
+  minio:
+    build:
+      context: ./infra/minio
+      dockerfile: Dockerfile
+    profiles: ["s3"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
   frontend:
     build:
       context: ./front-end
       dockerfile: Dockerfile
       args:
-        API_INTERNAL_URL: http://api:8080
+        API_INTERNAL_URL: ${API_INTERNAL_URL:-http://api:8080}
     restart: unless-stopped
     environment:
-      API_INTERNAL_URL: http://api:8080
+      API_INTERNAL_URL: ${API_INTERNAL_URL:-http://api:8080}
       NEXT_PUBLIC_API_URL: /api
     ports:
       - "3000:3000"
@@ -76,6 +96,7 @@ services:
 volumes:
   pgdata:
   uploads:
+  minio_data:
 networks:
   default:
     ipam:

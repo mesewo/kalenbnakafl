@@ -18,10 +18,7 @@ export default async function BlogPage({ params, searchParams }: Props) {
   const page = Math.max(1, Number(query.page) || 1);
   const t = await getTranslations("blog");
   const common = await getTranslations("common");
-  const result = await fetchPublic<PageResponse<Post>>(
-    `/posts?page=${page}&limit=10`,
-    locale,
-  ).catch(() => null);
+  const result = await fetchPublic<PageResponse<Post>>(`/posts?page=${page}&limit=10`, locale);
   const totalPages = Math.max(1, Math.ceil((result?.total ?? 0) / (result?.limit || 10)));
   return (
     <main id="main-content">

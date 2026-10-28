@@ -15,7 +15,7 @@ Canonical project name: **kalenbnakafl**; display name: **Kalen Benakafil**. Kee
 | Layer | Tech |
 |-------|------|
 | Front end (`front-end/`) | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS **v4** (CSS-first config via `@theme`) |
-| API (`server/`) | Go 1.25, Gin, `database/sql` + `lib/pq` (pgx/v5 migration optional, see ADR-003), JWT (HS256), bcrypt |
+| API (`server/`) | Go 1.27, Gin, `database/sql` + `lib/pq` (pgx/v5 migration optional, see ADR-003), JWT (HS256), bcrypt |
 | Database | PostgreSQL 15 |
 | Infra | Docker, Docker Compose, GitHub Actions |
 

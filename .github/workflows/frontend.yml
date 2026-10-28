@@ -5,11 +5,13 @@ on:
     paths:
       - "front-end/**"
       - "docs/openapi.yaml"
+      - "docker-compose.yaml"
       - ".github/workflows/frontend.yml"
   pull_request:
     paths:
       - "front-end/**"
       - "docs/openapi.yaml"
+      - "docker-compose.yaml"
       - ".github/workflows/frontend.yml"
 
 jobs:
@@ -26,6 +28,7 @@ jobs:
           cache: npm
           cache-dependency-path: front-end/package-lock.json
       - run: npm ci
+      - run: npm run test:unit
       - run: npm run gen:api
       - run: git diff --exit-code types/api.d.ts
       - run: npm run check:i18n
@@ -35,9 +38,38 @@ jobs:
       - run: npx tsc --noEmit
       - run: npm run format:check
       - run: npm run build
-      - name: Audit production dependencies (informational)
-        run: npm audit --omit=dev
-        continue-on-error: true
+      - name: Build the standalone frontend image
+        run: docker build --build-arg API_INTERNAL_URL=https://build-api.example.invalid -t kalenbnakafl-frontend:ci -f Dockerfile .
+      - name: Smoke test standalone image and non-root runtime
+        shell: bash
+        run: |
+          node -e 'require("http").createServer((req,res)=>{res.setHeader("content-type","application/json");res.end(JSON.stringify({runtimeTarget:"ok"}))}).listen(18080,"0.0.0.0")' &
+          mock_api_pid=$!
+          docker run -d --name frontend-standalone-check --add-host host.docker.internal:host-gateway -p 127.0.0.1:3001:3000 -e API_INTERNAL_URL=http://host.docker.internal:18080 kalenbnakafl-frontend:ci
+          trap 'docker rm -f frontend-standalone-check >/dev/null 2>&1 || true; kill "$mock_api_pid" >/dev/null 2>&1 || true' EXIT
+          runtime_user="$(docker inspect --format '{{.Config.User}}' frontend-standalone-check)"
+          if [[ -z "$runtime_user" || "$runtime_user" == "0" || "$runtime_user" == "0:0" ]]; then
+            echo "Frontend container must run as a non-root user"
+            exit 1
+          fi
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:3001/healthz >/dev/null; then
+              break
+            fi
+            sleep 2
+          done
+          if ! curl --fail --silent http://127.0.0.1:3001/healthz >/dev/null; then
+            docker logs frontend-standalone-check
+            exit 1
+          fi
+          proxy_response="$(curl --fail --silent http://127.0.0.1:3001/api/runtime-check)"
+          if [[ "$proxy_response" != '{"runtimeTarget":"ok"}' ]]; then
+            echo "Runtime API_INTERNAL_URL was not used by the standalone API proxy"
+            echo "$proxy_response"
+            exit 1
+          fi
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
 
   content-smoke:
     runs-on: ubuntu-latest

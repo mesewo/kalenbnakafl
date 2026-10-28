@@ -11,6 +11,11 @@ function visit(value, prefix = "") {
 }
 visit(catalog);
 const backend = [
+  ["auth.password_too_short", "የይለፍ ቃሉ ቢያንስ 12 ቁምፊዎች ሊኖሩት ይገባል።"],
+  ["auth.password_too_long", "የይለፍ ቃሉ ከ72 ባይት መብለጥ የለበትም።"],
+  ["auth.password_too_common", "ይህ የይለፍ ቃል በጣም በብዛት የሚጠቀሙት ስለሆነ ሌላ ይምረጡ።"],
+  ["auth.password_contains_identity", "የይለፍ ቃሉ ስምዎን ወይም ኢሜይልዎን መያዝ የለበትም።"],
+  ["auth.password_policy_invalid", "የይለፍ ቃሉ የይለፍ ቃል መስፈርቱን አያሟላም።"],
   ["common.locale_invalid", "ቋንቋው en ወይም am መሆን አለበት"],
   ["contact.name_valid_email_and_a_message_are_required", "ስም እና መልእክት ያስፈልጋል"],
   ["posts.translations_are_required_and_must_be_valid", "ቢያንስ አንድ ትክክለኛ የግጽፍ ትርጉም ያስፈልጋል"],

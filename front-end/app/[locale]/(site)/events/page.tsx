@@ -22,7 +22,7 @@ export default async function EventsPage({ params, searchParams }: Props) {
   const result = await fetchPublic<PageResponse<EventItem>>(
     `/events?upcoming=true&page=${page}&limit=10`,
     locale,
-  ).catch(() => null);
+  );
   const pages = Math.max(1, Math.ceil((result?.total ?? 0) / (result?.limit || 10)));
   return (
     <main id="main-content">

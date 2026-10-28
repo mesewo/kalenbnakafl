@@ -15,6 +15,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"kalenbnakafl/handlers"
+	"kalenbnakafl/internal/storage"
 	"kalenbnakafl/models"
 )
 
@@ -168,7 +169,7 @@ func TestMediaUploadDeleteAndInsertFailureCleanup(t *testing.T) {
 	if missingDelete.Code != http.StatusOK {
 		t.Fatalf("delete with missing file status=%d body=%s", missingDelete.Code, missingDelete.Body)
 	}
-	api := handlers.NewAPI(q, db, cfg)
+	api := handlers.NewAPI(q, db, cfg, storage.NewLocal(cfg.UploadDir))
 	gin.SetMode(gin.TestMode)
 	failed := mediaUploadRequest(t, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
