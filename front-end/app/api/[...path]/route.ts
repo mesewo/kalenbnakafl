@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { platformForwardingHeaders } from "@/lib/platform-forwarding.mjs";
 
 export const dynamic = "force-dynamic";
 
@@ -22,17 +23,15 @@ async function proxy(request: Request, { params }: RouteContext): Promise<Respon
     return gatewayError();
   }
 
-  const headers = new Headers(request.headers);
+  const headers = platformForwardingHeaders(request.headers, {
+    enabled: process.env.TRUST_FORWARDED_HEADERS === "true",
+    clientIP: request.headers.get("x-vercel-forwarded-for"),
+    token: process.env.FORWARDED_HEADERS_SECRET,
+  });
   headers.delete("connection");
   headers.delete("content-length");
   headers.delete("host");
   headers.delete("accept-encoding");
-  headers.delete("forwarded");
-  headers.delete("x-forwarded-for");
-  headers.delete("x-forwarded-host");
-  headers.delete("x-forwarded-port");
-  headers.delete("x-forwarded-proto");
-  headers.delete("x-real-ip");
   const hasBody = request.method !== "GET" && request.method !== "HEAD";
   try {
     const upstream = await fetch(target, {

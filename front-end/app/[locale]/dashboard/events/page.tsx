@@ -1,5 +1,5 @@
 "use client";
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -27,7 +27,7 @@ export default function EventsAdminPage() {
     event: null,
   });
   const prefix = "/staff";
-  async function load() {
+  const load = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
@@ -40,10 +40,10 @@ export default function EventsAdminPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [t, user]);
   useEffect(() => {
-    load();
-  }, [user, user?.role]);
+    void load();
+  }, [load]);
 
   async function loadAttendees(eventID: number, requestedPage = 1) {
     setAttendeeLoading(true);

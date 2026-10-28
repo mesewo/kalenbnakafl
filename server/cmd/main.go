@@ -55,7 +55,7 @@ func newRouter(cfg config.Config, db *sql.DB, q *dbgen.Queries, mediaStorage sto
 		gin.SetMode(gin.ReleaseMode)
 	}
 	r := gin.New()
-	r.Use(httpx.RequestID(), httpx.AccessLog(), httpx.Recovery(), httpx.BodyLimit(1<<20, cfg.MediaMaxMB*1024*1024+(1<<20)))
+	r.Use(httpx.RequestID(), httpx.TrustedForwardedClientIP(cfg.ForwardedHeadersSecret), httpx.AccessLog(), httpx.Recovery(), httpx.BodyLimit(1<<20, cfg.MediaMaxMB*1024*1024+(1<<20)))
 	if err := r.SetTrustedProxies(cfg.TrustedProxies); err != nil {
 		return nil, fmt.Errorf("configure trusted proxies: %w", err)
 	}

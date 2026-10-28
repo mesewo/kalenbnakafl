@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"kalenbnakafl/internal/httpx"
 )
 
 func TestRequireSessionOrigin(t *testing.T) {
@@ -90,7 +91,7 @@ func TestClientIPUsesTrustedProxyChainAndIgnoresUntrustedSpoof(t *testing.T) {
 	if err := r.SetTrustedProxies([]string{"10.0.0.0/8"}); err != nil {
 		t.Fatal(err)
 	}
-	r.GET("/", LimitRequestsWithLimiter(limiter, 1, time.Minute, func(c *gin.Context) string { return c.ClientIP() }), func(c *gin.Context) { c.Status(http.StatusNoContent) })
+	r.GET("/", httpx.TrustedForwardedClientIP("platform-secret"), LimitRequestsWithLimiter(limiter, 1, time.Minute, func(c *gin.Context) string { return httpx.ClientIP(c) }), func(c *gin.Context) { c.Status(http.StatusNoContent) })
 	request := func(peer, forwarded string) int {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		req.RemoteAddr = peer + ":1234"
@@ -118,6 +119,35 @@ func TestClientIPUsesTrustedProxyChainAndIgnoresUntrustedSpoof(t *testing.T) {
 	}
 	if got := request("192.0.2.10", "203.0.113.8"); got != 429 {
 		t.Fatalf("untrusted XFF spoof was trusted, status=%d", got)
+	}
+}
+
+func TestLoginLimiterSeparatesAuthenticatedForwardedClientIPs(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	limiter := NewMemoryLimiter(20)
+	r := gin.New()
+	if err := r.SetTrustedProxies(nil); err != nil {
+		t.Fatal(err)
+	}
+	r.Use(httpx.TrustedForwardedClientIP("platform-secret"))
+	r.POST("/login", LimitLoginRequests(limiter, 1, time.Minute), func(c *gin.Context) { c.Status(http.StatusNoContent) })
+	request := func(ip string) int {
+		req := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(`{"email":"same@example.org"}`))
+		req.RemoteAddr = "203.0.113.8:1234"
+		req.Header.Set("X-Platform-Client-IP", ip)
+		req.Header.Set("X-Platform-Forwarder-Token", "platform-secret")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		return w.Code
+	}
+	if got := request("198.51.100.1"); got != http.StatusNoContent {
+		t.Fatalf("first client status=%d", got)
+	}
+	if got := request("198.51.100.1"); got != http.StatusTooManyRequests {
+		t.Fatalf("same client was not rate limited: %d", got)
+	}
+	if got := request("198.51.100.2"); got != http.StatusNoContent {
+		t.Fatalf("separate client IP status=%d", got)
 	}
 }
 

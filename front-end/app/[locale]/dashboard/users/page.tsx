@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch, type User, type UserRole } from "@/lib/api";
@@ -17,7 +17,7 @@ export default function UsersPage() {
   const [form, setForm] = useState({ name: "", email: "", password: "", role: "user" as UserRole });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  async function load() {
+  const load = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
@@ -27,10 +27,10 @@ export default function UsersPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [t, user]);
   useEffect(() => {
-    load();
-  }, [user]);
+    void load();
+  }, [load]);
   function start(userToEdit?: User) {
     setEditing(userToEdit || null);
     setForm({

@@ -2,19 +2,28 @@ package httpx
 
 import (
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/hex"
 	"errors"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
 const requestIDKey = "httpx.request_id"
+const clientIPKey = "httpx.client_ip"
+
+const (
+	platformClientIPHeader  = "X-Platform-Client-IP"
+	platformForwarderHeader = "X-Platform-Forwarder-Token"
+)
 
 var validRequestID = regexp.MustCompile(`^[A-Za-z0-9-]{8,64}$`)
 
@@ -53,12 +62,35 @@ func AccessLog() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		started := time.Now()
 		c.Next()
-		attrs := []any{"method", c.Request.Method, "route", c.FullPath(), "status", c.Writer.Status(), "latency_ms", float64(time.Since(started).Microseconds()) / 1000}
+		attrs := []any{"method", c.Request.Method, "route", c.FullPath(), "status", c.Writer.Status(), "latency_ms", float64(time.Since(started).Microseconds()) / 1000, "client_ip", ClientIP(c)}
 		if id, ok := c.Get("user_id"); ok {
 			attrs = append(attrs, "user_id", id)
 		}
 		Logger(c).Info("http request", attrs...)
 	}
+}
+
+func TrustedForwardedClientIP(secret string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		providedSecret := c.GetHeader(platformForwarderHeader)
+		if secret != "" && len(providedSecret) == len(secret) &&
+			subtle.ConstantTimeCompare([]byte(providedSecret), []byte(secret)) == 1 {
+			forwardedIP := strings.TrimSpace(c.GetHeader(platformClientIPHeader))
+			if parsed := net.ParseIP(forwardedIP); parsed != nil {
+				c.Set(clientIPKey, parsed.String())
+			}
+		}
+		c.Next()
+	}
+}
+
+func ClientIP(c *gin.Context) string {
+	if value, ok := c.Get(clientIPKey); ok {
+		if address, ok := value.(string); ok {
+			return address
+		}
+	}
+	return c.ClientIP()
 }
 
 func Recovery() gin.HandlerFunc {

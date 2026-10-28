@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch, formatDate, type MediaItem, type PageResponse } from "@/lib/api";
@@ -18,7 +18,7 @@ export default function MediaPage() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const prefix = "/staff";
-  async function load() {
+  const load = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
@@ -31,10 +31,10 @@ export default function MediaPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [t, user]);
   useEffect(() => {
-    load();
-  }, [user, user?.role]);
+    void load();
+  }, [load]);
   async function upload(e: React.FormEvent) {
     e.preventDefault();
     const translations: MediaTranslations = {};

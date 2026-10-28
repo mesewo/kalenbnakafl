@@ -122,6 +122,7 @@ func TestRecoveryAndLogsDoNotExposeSecrets(t *testing.T) {
 	if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil {
 		t.Fatal(err)
 	}
+
 	if w.Code != 500 || got.Error.Code != "internal" {
 		t.Fatalf("status=%d envelope=%+v", w.Code, got.Error)
 	}
@@ -130,5 +131,37 @@ func TestRecoveryAndLogsDoNotExposeSecrets(t *testing.T) {
 	}
 	if strings.Contains(output.String(), "password-value") || strings.Contains(output.String(), "token-value") || strings.Contains(output.String(), "cookie-value") || strings.Contains(output.String(), "bearer-value") {
 		t.Fatalf("log contains sensitive request data: %s", output.String())
+	}
+}
+
+func TestTrustedForwardedClientIPRequiresSharedSecretAndValidIP(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	if err := r.SetTrustedProxies(nil); err != nil {
+		t.Fatal(err)
+	}
+	r.Use(TrustedForwardedClientIP("shared-token"))
+	r.GET("/", func(c *gin.Context) { c.String(http.StatusOK, ClientIP(c)) })
+	request := func(token, forwardedIP, xff string) string {
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.RemoteAddr = "203.0.113.8:1234"
+		req.Header.Set("X-Platform-Forwarder-Token", token)
+		req.Header.Set("X-Platform-Client-IP", forwardedIP)
+		req.Header.Set("X-Forwarded-For", xff)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		return w.Body.String()
+	}
+	if got := request("shared-token", "198.51.100.7", "192.0.2.9"); got != "198.51.100.7" {
+		t.Fatalf("trusted client IP=%q", got)
+	}
+	if got := request("wrong-token", "198.51.100.7", "192.0.2.9"); got != "203.0.113.8" {
+		t.Fatalf("untrusted custom header was used: %q", got)
+	}
+	if got := request("shared-token", "198.51.100.7, 192.0.2.9", "192.0.2.9"); got != "203.0.113.8" {
+		t.Fatalf("multi-value forwarded header was used: %q", got)
+	}
+	if got := request("shared-token", "not-an-ip", "198.51.100.7"); got != "203.0.113.8" {
+		t.Fatalf("invalid forwarded IP was used: %q", got)
 	}
 }

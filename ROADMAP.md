@@ -2,11 +2,11 @@
 
 ### Current state / next step
 
-- Media storage now has a seekable `Storage` contract with metadata, a local driver, and an AWS SDK v2 S3-compatible driver using private objects and range reads.
-- S3 configuration fails fast before database connection; `/readyz` checks the selected store. The Compose `s3` profile and backend CI use the same pinned MinIO source revision.
-- Backend formatting/build/vet/tests/sqlc diff, Compose config, and the S3 contract against local MinIO passed; PostgreSQL integration tests were skipped because `DATABASE_URL_TEST` was unset.
-- The Compose MinIO image build was canceled after an extended source dependency download; only its config and S3 behavior are verified locally. B2 and storage decisions are documented in `.env.example`, `ARCHITECTURE.md`, and ADR-009.
-- Media UX investigation found post cover selection missing, no event cover field, and no curated home slider; next decide whether to scope those as a separate schema/UI phase.
+- Free-tier demo deployment setup is implemented for Render, Neon, Vercel, and private B2, including deployment, keepalive, backup, and demo-reset workflows; provider secrets and live accounts remain to be configured manually.
+- Neon pooling/retry, authenticated Vercel client-IP handoff, demo seed, deployment docs, and hosting ADR are in place; database retries are restricted to conservative plain SELECTs to avoid replaying advisory locks or side-effecting queries.
+- Frontend CI follow-up fixed E2E retry collisions and the ISR detail-page timeout; dashboard fetch effects now pass lint without hook warnings, and generated API types remain in sync.
+- Backend and frontend verification passed. Focused frontend Playwright checks passed; the full database-backed E2E suite remains unrun locally because no Compose services were active. The Compose image build previously failed on Docker DNS resolution for `proxy.golang.org`.
+- Next: configure provider domains/secrets and workflow variables, then deploy and run live smoke checks plus the database-backed E2E suite and documented restore drill; do not treat free-tier plans as production hosting.
 **Goal:** a repo and a live demo that survive a 10-minute recruiter/hiring-manager review for a *senior full-stack* role: one-command startup, real security, real tests, CI, docs, and a polished, working UI.
 
 **Rhythm:** each phase = 1–3 focused sessions (≈2–4 h each) with Gemini. Finish a phase's *Exit criteria* before starting the next. Total ≈ 3–4 weeks part-time.
@@ -156,6 +156,14 @@
 
 | Command | Result | Date |
 |---------|--------|------|
+| `cd front-end && npm run gen:api && git diff --exit-code -- types/api.d.ts && npm run check:i18n && npm run test:unit && npm run lint && npx tsc --noEmit && npm run format:check && npm run build` (frontend CI follow-up) | Passed; API types were unchanged, 412 bilingual messages and all 6 unit tests passed, lint had no warnings, TypeScript and formatting passed, and production build completed. Build logged expected API connection-refused messages during prerender because no API was running. | 2026-10-28 |
+| `cd front-end && npx playwright test e2e/frontend-hardening.spec.ts` (frontend CI follow-up) | Passed: security headers/CSP and slow-503 retry tests (2/2). | 2026-10-28 |
+| `cd front-end && npx playwright test --list` (frontend CI follow-up) | Passed; discovered all 9 E2E tests. Full database-backed suite not run because no Compose services were active. | 2026-10-28 |
+| `cd front-end && npm audit --omit=dev --audit-level=high` (frontend CI follow-up) | Passed; 0 production dependency vulnerabilities. | 2026-10-28 |
+| `cd server && gofmt -l . && go build ./... && go vet ./... && go test ./... && go tool sqlc diff -f ../sqlc.yaml` (free-tier deployment) | Passed; formatting/build/vet/tests/sqlc diff clean. PostgreSQL integration tests skipped because `DATABASE_URL_TEST` was unset. | 2026-10-26 |
+| `cd front-end && npm run lint && npx tsc --noEmit && npm run format:check && npm run build` (free-tier deployment) | Passed; lint reported five existing hook-dependency warnings and no errors; TypeScript, formatting, and production build passed. | 2026-10-26 |
+| `docker compose --env-file .env.example config --quiet` (free-tier deployment) | Passed; Compose config validated. | 2026-10-26 |
+| `docker compose up --build` (free-tier deployment) | Not completed: API image dependency download failed because Docker could not resolve `proxy.golang.org`; services were not started. | 2026-10-26 |
 | `cd server && gofmt -l . && go build ./... && go vet ./... && go test ./... && go tool sqlc diff -f ../sqlc.yaml` (pluggable S3 media storage) | Passed; formatting, build, vet, tests, and sqlc diff clean. PostgreSQL integration tests were skipped because `DATABASE_URL_TEST` was unset. | 2026-10-26 |
 | `cd server && go test ./internal/storage -run '^TestS3StorageContract$' -count=1` (pinned MinIO binary) | Passed against local MinIO; exercised bucket readiness/creation, upload, metadata, range seek/read, delete, and size/empty checks. | 2026-10-26 |
 | `docker compose --env-file .env.example -p kalenbnakafl-s3-check --profile s3 config --quiet` | Passed; Compose profile and environment interpolation validated. | 2026-10-26 |

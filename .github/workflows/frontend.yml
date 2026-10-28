@@ -1,17 +1,24 @@
 name: Frontend
 
 on:
+  workflow_call:
   push:
     paths:
       - "front-end/**"
       - "docs/openapi.yaml"
       - "docker-compose.yaml"
+      - "render.yaml"
+      - ".github/workflows/deployment.yml"
+      - "docs/DEPLOYMENT.md"
       - ".github/workflows/frontend.yml"
   pull_request:
     paths:
       - "front-end/**"
       - "docs/openapi.yaml"
       - "docker-compose.yaml"
+      - "render.yaml"
+      - ".github/workflows/deployment.yml"
+      - "docs/DEPLOYMENT.md"
       - ".github/workflows/frontend.yml"
 
 jobs:
