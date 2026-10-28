@@ -6,7 +6,9 @@
 - Neon pooling/retry, authenticated Vercel client-IP handoff, demo seed, deployment docs, and hosting ADR are in place; database retries are restricted to conservative plain SELECTs to avoid replaying advisory locks or side-effecting queries.
 - Frontend CI follow-up fixed E2E retry collisions and the ISR detail-page timeout; dashboard fetch effects now pass lint without hook warnings, and generated API types remain in sync.
 - Backend and frontend verification passed. Focused frontend Playwright checks passed; the full database-backed E2E suite remains unrun locally because no Compose services were active. The Compose image build previously failed on Docker DNS resolution for `proxy.golang.org`.
-- Next: configure provider domains/secrets and workflow variables, then deploy and run live smoke checks plus the database-backed E2E suite and documented restore drill; do not treat free-tier plans as production hosting.
+- Startup errors now identify their operation; configuration diagnostics print setting-name-only validation errors. Redaction and operation-wrapping regression tests pass, and the deployment guide documents Render startup troubleshooting.
+- Backend build, vet, tests, and sqlc diff pass; repository-wide gofmt/golangci-lint report existing formatting issues in unrelated files. Frontend lint, TypeScript, and build pass; format:check reports existing style issues across the baseline.
+- Next: push the startup-diagnostics commit from `feat/bilingual-content`, then configure provider domains/secrets and run live smoke checks plus the documented restore drill; do not treat free-tier plans as production hosting.
 **Goal:** a repo and a live demo that survive a 10-minute recruiter/hiring-manager review for a *senior full-stack* role: one-command startup, real security, real tests, CI, docs, and a polished, working UI.
 
 **Rhythm:** each phase = 1–3 focused sessions (≈2–4 h each) with Gemini. Finish a phase's *Exit criteria* before starting the next. Total ≈ 3–4 weeks part-time.

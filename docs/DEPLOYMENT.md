@@ -54,6 +54,10 @@ Use the corresponding B2 endpoint, region, private backup bucket, and backup-onl
 5. Generate a separate high-entropy `FORWARDED_HEADERS_SECRET`. Set it in both Render and Vercel, and leave `TRUST_FORWARDED_HEADERS=true`. The Next.js proxy strips caller-provided forwarding headers and forwards Vercel’s platform client-IP value with this shared secret. Do not expose the secret to browser code or use it for any other purpose.
 6. Keep `MIGRATE_ON_START=true` only when `DATABASE_URL` is the Neon direct endpoint. Migrations run before the service starts. For schema changes, retain the repository rule to add a new numbered Goose migration rather than editing an applied migration.
 
+#### Service exits at startup
+
+Open the Render service logs and check the `operation` field on the `server stopped` entry: `config`, `storage`, `database`, `migrate`, `bootstrap-admin`, or `listen` identifies the stage that failed. Configuration validation also prints a message listing invalid setting names; it does not print their values. Recheck the required Render environment variables for that stage, especially that `DATABASE_URL` uses Neon’s direct endpoint and `S3_ENDPOINT` includes `https://`. For storage or database failures, verify the bucket/key permissions and connection settings in their provider dashboards. Never paste secrets into support requests; rotate any credential that has been exposed.
+
 Render Free is a single sleeping web service with no production availability guarantee. The GitHub keepalive workflow is best effort, not an uptime guarantee or a substitute for a paid plan.
 
 ### 4. Vercel frontend
