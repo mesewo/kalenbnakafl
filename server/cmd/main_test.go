@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -15,6 +16,22 @@ import (
 	"kalenbnakafl/internal/config"
 	"kalenbnakafl/internal/storage"
 )
+
+func TestStartupFailureCarriesOperation(t *testing.T) {
+	cause := errors.New("connection failed")
+	err := startupFailure("database", cause)
+
+	var startupErr *startupError
+	if !errors.As(err, &startupErr) {
+		t.Fatalf("error %T is not a startupError", err)
+	}
+	if startupErr.operation != "database" {
+		t.Fatalf("operation = %q, want database", startupErr.operation)
+	}
+	if !errors.Is(err, cause) {
+		t.Fatalf("startup error does not wrap its cause: %v", err)
+	}
+}
 
 func TestHealthAndReadinessWhenDatabaseDown(t *testing.T) {
 	previousMode := gin.Mode()

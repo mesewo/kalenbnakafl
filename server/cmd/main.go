@@ -24,9 +24,31 @@ import (
 
 func main() {
 	if err := run(); err != nil {
-		slog.Error("server stopped", "error_type", fmt.Sprintf("%T", err))
+		var startupErr *startupError
+		if errors.As(err, &startupErr) {
+			slog.Error("server stopped", "operation", startupErr.operation, "error_type", fmt.Sprintf("%T", startupErr.err))
+		} else {
+			slog.Error("server stopped", "error_type", fmt.Sprintf("%T", err))
+		}
 		os.Exit(1)
 	}
+}
+
+type startupError struct {
+	operation string
+	err       error
+}
+
+func (e *startupError) Error() string {
+	return e.err.Error()
+}
+
+func (e *startupError) Unwrap() error {
+	return e.err
+}
+
+func startupFailure(operation string, err error) error {
+	return &startupError{operation: operation, err: err}
 }
 
 func corsMiddleware(origins []string) gin.HandlerFunc {
@@ -57,7 +79,7 @@ func newRouter(cfg config.Config, db *sql.DB, q *dbgen.Queries, mediaStorage sto
 	r := gin.New()
 	r.Use(httpx.RequestID(), httpx.TrustedForwardedClientIP(cfg.ForwardedHeadersSecret), httpx.AccessLog(), httpx.Recovery(), httpx.BodyLimit(1<<20, cfg.MediaMaxMB*1024*1024+(1<<20)))
 	if err := r.SetTrustedProxies(cfg.TrustedProxies); err != nil {
-		return nil, fmt.Errorf("configure trusted proxies: %w", err)
+		return nil, startupFailure("config", fmt.Errorf("configure trusted proxies: %w", err))
 	}
 	r.Use(corsMiddleware(cfg.CORSOrigins))
 	r.GET("/healthz", func(c *gin.Context) { c.JSON(http.StatusOK, gin.H{"status": "ok"}) })
@@ -81,7 +103,7 @@ func newRouter(cfg config.Config, db *sql.DB, q *dbgen.Queries, mediaStorage sto
 	r.NoRoute(func(c *gin.Context) { httpx.Fail(c, http.StatusNotFound, "Not found") })
 	if cfg.StorageDriver == "local" {
 		if err := os.MkdirAll(cfg.UploadDir, 0755); err != nil {
-			return nil, fmt.Errorf("create upload directory: %w", err)
+			return nil, startupFailure("storage", fmt.Errorf("create upload directory: %w", err))
 		}
 	}
 	r.GET("/uploads/*filepath", uploadFileHandler(mediaStorage))
@@ -127,18 +149,19 @@ func configureLogger(appEnv string) {
 func run() error {
 	cfg, err := config.Load()
 	if err != nil {
-		return err
+		fmt.Fprintln(os.Stderr, err)
+		return startupFailure("config", err)
 	}
 	configureLogger(cfg.AppEnv)
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	mediaStorage, err := storageForConfig(ctx, cfg)
 	if err != nil {
-		return fmt.Errorf("configure media storage: %w", err)
+		return startupFailure("storage", fmt.Errorf("configure media storage: %w", err))
 	}
 	db, q, err := database.Connect(ctx, cfg)
 	if err != nil {
-		return err
+		return startupFailure("database", err)
 	}
 	defer func() {
 		if err := db.Close(); err != nil {
@@ -147,16 +170,20 @@ func run() error {
 	}()
 	if cfg.MigrateOnStart {
 		if err := database.Migrate(ctx, db); err != nil {
-			return fmt.Errorf("migrate database: %w", err)
+			return startupFailure("migrate", fmt.Errorf("migrate database: %w", err))
 		}
 	}
 	if err := database.BootstrapAdmin(ctx, q, cfg); err != nil {
-		return err
+		return startupFailure("bootstrap-admin", err)
 	}
 	go database.RunRefreshTokenCleanup(ctx, q, time.Hour)
 	r, err := newRouter(cfg, db, q, mediaStorage)
 	if err != nil {
-		return err
+		var startupErr *startupError
+		if errors.As(err, &startupErr) {
+			return err
+		}
+		return startupFailure("config", err)
 	}
 	server := &http.Server{
 		Addr: ":" + cfg.Port, Handler: r,
@@ -176,14 +203,20 @@ func run() error {
 	}()
 	select {
 	case err := <-serveErr:
-		return err
+		if err != nil {
+			return startupFailure("listen", err)
+		}
+		return nil
 	case <-ctx.Done():
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		if err := server.Shutdown(shutdownCtx); err != nil {
-			return fmt.Errorf("graceful shutdown: %w", err)
+			return startupFailure("listen", fmt.Errorf("graceful shutdown: %w", err))
 		}
-		return <-serveErr
+		if err := <-serveErr; err != nil {
+			return startupFailure("listen", err)
+		}
+		return nil
 	}
 }
 

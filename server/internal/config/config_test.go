@@ -54,6 +54,42 @@ func TestLoadReportsAllProblems(t *testing.T) {
 	}
 }
 
+func TestLoadErrorDoesNotExposeSecretValues(t *testing.T) {
+	secrets := map[string]string{
+		"JWT_SECRET":           "jwt-value-must-not-appear-9dd7",
+		"DATABASE_URL":         "postgres://database-value-must-not-appear.invalid/app?sslmode=require",
+		"ADMIN_PASSWORD":       "admin-value-must-not-appear-45b2",
+		"S3_SECRET_ACCESS_KEY": "s3-value-must-not-appear-cb51",
+	}
+	env := map[string]string{
+		"PORT":                 "invalid",
+		"JWT_SECRET":           secrets["JWT_SECRET"],
+		"DATABASE_URL":         secrets["DATABASE_URL"],
+		"ADMIN_EMAIL":          "admin@example.test",
+		"ADMIN_PASSWORD":       secrets["ADMIN_PASSWORD"],
+		"STORAGE_DRIVER":       "s3",
+		"S3_ENDPOINT":          "https://s3.example.test",
+		"S3_REGION":            "us-east-1",
+		"S3_BUCKET":            "private-media",
+		"S3_ACCESS_KEY_ID":     "test-access-key",
+		"S3_SECRET_ACCESS_KEY": secrets["S3_SECRET_ACCESS_KEY"],
+	}
+
+	_, err := loadEnv(env)
+	if err == nil {
+		t.Fatal("expected invalid configuration")
+	}
+	message := err.Error()
+	if !strings.Contains(message, "PORT must be an integer") {
+		t.Fatalf("configuration message %q does not identify the invalid setting", message)
+	}
+	for name, value := range secrets {
+		if strings.Contains(message, value) {
+			t.Errorf("configuration message exposes %s value", name)
+		}
+	}
+}
+
 func TestLoadDefaults(t *testing.T) {
 	cfg, err := loadEnv(validEnv())
 	if err != nil {
