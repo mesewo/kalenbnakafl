@@ -1,10 +1,10 @@
 import { expect, test, type Page } from "@playwright/test";
+import { randomUUID } from "node:crypto";
 import en from "../messages/en.json";
 import am from "../messages/am.json";
 import { waitForPublicContent } from "./helpers/public-content";
 
 const dashboard = am.dashboard;
-const suffix = `${Date.now()}`;
 
 async function login(
   page: Page,
@@ -22,8 +22,9 @@ async function login(
 
 test("Amharic admin creates, publishes, edits, and deletes translated posts and events", async ({
   page,
-}) => {
+}, testInfo) => {
   test.setTimeout(90_000);
+  const suffix = createTestSuffix(testInfo);
   expect(process.env.ADMIN_EMAIL, "ADMIN_EMAIL must be set").toBeTruthy();
   expect(process.env.ADMIN_PASSWORD, "ADMIN_PASSWORD must be set").toBeTruthy();
   const postTitle = `የፈተና ጽሑፍ ${suffix}`;
@@ -100,7 +101,10 @@ test("Amharic admin creates, publishes, edits, and deletes translated posts and 
   await expect(page.getByRole("row").filter({ hasText: eventTitleEdited })).toHaveCount(0);
 });
 
-test("Amharic contact inbox displays the API's localized validation error", async ({ page }) => {
+test("Amharic contact inbox displays the API's localized validation error", async ({
+  page,
+}, testInfo) => {
+  const suffix = createTestSuffix(testInfo);
   await login(page, "am");
   await page.goto("/am/contact");
   await page.getByLabel(am.contact.name).fill(`Inbox ${suffix}`);
@@ -124,8 +128,9 @@ test("Amharic contact inbox displays the API's localized validation error", asyn
 
 test("volunteer sees localized profile, application, and event signup on Amharic routes", async ({
   page,
-}) => {
+}, testInfo) => {
   test.setTimeout(90_000);
+  const suffix = createTestSuffix(testInfo);
   const email = `volunteer-${suffix}@example.invalid`;
   const password = "Bright-River-Safe-9402!";
   await login(page, "en");
@@ -184,4 +189,8 @@ function futureDateTime() {
   date.setSeconds(0, 0);
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
   return local.toISOString().slice(0, 16);
+}
+
+function createTestSuffix(testInfo: { workerIndex: number; retry: number }) {
+  return `${Date.now()}-${testInfo.workerIndex}-${testInfo.retry}-${randomUUID().slice(0, 8)}`;
 }

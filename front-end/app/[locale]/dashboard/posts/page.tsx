@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -17,7 +17,7 @@ export default function PostsPage() {
     post: null,
   });
   const prefix = "/staff";
-  async function load() {
+  const load = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
@@ -29,10 +29,10 @@ export default function PostsPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [t, user]);
   useEffect(() => {
-    load();
-  }, [user, user?.role]);
+    void load();
+  }, [load]);
   async function remove(post: Post) {
     if (!window.confirm(t("confirmDeletePost", { title: post.title }))) return;
     try {

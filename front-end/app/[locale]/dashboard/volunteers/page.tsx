@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch, type User } from "@/lib/api";
@@ -19,7 +19,7 @@ export default function VolunteersPage() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  async function load() {
+  const load = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
@@ -29,10 +29,10 @@ export default function VolunteersPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [t, user]);
   useEffect(() => {
-    load();
-  }, [user]);
+    void load();
+  }, [load]);
   async function addContribution(e: React.FormEvent) {
     e.preventDefault();
     if (!selected) return;

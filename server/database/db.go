@@ -182,7 +182,7 @@ func retryRead[T any](ctx context.Context, c *retryConn, previousErr error, run 
 }
 
 func (c *retryConn) reconnect(ctx context.Context, previousErr error) error {
-	if closeErr := c.Conn.Close(); closeErr != nil {
+	if closeErr := c.Close(); closeErr != nil {
 		slog.Warn("close failed PostgreSQL connection", "error_type", fmt.Sprintf("%T", closeErr))
 	}
 	connection, err := c.connector.Connect(ctx)
@@ -191,15 +191,6 @@ func (c *retryConn) reconnect(ctx context.Context, previousErr error) error {
 	}
 	c.Conn = connection.(*retryConn).Conn
 	return nil
-}
-
-func (c *retryConn) Begin() (driver.Tx, error) {
-	tx, err := c.Conn.Begin()
-	if err == nil {
-		c.inTx = true
-		return &retryTx{Tx: tx, onDone: func() { c.inTx = false }}, nil
-	}
-	return nil, err
 }
 
 func (c *retryConn) BeginTx(ctx context.Context, options driver.TxOptions) (driver.Tx, error) {

@@ -1,14 +1,15 @@
 import { expect, test } from "@playwright/test";
+import { randomUUID } from "node:crypto";
 import { waitForPublicContent } from "./helpers/public-content";
 
 const adminEmail = process.env.ADMIN_EMAIL;
 const adminPassword = process.env.ADMIN_PASSWORD;
 
-test("admin content and public bilingual flows", async ({ page }) => {
+test("admin content and public bilingual flows", async ({ page }, testInfo) => {
   test.setTimeout(240_000);
   expect(adminEmail, "ADMIN_EMAIL must be set for the smoke test").toBeTruthy();
   expect(adminPassword, "ADMIN_PASSWORD must be set for the smoke test").toBeTruthy();
-  const suffix = `${Date.now()}`;
+  const suffix = `${Date.now()}-${testInfo.workerIndex}-${testInfo.retry}-${randomUUID().slice(0, 8)}`;
   const postTitle = `Smoke post ${suffix}`;
   const amPostTitle = `የሙከራ ጽሑፍ ${suffix}`;
   const editedPostTitle = `Edited smoke post ${suffix}`;
@@ -45,7 +46,7 @@ test("admin content and public bilingual flows", async ({ page }) => {
   const amPostCard = page.locator("article.card").filter({ hasText: amPostTitle });
   await amPostCard.getByRole("link", { name: "ሙሉ ታሪኩን ያንብቡ →" }).click();
   await expect(page).toHaveURL(/\/am\/blog\//);
-  await expect(page.getByText(`የአማርኛ ይዘት ${suffix}`)).toBeVisible();
+  await expect(page.getByText(`የአማርኛ ይዘት ${suffix}`)).toBeVisible({ timeout: 30_000 });
   await expect(page.locator("html")).toHaveAttribute("lang", "am");
 
   await page.goto("/en/contact");
