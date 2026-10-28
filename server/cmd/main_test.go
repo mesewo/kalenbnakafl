@@ -13,6 +13,7 @@ import (
 
 	"kalenbnakafl/dbgen"
 	"kalenbnakafl/internal/config"
+	"kalenbnakafl/internal/storage"
 )
 
 func TestHealthAndReadinessWhenDatabaseDown(t *testing.T) {
@@ -27,7 +28,7 @@ func TestHealthAndReadinessWhenDatabaseDown(t *testing.T) {
 		t.Fatal(err)
 	}
 	cfg := config.Config{AppEnv: "test", UploadDir: t.TempDir(), JWTSecret: []byte("0123456789abcdef0123456789abcdef")}
-	r, err := newRouter(cfg, db, dbgen.New(db))
+	r, err := newRouter(cfg, db, dbgen.New(db), storage.NewLocal(cfg.UploadDir))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,7 +64,7 @@ func TestUploadedFileHeadersRangeAndNoDirectoryListing(t *testing.T) {
 		t.Fatal(err)
 	}
 	cfg := config.Config{AppEnv: "test", UploadDir: dir, JWTSecret: []byte("0123456789abcdef0123456789abcdef")}
-	r, err := newRouter(cfg, db, dbgen.New(db))
+	r, err := newRouter(cfg, db, dbgen.New(db), storage.NewLocal(cfg.UploadDir))
 	if err != nil {
 		t.Fatal(err)
 	}

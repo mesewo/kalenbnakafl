@@ -8,11 +8,12 @@ import (
 	"kalenbnakafl/dbgen"
 	"kalenbnakafl/handlers"
 	"kalenbnakafl/internal/config"
+	"kalenbnakafl/internal/storage"
 	"kalenbnakafl/middleware"
 )
 
-func SetupRoutes(r *gin.Engine, q *dbgen.Queries, db *sql.DB, cfg config.Config) {
-	apiHandlers := handlers.NewAPI(q, db, cfg)
+func SetupRoutes(r *gin.Engine, q *dbgen.Queries, db *sql.DB, cfg config.Config, mediaStorage storage.Storage) {
+	apiHandlers := handlers.NewAPI(q, db, cfg, mediaStorage)
 	api := r.Group("/api")
 	api.Use(middleware.RequireSessionOrigin(cfg.CORSOrigins))
 	publicLimit := middleware.LimitRequests(30, time.Minute)

@@ -2,11 +2,11 @@
 
 ### Current state / next step
 
-- Frontend hardening: standalone non-root image, runtime `API_INTERNAL_URL` proxy, report-only CSP/security headers, branded icon, ISR build fallback, system font stacks, and translated API wake-up retries.
-- Frontend unit tests (4), TypeScript, i18n (412 messages), formatting, production build, and focused hardening Playwright tests pass; lint has five existing hook warnings.
-- Standalone image build/runtime checks pass (`nextjs`, `/healthz` 200, proxy works); Trivy now reports zero HIGH/CRITICAL after removing unused global npm. The attached run reached the frontend scan, so the preceding API scan step did not fail.
-- With the API unavailable, the build prerenders localized home/about/contact/volunteer and auth routes with 60-second revalidation; blog/event pagination routes render on demand, while their API data remains cached 60 seconds.
-- Next: run full content Playwright in CI with ephemeral admin credentials, review CSP reports, verify HTTPS/HSTS and confirm the API image scan in the latest workflow run.
+- Media storage now has a seekable `Storage` contract with metadata, a local driver, and an AWS SDK v2 S3-compatible driver using private objects and range reads.
+- S3 configuration fails fast before database connection; `/readyz` checks the selected store. The Compose `s3` profile and backend CI use the same pinned MinIO source revision.
+- Backend formatting/build/vet/tests/sqlc diff, Compose config, and the S3 contract against local MinIO passed; PostgreSQL integration tests were skipped because `DATABASE_URL_TEST` was unset.
+- The Compose MinIO image build was canceled after an extended source dependency download; only its config and S3 behavior are verified locally. B2 and storage decisions are documented in `.env.example`, `ARCHITECTURE.md`, and ADR-009.
+- Media UX investigation found post cover selection missing, no event cover field, and no curated home slider; next decide whether to scope those as a separate schema/UI phase.
 **Goal:** a repo and a live demo that survive a 10-minute recruiter/hiring-manager review for a *senior full-stack* role: one-command startup, real security, real tests, CI, docs, and a polished, working UI.
 
 **Rhythm:** each phase = 1–3 focused sessions (≈2–4 h each) with Gemini. Finish a phase's *Exit criteria* before starting the next. Total ≈ 3–4 weeks part-time.
@@ -156,6 +156,10 @@
 
 | Command | Result | Date |
 |---------|--------|------|
+| `cd server && gofmt -l . && go build ./... && go vet ./... && go test ./... && go tool sqlc diff -f ../sqlc.yaml` (pluggable S3 media storage) | Passed; formatting, build, vet, tests, and sqlc diff clean. PostgreSQL integration tests were skipped because `DATABASE_URL_TEST` was unset. | 2026-10-26 |
+| `cd server && go test ./internal/storage -run '^TestS3StorageContract$' -count=1` (pinned MinIO binary) | Passed against local MinIO; exercised bucket readiness/creation, upload, metadata, range seek/read, delete, and size/empty checks. | 2026-10-26 |
+| `docker compose --env-file .env.example -p kalenbnakafl-s3-check --profile s3 config --quiet` | Passed; Compose profile and environment interpolation validated. | 2026-10-26 |
+| `docker compose --env-file .env.example -p kalenbnakafl-s3-check --profile s3 build minio` | Not completed; canceled after an extended source-dependency download. The S3 contract passed against the pinned MinIO binary; CI uses the Go module cache rather than rebuilding the MinIO image. | 2026-10-26 |
 | `cd server && gofmt -l . && go vet ./... && go test ./... && go tool sqlc diff -f ../sqlc.yaml` (bilingual front-end part 2a) | Passed; gofmt listed no files, vet/tests passed all packages, and sqlc diff was clean. | 2026-10-25 |
 | `cd front-end && npm run lint && npx tsc --noEmit && npm run format:check && npm run check:i18n && npm run build` (bilingual front-end part 2a) | Passed; lint had 5 existing hook warnings and 0 errors; TypeScript, formatting, 247-message bilingual check, and production build passed. Next reported stale Baseline data. | 2026-10-25 |
 | `cd front-end && npm run test:e2e` (bilingual front-end part 2a) | Not run: Docker Engine pipe access was denied, so the Compose app/API test environment was unavailable. | 2026-10-25 |

@@ -14,13 +14,17 @@ The process loads and validates environment settings once into `internal/config.
 | `JWT_SECRET` | required; at least 32 bytes | Signs access tokens |
 | `CORS_ORIGINS` | empty | Comma-separated allowed origins |
 | `UPLOAD_DIR` | `/data/uploads` | Uploaded media storage |
+| `STORAGE_DRIVER` | `local`; `local` or `s3` | Selects local disk or private S3-compatible object storage |
+| `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET` | optional with local storage; required with `s3` | S3-compatible endpoint origin, region, and private bucket |
+| `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | optional with local storage; required with `s3` | Static credentials; never returned to clients or logged |
+| `S3_PATH_STYLE` | `true` | Use path-style bucket addressing for MinIO and compatible endpoints |
 | `MEDIA_MAX_MB` | `50`; positive integer | Maximum uploaded media size |
 | `DB_CONNECT_RETRIES` | `8`; positive integer | Database connection retry count |
 | `MIGRATE_ON_START` | `false` in the binary; Compose sets `true` | Apply embedded migrations before serving |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | both optional; set together, password at least 12 characters | First-admin bootstrap |
 | `TRUSTED_PROXIES` | empty in the binary; Compose defaults to `172.21.0.0/24` | Explicit Gin trusted proxy CIDRs or addresses |
 
-The HTTP server uses bounded read/write/idle timeouts and graceful SIGINT/SIGTERM shutdown. `/healthz` is liveness and does not query PostgreSQL; `/readyz` and the `/health` alias check PostgreSQL with a two-second deadline. The container healthchecks use `/readyz`.
+The HTTP server uses bounded read/write/idle timeouts and graceful SIGINT/SIGTERM shutdown. `/healthz` is liveness and does not query dependencies; `/readyz` and the `/health` alias check PostgreSQL and the selected storage backend with a two-second deadline. The container healthchecks use `/readyz`.
 
 ## HTTP logging, errors, and request limits
 
@@ -76,9 +80,9 @@ flowchart LR
 | GET | `/me` · `/profile` | any user | authenticated profile reads |
 | PUT | `/profile` | any user | updates name/email and optionally password |
 | GET | `/healthz` | none | liveness; no database call |
-| GET | `/readyz` · `/health` | none | readiness; checks database connectivity |
+| GET | `/readyz` · `/health` | none | readiness; checks database and selected storage connectivity |
 
-Auth, refresh-token, profile, admin user, post, event, media, contact, and volunteer handlers use generated sqlc queries with request contexts and injected dependencies. Media is stored through a local-disk Storage interface using random content-derived extensions and atomic temporary-file renames; uploads are sniffed against the png/jpeg/webp/pdf/mp4/webm/mp3/ogg allowlist. `/uploads/*` sets nosniff, a restrictive CSP, immutable caching, and serves byte ranges without exposing directory listings. Media rows store a checked kind backfilled from existing media_type values. Handler and middleware database access no longer uses package-level database globals. Post and event public/staff lists use `{items,page,limit,total}` pagination (default 10, maximum 50). Post search uses the `simple` text-search configuration and a GIN index. Admin volunteer contribution recording remains under `/admin/volunteers`; applications use a separate review workflow, and event sign-ups are stored separately from volunteer status.
+Auth, refresh-token, profile, admin user, post, event, media, contact, and volunteer handlers use generated sqlc queries with request contexts and injected dependencies. Media uses a `Storage` interface with local-disk and S3-compatible drivers. Both store randomized keys with content-derived extensions; local writes publish via atomic temporary-file rename, while S3 uploads spool through a bounded temporary file into a private bucket without public ACLs. Uploads are sniffed against the png/jpeg/webp/pdf/mp4/webm/mp3/ogg allowlist. `/uploads/*` is served only by the API, sets nosniff and a restrictive CSP, applies immutable caching, and serves byte ranges; the S3 reader fetches byte ranges on seek instead of buffering entire objects. Readiness checks storage availability. Media rows store a checked kind backfilled from existing media_type values. Handler and middleware database access no longer uses package-level database globals. Post and event public/staff lists use `{items,page,limit,total}` pagination (default 10, maximum 50). Post search uses the `simple` text-search configuration and a GIN index. Admin volunteer contribution recording remains under `/admin/volunteers`; applications use a separate review workflow, and event sign-ups are stored separately from volunteer status.
 
 The staff dashboard post and event modals edit English and Amharic translations from staff list responses and submit the OpenAPI `translations` request shapes. Locale changes are sent one at a time because update handlers accept one locale per request; at least one complete translation must remain. Media uploads submit a JSON `translations` multipart field with one or both language titles. Dashboard pages use catalog labels for API roles and statuses, localized feedback, and locale aware controls; data tables scroll within their own wrappers and labels wrap for narrow screens. Playwright covers bilingual content editing, the contact inbox, volunteer sign-up, and dashboard viewport overflow against the Compose stack with an environment-bootstrapped admin account.
 
@@ -109,7 +113,7 @@ flowchart TB
   P -->|/api/*| API[Go API<br/>Gin · slog · metrics]
   FE -->|server-side fetch<br/>internal network| API
   API --> DB[(PostgreSQL)]
-  API --> FS[(Media storage<br/>local volume → S3-compatible)]
+  API --> FS[(Media storage<br/>local volume or private S3-compatible bucket)]
   API -.->|optional| SMTP[Email: contact notifications]
   CI[GitHub Actions<br/>lint · test · build · scan] --> REG[Container registry]
   REG --> P
@@ -284,6 +288,10 @@ Rendering rules: public page entry points = Server Components + ISR (`revalidate
 | `MIGRATE_ON_START` | api | `true` in development Compose | applies embedded Goose migrations before startup |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | api | | first-boot bootstrap only |
 | `UPLOAD_DIR` / `MEDIA_MAX_MB` | api | `/data/uploads` / `50` | local media disk root and per-upload limit |
+| `STORAGE_DRIVER` | api | `local` | Set to `s3` for private object storage |
+| `S3_ENDPOINT` / `S3_REGION` / `S3_BUCKET` | api | Compose MinIO defaults | Required with `STORAGE_DRIVER=s3`; endpoint must be an HTTP(S) origin |
+| `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` / `S3_PATH_STYLE` | api | Compose-only MinIO defaults / `true` | Private credentials and compatible endpoint addressing; do not use public bucket URLs |
+| Backblaze B2 mapping | api | — | Use `https://s3.<region>.backblazeb2.com`, the matching region and bucket, and a B2 application key ID/key; keep the bucket private |
 | `SMTP_*` | api | | optional contact notifications |
 | `NEXT_PUBLIC_SITE_URL` | web | `https://example.org` | SEO canonical/OG; build-time |
 | `API_INTERNAL_URL` | web | `http://api:8080` | build-time public fetch and per-request runtime proxy; HTTP or HTTPS |
@@ -298,6 +306,6 @@ Keep one file per decision in `docs/adr/NNNN-title.md` (Context · Decision · C
 - **ADR-003** `database/sql` + repository layer now; `pgx/v5` migration considered (lib/pq is maintenance-only).
 - **ADR-004** httpOnly cookie sessions (short JWT + rotating refresh) instead of `localStorage` tokens.
 - **ADR-005** Embedded Goose SQL migrations, applied before serving when `MIGRATE_ON_START=true` and serialized with PostgreSQL session advisory locking.
-- **ADR-006** Local-volume media storage behind a `Storage` interface; S3-compatible later.
+- **ADR-006 / ADR-009** Pluggable media storage: local disk by default, S3-compatible private bucket for durable deployment storage; see [ADR-009](./docs/adr/0009-object-storage-backends.md).
 - **ADR-007** `next-intl` for UI i18n; content translation strategy (pending).
 - **ADR-008** Tailwind v4 CSS-first tokens; no JS config.

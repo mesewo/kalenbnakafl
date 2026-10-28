@@ -20,6 +20,7 @@ import (
 	"kalenbnakafl/dbgen"
 	"kalenbnakafl/handlers"
 	"kalenbnakafl/internal/config"
+	"kalenbnakafl/internal/storage"
 	"kalenbnakafl/routes"
 	"kalenbnakafl/utils"
 )
@@ -84,7 +85,7 @@ func authTestAppWithConfig(t *testing.T, cfg config.Config) (*sql.DB, *dbgen.Que
 	gin.SetMode(gin.TestMode)
 	q := dbgen.New(db)
 	r := gin.New()
-	routes.SetupRoutes(r, q, db, cfg)
+	routes.SetupRoutes(r, q, db, cfg, storage.NewLocal(cfg.UploadDir))
 	return db, q, r
 }
 
@@ -244,7 +245,7 @@ func TestAdminGuardsAndRoleRecheck(t *testing.T) {
 	if got := authRequest(r, http.MethodDelete, fmt.Sprintf("/api/admin/users/%d", admin2), "", adminCookie(t, int(admin1), "admin")).Code; got != http.StatusOK {
 		t.Fatalf("delete second admin status=%d", got)
 	}
-	api := handlers.NewAPI(q, db, integrationConfig())
+	api := handlers.NewAPI(q, db, integrationConfig(), storage.NewLocal(t.TempDir()))
 	for _, tc := range []struct {
 		name, method, body string
 		invoke             func(*gin.Context)

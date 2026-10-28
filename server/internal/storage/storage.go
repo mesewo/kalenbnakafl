@@ -7,16 +7,25 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 // Storage stores media under opaque names and supports atomic writes.
 type Storage interface {
 	Save(context.Context, io.Reader, string, int64) (string, int64, error)
 	Delete(context.Context, string) error
-	Open(context.Context, string) (*os.File, error)
+	Open(context.Context, string) (io.ReadSeekCloser, Metadata, error)
+	Check(context.Context) error
+}
+
+type Metadata struct {
+	Size        int64
+	ContentType string
+	ModTime     time.Time
 }
 
 type Local struct{ root string }
@@ -86,15 +95,62 @@ func (s *Local) Delete(ctx context.Context, name string) error {
 	return os.Remove(path)
 }
 
-func (s *Local) Open(ctx context.Context, name string) (*os.File, error) {
+func (s *Local) Open(ctx context.Context, name string) (io.ReadSeekCloser, Metadata, error) {
 	if err := ctx.Err(); err != nil {
-		return nil, err
+		return nil, Metadata{}, err
 	}
 	path, err := s.path(name)
 	if err != nil {
-		return nil, err
+		return nil, Metadata{}, err
 	}
-	return os.Open(path)
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, Metadata{}, err
+	}
+	info, err := file.Stat()
+	if err != nil {
+		if closeErr := file.Close(); closeErr != nil {
+			return nil, Metadata{}, fmt.Errorf("stat local object: %w (close: %v)", err, closeErr)
+		}
+		return nil, Metadata{}, fmt.Errorf("stat local object: %w", err)
+	}
+	if !info.Mode().IsRegular() {
+		if err := file.Close(); err != nil {
+			return nil, Metadata{}, fmt.Errorf("close non-file local object: %w", err)
+		}
+		return nil, Metadata{}, os.ErrNotExist
+	}
+	return file, Metadata{
+		Size:        info.Size(),
+		ContentType: contentTypeForExtension(filepath.Ext(name)),
+		ModTime:     info.ModTime(),
+	}, nil
+}
+
+func (s *Local) Check(ctx context.Context) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	info, err := os.Stat(s.root)
+	if err != nil {
+		return fmt.Errorf("stat local storage directory: %w", err)
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("local storage path is not a directory")
+	}
+	probe, err := os.CreateTemp(s.root, ".storage-check-*")
+	if err != nil {
+		return fmt.Errorf("write local storage directory: %w", err)
+	}
+	name := probe.Name()
+	if err := probe.Close(); err != nil {
+		_ = os.Remove(name)
+		return fmt.Errorf("close local storage check file: %w", err)
+	}
+	if err := os.Remove(name); err != nil {
+		return fmt.Errorf("remove local storage check file: %w", err)
+	}
+	return nil
 }
 
 func (s *Local) path(name string) (string, error) {
@@ -110,6 +166,24 @@ func validExtension(extension string) bool {
 		return true
 	default:
 		return false
+	}
+}
+
+func contentTypeForExtension(extension string) string {
+	if contentType := mime.TypeByExtension(extension); contentType != "" {
+		return contentType
+	}
+	switch extension {
+	case ".jpg":
+		return "image/jpeg"
+	case ".webm":
+		return "video/webm"
+	case ".mp3":
+		return "audio/mpeg"
+	case ".ogg":
+		return "audio/ogg"
+	default:
+		return "application/octet-stream"
 	}
 }
 
