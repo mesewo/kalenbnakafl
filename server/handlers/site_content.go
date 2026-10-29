@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"regexp"
 	"strings"
@@ -158,7 +159,11 @@ ORDER BY hs.sort_order, hs.id`
 		httpx.Internal(c, "Could not fetch home slides")
 		return
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			slog.Error("close home slide rows", "error_type", fmt.Sprintf("%T", err))
+		}
+	}()
 	slides := make([]gin.H, 0)
 	for rows.Next() {
 		var id, mediaID, order int
@@ -452,7 +457,11 @@ ORDER BY b.page,b.block_key`, page)
 		httpx.Internal(c, "Could not fetch site blocks")
 		return
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			slog.Error("close site block rows", "error_type", fmt.Sprintf("%T", err))
+		}
+	}()
 	items := make([]gin.H, 0)
 	for rows.Next() {
 		var blockPage, key string
@@ -561,7 +570,11 @@ ORDER BY ai.sort_order,ai.id`)
 		httpx.Internal(c, "Could not fetch about images")
 		return
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			slog.Error("close about image rows", "error_type", fmt.Sprintf("%T", err))
+		}
+	}()
 	items := make([]gin.H, 0)
 	for rows.Next() {
 		var id, mediaID, order int
