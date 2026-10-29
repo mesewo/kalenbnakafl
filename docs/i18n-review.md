@@ -4,6 +4,41 @@ Every Amharic string below was drafted for this change and **needs native review
 
 | Message key | Draft |
 |---|---|
+| `events.cover_image_is_invalid` | የዝግጅቱ የሽፋን ምስል ትክክለኛ ምስል መሆን አለበት። |
+| `media.decorative_flag_is_invalid` | የጌጣጌጥ ምልክቱ ትክክል አይደለም። |
+| `media.variant_width_is_invalid` | የምስሉ ቅጂ ስፋት ትክክል አይደለም። |
+| `posts.cover_image_is_invalid` | የጽሑፉ የሽፋን ምስል ትክክለኛ ምስል መሆን አለበት። |
+| `posts.inline_media_reference_is_invalid` | የጽሑፍ ውስጥ ያሉ ምስሎች ትክክለኛ የምስል መለያ ቁጥሮችን መጠቀም አለባቸው። |
+| `site.about_image_created` | የስለ እኛ ገጽ ምስል ተፈጥሯል። |
+| `site.about_image_deleted` | የስለ እኛ ገጽ ምስል ተሰርዟል። |
+| `site.about_image_not_found` | የስለ እኛ ገጽ ምስል አልተገኘም። |
+| `site.about_image_updated` | የስለ እኛ ገጽ ምስል ታድሷል። |
+| `site.block_saved` | የገጽ ጽሑፉ ተቀምጧል። |
+| `site.home_slide_created` | የመነሻ ገጽ ስላይድ ተፈጥሯል። |
+| `site.home_slide_deleted` | የመነሻ ገጽ ስላይድ ተሰርዟል። |
+| `site.home_slide_not_found` | የመነሻ ገጽ ስላይዱ አልተገኘም። |
+| `site.home_slide_updated` | የመነሻ ገጽ ስላይድ ታድሷል። |
+| `site.invalid_about_image` | የስለ እኛ ገጽ ምስል መረጃ ትክክል አይደለም። |
+| `site.invalid_block_key` | የገጽ ወይም የይዘት መለያ ቁጥር ትክክል አይደለም። |
+| `site.invalid_home_slide` | የመነሻ ገጽ ስላይድ መረጃ ትክክል አይደለም። |
+| `site.invalid_site_block` | የገጹ ጽሑፍ በእንግሊዝኛና በአማርኛ መሆን እና ቀላል ጽሑፍ ብቻ መሆን አለበት። |
+| `site.invalid_site_settings` | የድረ ገጹ ቅንብሮች ትክክል አይደሉም። |
+| `site.settings_updated` | የድረ ገጹ ቅንብሮች ታድሰዋል። |
+| `dashboard.mediaAltText` | አማራጭ ጽሑፍ |
+| `dashboard.mediaLanguage` | የምስል ትርጉም ቋንቋ |
+| `dashboard.mediaAltHelp` | ምስሉ ጌጣጌጥ ካልሆነ በእንግሊዝኛና በአማርኛ አማራጭ ጽሑፍ ያቅርቡ። |
+| `dashboard.mediaAltRequired` | ምስል ይምረጡና በሁለቱም ቋንቋዎች አማራጭ ጽሑፍ ያቅርቡ፣ ወይም ምስሉን ጌጣጌጥ ብለው ይምረጡ። |
+| `dashboard.decorativeImage` | ጌጣጌጥ ምስል (አማራጭ ጽሑፍ አያስፈልግም) |
+| `dashboard.mediaUsageHeading` | የት እንደተጠቀመ |
+| `dashboard.mediaUnused` | በአሁኑ ጊዜ አልተጠቀመም። |
+| `dashboard.mediaInUse` | ይህ ምስል በይዘት ውስጥ ስለተጠቀመ መሰረዝ አይቻልም። |
+| `dashboard.mediaCannotDeleteInUse` | ምስሉን ከመሰረዝዎ በፊት እነዚህን ማገናኛዎች ያስወግዱ ወይም ይቀይሩ። |
+| `dashboard.usagePostCover` | የጽሑፍ ሽፋን፦ {label} |
+| `dashboard.usagePostInline` | በጽሑፍ ውስጥ፦ {label} |
+| `dashboard.usageEventCover` | የዝግጅት ሽፋን፦ {label} |
+| `dashboard.usageHomeSlide` | የመነሻ ገጽ ስላይድ፦ {label} |
+| `dashboard.usageAboutImage` | የስለ እኛ ገጽ ምስል፦ {label} |
+| `dashboard.usageSiteSetting` | የድረ ገጽ ብራንዲንግ፦ {label} |
 | `auth.password_too_short` | የይለፍ ቃሉ ቢያንስ 12 ቁምፊዎች ሊኖሩት ይገባል። |
 | `auth.password_too_long` | የይለፍ ቃሉ ከ72 ባይት መብለጥ የለበትም። |
 | `auth.password_too_common` | ይህ የይለፍ ቃል በጣም በብዛት የሚጠቀሙት ስለሆነ ሌላ ይምረጡ። |

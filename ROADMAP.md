@@ -2,13 +2,11 @@
 
 ### Current state / next step
 
-- Free-tier demo deployment setup is implemented for Render, Neon, Vercel, and private B2, including deployment, keepalive, backup, and demo-reset workflows; provider secrets and live accounts remain to be configured manually.
-- Neon pooling/retry, authenticated Vercel client-IP handoff, demo seed, deployment docs, and hosting ADR are in place; database retries are restricted to conservative plain SELECTs to avoid replaying advisory locks or side-effecting queries.
-- Frontend CI follow-up fixed E2E retry collisions and the ISR detail-page timeout; dashboard fetch effects now pass lint without hook warnings, and generated API types remain in sync.
-- Backend and frontend verification passed. Focused frontend Playwright checks passed; the full database-backed E2E suite remains unrun locally because no Compose services were active. The Compose image build previously failed on Docker DNS resolution for `proxy.golang.org`.
-- Startup errors now identify their operation; configuration diagnostics print setting-name-only validation errors. Redaction and operation-wrapping regression tests pass, and the deployment guide documents Render startup troubleshooting.
-- Backend build, vet, tests, and sqlc diff pass; repository-wide gofmt/golangci-lint report existing formatting issues in unrelated files. Frontend lint, TypeScript, and build pass; format:check reports existing style issues across the baseline.
-- Next: push the startup-diagnostics commit from `feat/bilingual-content`, then configure provider domains/secrets and run live smoke checks plus the documented restore drill; do not treat free-tier plans as production hosting.
+- Admin-managed image uploads and bilingual site-content APIs now use migration 0008, protected usage tracking, localized public reads, and same-origin `/api/media/...` variant URLs; ADR-011 records the re-encoding policy.
+- Post covers and safe `{{media:<id>}}` body tokens resolve through public media metadata; the dashboard surfaces usage and deletion conflicts, and all new routes are represented in OpenAPI/types and the role matrix.
+- Backend build, vet, full unit suite, SQLC diff, Goose validation, and CGO-disabled image tests passed; frontend lint, TypeScript, i18n validation, and production build passed.
+- Remaining verification: PostgreSQL-backed matrix/usage integration tests and Compose smoke could not run because `DATABASE_URL_TEST` is unset and Docker Engine is unavailable; repository-wide gofmt and Prettier checks also report pre-existing unrelated formatting issues.
+- Next: run the database-backed tests and deployment smoke when PostgreSQL/Docker are available, and obtain native Amharic review for [docs/i18n-review.md](./docs/i18n-review.md).
 **Goal:** a repo and a live demo that survive a 10-minute recruiter/hiring-manager review for a *senior full-stack* role: one-command startup, real security, real tests, CI, docs, and a polished, working UI.
 
 **Rhythm:** each phase = 1–3 focused sessions (≈2–4 h each) with Gemini. Finish a phase's *Exit criteria* before starting the next. Total ≈ 3–4 weeks part-time.
@@ -68,7 +66,9 @@
 
 - [x] Posts: CRUD, slug, `published`/`published_at`, public list filtered to published, pagination + search
 - [x] Events: CRUD, `event_date`/`ends_at`/`location`, `?upcoming=true`
-- [x] Media: multipart upload (size/type allowlist, content sniffing, random storage keys), list, delete; `Storage` interface (local volume now)
+- [x] Media: JPEG/PNG/WebP content-sniffed uploads, byte/pixel limits, EXIF orientation/metadata stripping, pure-Go responsive variants, API-proxied file serving, usage-aware 409 deletion; local/S3 `Storage` interface
+- [x] Admin-managed site content: bilingual slides, branding settings, plain-text page blocks, and about images; public localized reads and admin-only writes
+- [x] Post/event cover media and public inline post-image token resolution; references protect published pages from broken image URLs
 - [ ] Users (admin): list, change role, delete, password reset trigger
 - [ ] Profile: `GET/PATCH /me` (name, password change with current password)
 - [ ] Contact: inbox for staff, status workflow, optional email notification
@@ -158,6 +158,9 @@
 
 | Command | Result | Date |
 |---------|--------|------|
+| `cd server && gofmt -l . && go build ./... && go vet ./... && go test -count=1 ./... && go tool sqlc diff -f ../sqlc.yaml && go tool goose -dir db/migrations validate && CGO_ENABLED=0 go test ./internal/mediaimage` (admin-managed images/site content) | Build, vet, tests, SQLC diff, migration validation, and CGO-disabled image tests passed. `gofmt -l .` lists existing unrelated files; touched Go files are formatted. PostgreSQL integration tests were skipped because `DATABASE_URL_TEST` is unset. | 2026-10-29 |
+| `cd front-end && npm run gen:api && npm run check:i18n && npm run test:unit && npm run lint && npx tsc --noEmit && npm run build` (admin-managed images/site content) | Passed; API types generated, 424 bilingual messages validated, all 6 unit tests passed, lint/TypeScript/build passed. Build logged expected API connection-refused warnings during static generation because no API was running. Touched files pass Prettier; repository-wide `format:check` reports 66 pre-existing style issues. | 2026-10-29 |
+| `docker compose up --build -d --wait` (admin-managed images/site content smoke) | Not run: Docker Engine named pipe is unavailable; Compose and database-backed smoke tests could not run. | 2026-10-29 |
 | `cd front-end && npm run gen:api && git diff --exit-code -- types/api.d.ts && npm run check:i18n && npm run test:unit && npm run lint && npx tsc --noEmit && npm run format:check && npm run build` (frontend CI follow-up) | Passed; API types were unchanged, 412 bilingual messages and all 6 unit tests passed, lint had no warnings, TypeScript and formatting passed, and production build completed. Build logged expected API connection-refused messages during prerender because no API was running. | 2026-10-28 |
 | `cd front-end && npx playwright test e2e/frontend-hardening.spec.ts` (frontend CI follow-up) | Passed: security headers/CSP and slow-503 retry tests (2/2). | 2026-10-28 |
 | `cd front-end && npx playwright test --list` (frontend CI follow-up) | Passed; discovered all 9 E2E tests. Full database-backed suite not run because no Compose services were active. | 2026-10-28 |

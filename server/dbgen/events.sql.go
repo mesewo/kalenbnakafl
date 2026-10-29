@@ -35,18 +35,19 @@ func (q *Queries) CountEvents(ctx context.Context, upcoming bool) (int64, error)
 }
 
 const createEvent = `-- name: CreateEvent :one
-INSERT INTO events (event_date, ends_at)
-VALUES ($1, $2)
+INSERT INTO events (event_date, ends_at, cover_media_id)
+VALUES ($1, $2, $3)
 RETURNING id
 `
 
 type CreateEventParams struct {
-	EventDate time.Time    `json:"event_date"`
-	EndsAt    sql.NullTime `json:"ends_at"`
+	EventDate    time.Time     `json:"event_date"`
+	EndsAt       sql.NullTime  `json:"ends_at"`
+	CoverMediaID sql.NullInt32 `json:"cover_media_id"`
 }
 
 func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) (int32, error) {
-	row := q.db.QueryRowContext(ctx, createEvent, arg.EventDate, arg.EndsAt)
+	row := q.db.QueryRowContext(ctx, createEvent, arg.EventDate, arg.EndsAt, arg.CoverMediaID)
 	var id int32
 	err := row.Scan(&id)
 	return id, err
@@ -85,7 +86,7 @@ const getEventByID = `-- name: GetEventByID :one
 SELECT e.id,
        en.title AS en_title, en.description AS en_description, en.location AS en_location,
        am.title AS am_title, am.description AS am_description, am.location AS am_location,
-       e.event_date, e.ends_at, e.created_at
+       e.event_date, e.ends_at, e.cover_media_id, e.created_at
 FROM events e
 LEFT JOIN event_translations en ON en.event_id = e.id AND en.locale = 'en'
 LEFT JOIN event_translations am ON am.event_id = e.id AND am.locale = 'am'
@@ -102,6 +103,7 @@ type GetEventByIDRow struct {
 	AmLocation    sql.NullString `json:"am_location"`
 	EventDate     time.Time      `json:"event_date"`
 	EndsAt        sql.NullTime   `json:"ends_at"`
+	CoverMediaID  sql.NullInt32  `json:"cover_media_id"`
 	CreatedAt     time.Time      `json:"created_at"`
 }
 
@@ -118,6 +120,7 @@ func (q *Queries) GetEventByID(ctx context.Context, id int32) (GetEventByIDRow, 
 		&i.AmLocation,
 		&i.EventDate,
 		&i.EndsAt,
+		&i.CoverMediaID,
 		&i.CreatedAt,
 	)
 	return i, err
@@ -127,7 +130,7 @@ const listEvents = `-- name: ListEvents :many
 SELECT e.id,
        en.title AS en_title, en.description AS en_description, en.location AS en_location,
        am.title AS am_title, am.description AS am_description, am.location AS am_location,
-       e.event_date, e.ends_at, e.created_at
+       e.event_date, e.ends_at, e.cover_media_id, e.created_at
 FROM events e
 LEFT JOIN event_translations en ON en.event_id = e.id AND en.locale = 'en'
 LEFT JOIN event_translations am ON am.event_id = e.id AND am.locale = 'am'
@@ -153,6 +156,7 @@ type ListEventsRow struct {
 	AmLocation    sql.NullString `json:"am_location"`
 	EventDate     time.Time      `json:"event_date"`
 	EndsAt        sql.NullTime   `json:"ends_at"`
+	CoverMediaID  sql.NullInt32  `json:"cover_media_id"`
 	CreatedAt     time.Time      `json:"created_at"`
 }
 
@@ -175,6 +179,7 @@ func (q *Queries) ListEvents(ctx context.Context, arg ListEventsParams) ([]ListE
 			&i.AmLocation,
 			&i.EventDate,
 			&i.EndsAt,
+			&i.CoverMediaID,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -202,18 +207,31 @@ func (q *Queries) LockEvent(ctx context.Context, id int32) (int32, error) {
 
 const updateEventFields = `-- name: UpdateEventFields :execrows
 UPDATE events
-SET event_date = $1, ends_at = $2
-WHERE id = $3
+SET event_date = $1, ends_at = $2,
+    cover_media_id = CASE
+        WHEN $3::boolean THEN NULL
+        WHEN $4::integer IS NOT NULL THEN $4::integer
+        ELSE cover_media_id
+    END
+WHERE id = $5
 `
 
 type UpdateEventFieldsParams struct {
-	EventDate time.Time    `json:"event_date"`
-	EndsAt    sql.NullTime `json:"ends_at"`
-	ID        int32        `json:"id"`
+	EventDate       time.Time     `json:"event_date"`
+	EndsAt          sql.NullTime  `json:"ends_at"`
+	ClearCoverMedia bool          `json:"clear_cover_media"`
+	CoverMediaID    sql.NullInt32 `json:"cover_media_id"`
+	ID              int32         `json:"id"`
 }
 
 func (q *Queries) UpdateEventFields(ctx context.Context, arg UpdateEventFieldsParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, updateEventFields, arg.EventDate, arg.EndsAt, arg.ID)
+	result, err := q.db.ExecContext(ctx, updateEventFields,
+		arg.EventDate,
+		arg.EndsAt,
+		arg.ClearCoverMedia,
+		arg.CoverMediaID,
+		arg.ID,
+	)
 	if err != nil {
 		return 0, err
 	}

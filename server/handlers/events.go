@@ -13,12 +13,12 @@ import (
 	"kalenbnakafl/models"
 )
 
-func eventDTO(id int32, title, description string, eventDate time.Time, endsAt sql.NullTime, location string, createdAt time.Time) models.Event {
+func eventDTO(id int32, title, description string, eventDate time.Time, endsAt sql.NullTime, coverMediaID sql.NullInt32, location string, createdAt time.Time) models.Event {
 	var end *time.Time
 	if endsAt.Valid {
 		end = &endsAt.Time
 	}
-	return models.Event{ID: int(id), Title: title, Description: description, EventDate: eventDate, EndsAt: end, Location: location, CreatedAt: createdAt}
+	return models.Event{ID: int(id), Title: title, Description: description, EventDate: eventDate, EndsAt: end, CoverMediaID: nullableID(coverMediaID), Location: location, CreatedAt: createdAt}
 }
 
 func (a *API) GetEvents(c *gin.Context) {
@@ -43,7 +43,7 @@ func (a *API) GetEvents(c *gin.Context) {
 	events := make([]models.Event, 0, len(rows))
 	for _, row := range rows {
 		translations, title, description, location, effective, fallback := eventTranslationValues(row.EnTitle, row.EnDescription, row.EnLocation, row.AmTitle, row.AmDescription, row.AmLocation, language)
-		event := eventDTO(row.ID, title, description, row.EventDate, row.EndsAt, location, row.CreatedAt)
+		event := eventDTO(row.ID, title, description, row.EventDate, row.EndsAt, row.CoverMediaID, location, row.CreatedAt)
 		event.Language, event.Fallback = effective, fallback
 		if _, staff := c.Get("role"); staff {
 			event.Translations = translations
@@ -72,7 +72,7 @@ func (a *API) GetEventByID(c *gin.Context) {
 		return
 	}
 	_, title, description, location, effective, fallback := eventTranslationValues(row.EnTitle, row.EnDescription, row.EnLocation, row.AmTitle, row.AmDescription, row.AmLocation, language)
-	event := eventDTO(row.ID, title, description, row.EventDate, row.EndsAt, location, row.CreatedAt)
+	event := eventDTO(row.ID, title, description, row.EventDate, row.EndsAt, row.CoverMediaID, location, row.CreatedAt)
 	event.Language, event.Fallback = effective, fallback
 	c.JSON(http.StatusOK, event)
 }
@@ -107,6 +107,17 @@ func (a *API) CreateEvent(c *gin.Context) {
 		httpx.Fail(c, http.StatusBadRequest, "events.translations_and_valid_event_date_are_required")
 		return
 	}
+	if input.CoverMediaID != nil {
+		isImage, err := validateImageMediaID(c.Request.Context(), a.db, *input.CoverMediaID)
+		if err != nil {
+			httpx.Internal(c, "Could not validate event cover image")
+			return
+		}
+		if !isImage {
+			httpx.Fail(c, http.StatusUnprocessableEntity, "events.cover_image_is_invalid")
+			return
+		}
+	}
 	start, end, status := validEvent(input)
 	if status != http.StatusOK {
 		if status == http.StatusUnprocessableEntity {
@@ -122,7 +133,7 @@ func (a *API) CreateEvent(c *gin.Context) {
 		return
 	}
 	queries := a.q.WithTx(tx)
-	eventID, err := queries.CreateEvent(c.Request.Context(), dbgen.CreateEventParams{EventDate: start, EndsAt: end})
+	eventID, err := queries.CreateEvent(c.Request.Context(), dbgen.CreateEventParams{EventDate: start, EndsAt: end, CoverMediaID: validateCoverID(input.CoverMediaID)})
 	if err == nil {
 		for locale, translation := range translations {
 			if err = queries.UpsertEventTranslation(c.Request.Context(), dbgen.UpsertEventTranslationParams{EventID: eventID, Locale: locale, Title: translation.Title, Description: translation.Description, Location: translation.Location}); err != nil {
@@ -164,6 +175,17 @@ func (a *API) UpdateEvent(c *gin.Context) {
 	if !valid {
 		httpx.Fail(c, http.StatusBadRequest, "events.translation_is_invalid")
 		return
+	}
+	if input.CoverMediaID != nil {
+		isImage, err := validateImageMediaID(c.Request.Context(), a.db, *input.CoverMediaID)
+		if err != nil {
+			httpx.Internal(c, "Could not validate event cover image")
+			return
+		}
+		if !isImage {
+			httpx.Fail(c, http.StatusUnprocessableEntity, "events.cover_image_is_invalid")
+			return
+		}
 	}
 	start, end, status := validEvent(input)
 	if status != http.StatusOK {
@@ -213,7 +235,10 @@ func (a *API) UpdateEvent(c *gin.Context) {
 			return
 		}
 	}
-	affected, err := queries.UpdateEventFields(c.Request.Context(), dbgen.UpdateEventFieldsParams{EventDate: start, EndsAt: end, ID: int32(id)})
+	affected, err := queries.UpdateEventFields(c.Request.Context(), dbgen.UpdateEventFieldsParams{
+		EventDate: start, EndsAt: end, CoverMediaID: validateCoverID(input.CoverMediaID),
+		ClearCoverMedia: input.ClearCoverMedia, ID: int32(id),
+	})
 	if err != nil {
 		if constraintStatus, constraint := postEventConstraintStatus(err); constraint {
 			httpx.Fail(c, constraintStatus, "events.failed_to_update_event")

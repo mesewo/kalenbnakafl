@@ -9,6 +9,19 @@ import (
 	"time"
 )
 
+type AboutImage struct {
+	ID        int32     `json:"id"`
+	MediaID   int32     `json:"media_id"`
+	SortOrder int32     `json:"sort_order"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type AboutImageTranslation struct {
+	ImageID int32  `json:"image_id"`
+	Locale  string `json:"locale"`
+	Caption string `json:"caption"`
+}
+
 type ContactMessage struct {
 	ID        int32         `json:"id"`
 	Name      string        `json:"name"`
@@ -21,10 +34,11 @@ type ContactMessage struct {
 }
 
 type Event struct {
-	ID        int32        `json:"id"`
-	EventDate time.Time    `json:"event_date"`
-	CreatedAt time.Time    `json:"created_at"`
-	EndsAt    sql.NullTime `json:"ends_at"`
+	ID           int32         `json:"id"`
+	EventDate    time.Time     `json:"event_date"`
+	CreatedAt    time.Time     `json:"created_at"`
+	EndsAt       sql.NullTime  `json:"ends_at"`
+	CoverMediaID sql.NullInt32 `json:"cover_media_id"`
 }
 
 type EventSignup struct {
@@ -41,22 +55,45 @@ type EventTranslation struct {
 	Location    string `json:"location"`
 }
 
+type HomeSlide struct {
+	ID        int32     `json:"id"`
+	MediaID   int32     `json:"media_id"`
+	Link      string    `json:"link"`
+	SortOrder int32     `json:"sort_order"`
+	Active    bool      `json:"active"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type HomeSlideTranslation struct {
+	SlideID int32  `json:"slide_id"`
+	Locale  string `json:"locale"`
+	Caption string `json:"caption"`
+}
+
 type Media struct {
-	ID           int32          `json:"id"`
-	FilePath     string         `json:"file_path"`
-	MediaType    sql.NullString `json:"media_type"`
-	OriginalName sql.NullString `json:"original_name"`
-	SizeBytes    int64          `json:"size_bytes"`
-	UploadedBy   sql.NullInt32  `json:"uploaded_by"`
-	CreatedAt    time.Time      `json:"created_at"`
-	UpdatedAt    time.Time      `json:"updated_at"`
-	Kind         string         `json:"kind"`
+	ID              int32          `json:"id"`
+	FilePath        string         `json:"file_path"`
+	MediaType       sql.NullString `json:"media_type"`
+	OriginalName    sql.NullString `json:"original_name"`
+	SizeBytes       int64          `json:"size_bytes"`
+	UploadedBy      sql.NullInt32  `json:"uploaded_by"`
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
+	Kind            string         `json:"kind"`
+	Width           sql.NullInt32  `json:"width"`
+	Height          sql.NullInt32  `json:"height"`
+	Decorative      bool           `json:"decorative"`
+	Variant480Path  sql.NullString `json:"variant_480_path"`
+	Variant960Path  sql.NullString `json:"variant_960_path"`
+	Variant1600Path sql.NullString `json:"variant_1600_path"`
 }
 
 type MediaTranslation struct {
 	MediaID int32  `json:"media_id"`
 	Locale  string `json:"locale"`
 	Title   string `json:"title"`
+	AltText string `json:"alt_text"`
 }
 
 type Post struct {
@@ -68,6 +105,12 @@ type Post struct {
 	Slug         string        `json:"slug"`
 	PublishedAt  sql.NullTime  `json:"published_at"`
 	CoverMediaID sql.NullInt32 `json:"cover_media_id"`
+}
+
+type PostMediaReference struct {
+	PostID  int32  `json:"post_id"`
+	Locale  string `json:"locale"`
+	MediaID int32  `json:"media_id"`
 }
 
 type PostSearch struct {
@@ -89,6 +132,35 @@ type RefreshToken struct {
 	ExpiresAt time.Time    `json:"expires_at"`
 	RevokedAt sql.NullTime `json:"revoked_at"`
 	CreatedAt time.Time    `json:"created_at"`
+}
+
+type SiteBlock struct {
+	ID        int32         `json:"id"`
+	Page      string        `json:"page"`
+	BlockKey  string        `json:"block_key"`
+	UpdatedBy sql.NullInt32 `json:"updated_by"`
+	UpdatedAt time.Time     `json:"updated_at"`
+}
+
+type SiteBlockTranslation struct {
+	BlockID int32  `json:"block_id"`
+	Locale  string `json:"locale"`
+	Text    string `json:"text"`
+}
+
+type SiteSetting struct {
+	ID                 int16         `json:"id"`
+	LogoMediaID        sql.NullInt32 `json:"logo_media_id"`
+	FaviconMediaID     sql.NullInt32 `json:"favicon_media_id"`
+	SocialImageMediaID sql.NullInt32 `json:"social_image_media_id"`
+	UpdatedAt          time.Time     `json:"updated_at"`
+}
+
+type SiteSettingTranslation struct {
+	SettingsID int16  `json:"settings_id"`
+	Locale     string `json:"locale"`
+	SiteName   string `json:"site_name"`
+	Tagline    string `json:"tagline"`
 }
 
 type User struct {

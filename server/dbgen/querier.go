@@ -17,7 +17,7 @@ type Querier interface {
 	CountEventAttendees(ctx context.Context, eventID int32) (int64, error)
 	CountEventTranslations(ctx context.Context, eventID int32) (int64, error)
 	CountEvents(ctx context.Context, upcoming bool) (int64, error)
-	CountMedia(ctx context.Context, kind sql.NullString) (int64, error)
+	CountMedia(ctx context.Context, arg CountMediaParams) (int64, error)
 	CountMyEventSignups(ctx context.Context, userID int32) (int64, error)
 	CountPostTranslations(ctx context.Context, postID int32) (int64, error)
 	CountPosts(ctx context.Context, arg CountPostsParams) (int64, error)
@@ -26,6 +26,7 @@ type Querier interface {
 	CreateContact(ctx context.Context, arg CreateContactParams) error
 	CreateEvent(ctx context.Context, arg CreateEventParams) (int32, error)
 	CreateEventSignup(ctx context.Context, arg CreateEventSignupParams) (int64, error)
+	CreateImageMedia(ctx context.Context, arg CreateImageMediaParams) (int32, error)
 	CreateMedia(ctx context.Context, arg CreateMediaParams) (int32, error)
 	CreatePost(ctx context.Context, arg CreatePostParams) (int32, error)
 	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) error
@@ -42,6 +43,7 @@ type Querier interface {
 	GetEventByID(ctx context.Context, id int32) (GetEventByIDRow, error)
 	GetEventDate(ctx context.Context, id int32) (time.Time, error)
 	GetMediaFilePath(ctx context.Context, id int32) (string, error)
+	GetMediaVariant(ctx context.Context, arg GetMediaVariantParams) (GetMediaVariantRow, error)
 	GetMyVolunteerApplication(ctx context.Context, userID int32) (VolunteerApplication, error)
 	GetPostBySlug(ctx context.Context, slug string) (GetPostBySlugRow, error)
 	GetRoleByUserID(ctx context.Context, id int32) (string, error)
@@ -51,6 +53,7 @@ type Querier interface {
 	ListEventAttendees(ctx context.Context, arg ListEventAttendeesParams) ([]ListEventAttendeesRow, error)
 	ListEvents(ctx context.Context, arg ListEventsParams) ([]ListEventsRow, error)
 	ListMedia(ctx context.Context, arg ListMediaParams) ([]ListMediaRow, error)
+	ListMediaUsages(ctx context.Context, id sql.NullInt32) ([]ListMediaUsagesRow, error)
 	ListMyEventSignups(ctx context.Context, arg ListMyEventSignupsParams) ([]ListMyEventSignupsRow, error)
 	ListPosts(ctx context.Context, arg ListPostsParams) ([]ListPostsRow, error)
 	ListUsers(ctx context.Context) ([]ListUsersRow, error)

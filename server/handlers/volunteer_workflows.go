@@ -316,7 +316,7 @@ func (a *API) ListMyEventSignups(c *gin.Context) {
 	}
 	items := make([]models.Event, 0, len(rows))
 	for _, row := range rows {
-		items = append(items, eventDTO(row.ID, row.Title, row.Description, row.EventDate, row.EndsAt, row.Location, row.CreatedAt))
+		items = append(items, eventDTO(row.ID, row.Title, row.Description, row.EventDate, row.EndsAt, sql.NullInt32{}, row.Location, row.CreatedAt))
 	}
 	c.JSON(http.StatusOK, models.Page[models.Event]{Items: items, Page: page, Limit: limit, Total: total})
 }

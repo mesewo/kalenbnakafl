@@ -13,14 +13,79 @@ import (
 
 const countMedia = `-- name: CountMedia :one
 SELECT count(*)::bigint FROM media
-WHERE $1::text IS NULL OR kind = $1::text
+WHERE ($1::text IS NULL OR kind = $1::text)
+  AND kind = 'image'
+  AND (
+      $2::boolean OR
+      EXISTS (SELECT 1 FROM posts p WHERE p.cover_media_id = media.id AND p.published) OR
+      EXISTS (SELECT 1 FROM post_media_references pmr
+              JOIN posts p ON p.id = pmr.post_id
+              WHERE pmr.media_id = media.id AND p.published) OR
+      EXISTS (SELECT 1 FROM events e WHERE e.cover_media_id = media.id) OR
+      EXISTS (SELECT 1 FROM home_slides hs WHERE hs.media_id = media.id AND hs.active) OR
+      EXISTS (SELECT 1 FROM about_images ai WHERE ai.media_id = media.id) OR
+      EXISTS (SELECT 1 FROM site_settings s
+              WHERE s.logo_media_id = media.id OR s.favicon_media_id = media.id OR s.social_image_media_id = media.id)
+  )
 `
 
-func (q *Queries) CountMedia(ctx context.Context, kind sql.NullString) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countMedia, kind)
+type CountMediaParams struct {
+	Kind  sql.NullString `json:"kind"`
+	Staff bool           `json:"staff"`
+}
+
+func (q *Queries) CountMedia(ctx context.Context, arg CountMediaParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countMedia, arg.Kind, arg.Staff)
 	var column_1 int64
 	err := row.Scan(&column_1)
 	return column_1, err
+}
+
+const createImageMedia = `-- name: CreateImageMedia :one
+INSERT INTO media (
+    file_path, media_type, original_name, size_bytes, kind, uploaded_by,
+    width, height, decorative, variant_480_path, variant_960_path, variant_1600_path
+)
+VALUES (
+    $1, $2, $3,
+    $4, 'image', $5,
+    $6, $7, $8,
+    $9, $10, $11
+)
+RETURNING id
+`
+
+type CreateImageMediaParams struct {
+	FilePath        string         `json:"file_path"`
+	MediaType       sql.NullString `json:"media_type"`
+	OriginalName    sql.NullString `json:"original_name"`
+	SizeBytes       int64          `json:"size_bytes"`
+	UploadedBy      sql.NullInt32  `json:"uploaded_by"`
+	Width           sql.NullInt32  `json:"width"`
+	Height          sql.NullInt32  `json:"height"`
+	Decorative      bool           `json:"decorative"`
+	Variant480Path  sql.NullString `json:"variant_480_path"`
+	Variant960Path  sql.NullString `json:"variant_960_path"`
+	Variant1600Path sql.NullString `json:"variant_1600_path"`
+}
+
+func (q *Queries) CreateImageMedia(ctx context.Context, arg CreateImageMediaParams) (int32, error) {
+	row := q.db.QueryRowContext(ctx, createImageMedia,
+		arg.FilePath,
+		arg.MediaType,
+		arg.OriginalName,
+		arg.SizeBytes,
+		arg.UploadedBy,
+		arg.Width,
+		arg.Height,
+		arg.Decorative,
+		arg.Variant480Path,
+		arg.Variant960Path,
+		arg.Variant1600Path,
+	)
+	var id int32
+	err := row.Scan(&id)
+	return id, err
 }
 
 const createMedia = `-- name: CreateMedia :one
@@ -76,21 +141,81 @@ func (q *Queries) GetMediaFilePath(ctx context.Context, id int32) (string, error
 	return file_path, err
 }
 
+const getMediaVariant = `-- name: GetMediaVariant :one
+SELECT
+    COALESCE(CASE $1::integer
+        WHEN 480 THEN m.variant_480_path
+        WHEN 960 THEN m.variant_960_path
+        WHEN 1600 THEN m.variant_1600_path
+    END, m.file_path) AS storage_path,
+    COALESCE(m.media_type, 'application/octet-stream') AS media_type,
+    (
+        $2::boolean OR
+        EXISTS (SELECT 1 FROM posts p WHERE p.cover_media_id = m.id AND p.published) OR
+        EXISTS (SELECT 1 FROM post_media_references pmr
+                JOIN posts p ON p.id = pmr.post_id
+                WHERE pmr.media_id = m.id AND p.published) OR
+        EXISTS (SELECT 1 FROM events e WHERE e.cover_media_id = m.id) OR
+        EXISTS (SELECT 1 FROM home_slides hs WHERE hs.media_id = m.id AND hs.active) OR
+        EXISTS (SELECT 1 FROM about_images ai WHERE ai.media_id = m.id) OR
+        EXISTS (SELECT 1 FROM site_settings s
+                WHERE s.logo_media_id = m.id OR s.favicon_media_id = m.id OR s.social_image_media_id = m.id)
+    ) AS is_public
+FROM media m
+WHERE m.id = $3 AND m.kind = 'image'
+`
+
+type GetMediaVariantParams struct {
+	Width int32 `json:"width"`
+	Staff bool  `json:"staff"`
+	ID    int32 `json:"id"`
+}
+
+type GetMediaVariantRow struct {
+	StoragePath string       `json:"storage_path"`
+	MediaType   string       `json:"media_type"`
+	IsPublic    sql.NullBool `json:"is_public"`
+}
+
+func (q *Queries) GetMediaVariant(ctx context.Context, arg GetMediaVariantParams) (GetMediaVariantRow, error) {
+	row := q.db.QueryRowContext(ctx, getMediaVariant, arg.Width, arg.Staff, arg.ID)
+	var i GetMediaVariantRow
+	err := row.Scan(&i.StoragePath, &i.MediaType, &i.IsPublic)
+	return i, err
+}
+
 const listMedia = `-- name: ListMedia :many
 SELECT m.id, m.file_path, COALESCE(m.media_type, '') AS media_type,
        COALESCE(m.original_name, '') AS original_name,
        COALESCE(m.size_bytes, 0) AS size_bytes, m.kind, m.created_at,
-       en.title AS en_title, am.title AS am_title
+       en.title AS en_title, en.alt_text AS en_alt_text,
+       am.title AS am_title, am.alt_text AS am_alt_text,
+       COALESCE(m.width, 0) AS width, COALESCE(m.height, 0) AS height,
+       m.decorative
 FROM media m
 LEFT JOIN media_translations en ON en.media_id = m.id AND en.locale = 'en'
 LEFT JOIN media_translations am ON am.media_id = m.id AND am.locale = 'am'
 WHERE ($1::text IS NULL OR m.kind = $1::text)
+  AND m.kind = 'image'
+  AND (
+      $2::boolean OR
+      EXISTS (SELECT 1 FROM posts p WHERE p.cover_media_id = m.id AND p.published) OR
+      EXISTS (SELECT 1 FROM post_media_references pmr
+              JOIN posts p ON p.id = pmr.post_id
+              WHERE pmr.media_id = m.id AND p.published) OR
+      EXISTS (SELECT 1 FROM events e WHERE e.cover_media_id = m.id) OR
+      EXISTS (SELECT 1 FROM home_slides hs WHERE hs.media_id = m.id AND hs.active) OR
+      EXISTS (SELECT 1 FROM about_images ai WHERE ai.media_id = m.id) OR
+      EXISTS (SELECT 1 FROM site_settings s
+              WHERE s.logo_media_id = m.id OR s.favicon_media_id = m.id OR s.social_image_media_id = m.id)
+  )
 ORDER BY m.created_at DESC
-LIMIT $3::integer OFFSET $2::integer
+LIMIT $4::integer OFFSET $3::integer
 `
 
 type ListMediaParams struct {
 	Kind      sql.NullString `json:"kind"`
+	Staff     bool           `json:"staff"`
 	RowOffset int32          `json:"row_offset"`
 	PageSize  int32          `json:"page_size"`
 }
@@ -104,11 +229,21 @@ type ListMediaRow struct {
 	Kind         string         `json:"kind"`
 	CreatedAt    time.Time      `json:"created_at"`
 	EnTitle      sql.NullString `json:"en_title"`
+	EnAltText    sql.NullString `json:"en_alt_text"`
 	AmTitle      sql.NullString `json:"am_title"`
+	AmAltText    sql.NullString `json:"am_alt_text"`
+	Width        int32          `json:"width"`
+	Height       int32          `json:"height"`
+	Decorative   bool           `json:"decorative"`
 }
 
 func (q *Queries) ListMedia(ctx context.Context, arg ListMediaParams) ([]ListMediaRow, error) {
-	rows, err := q.db.QueryContext(ctx, listMedia, arg.Kind, arg.RowOffset, arg.PageSize)
+	rows, err := q.db.QueryContext(ctx, listMedia,
+		arg.Kind,
+		arg.Staff,
+		arg.RowOffset,
+		arg.PageSize,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +260,12 @@ func (q *Queries) ListMedia(ctx context.Context, arg ListMediaParams) ([]ListMed
 			&i.Kind,
 			&i.CreatedAt,
 			&i.EnTitle,
+			&i.EnAltText,
 			&i.AmTitle,
+			&i.AmAltText,
+			&i.Width,
+			&i.Height,
+			&i.Decorative,
 		); err != nil {
 			return nil, err
 		}
@@ -140,19 +280,86 @@ func (q *Queries) ListMedia(ctx context.Context, arg ListMediaParams) ([]ListMed
 	return items, nil
 }
 
+const listMediaUsages = `-- name: ListMediaUsages :many
+SELECT 'post_cover'::text AS usage_type, p.id AS reference_id, p.slug AS label
+FROM posts p WHERE p.cover_media_id = $1
+UNION ALL
+SELECT 'post_inline'::text, p.id, p.slug
+FROM posts p
+JOIN post_media_references pmr ON pmr.post_id = p.id
+WHERE pmr.media_id = $1
+UNION ALL
+SELECT 'event_cover'::text, e.id, COALESCE(en.title, am.title, 'Event ' || e.id::text)
+FROM events e
+LEFT JOIN event_translations en ON en.event_id = e.id AND en.locale = 'en'
+LEFT JOIN event_translations am ON am.event_id = e.id AND am.locale = 'am'
+WHERE e.cover_media_id = $1
+UNION ALL
+SELECT 'home_slide'::text, hs.id, 'Home slide ' || hs.id::text
+FROM home_slides hs WHERE hs.media_id = $1
+UNION ALL
+SELECT 'about_image'::text, ai.id, 'About image ' || ai.id::text
+FROM about_images ai WHERE ai.media_id = $1
+UNION ALL
+SELECT 'site_setting'::text, s.id,
+       CASE
+           WHEN s.logo_media_id = $1 THEN 'logo'
+           WHEN s.favicon_media_id = $1 THEN 'favicon'
+           ELSE 'social image'
+       END
+FROM site_settings s
+WHERE s.logo_media_id = $1 OR s.favicon_media_id = $1 OR s.social_image_media_id = $1
+ORDER BY usage_type, reference_id
+`
+
+type ListMediaUsagesRow struct {
+	UsageType   string `json:"usage_type"`
+	ReferenceID int32  `json:"reference_id"`
+	Label       string `json:"label"`
+}
+
+func (q *Queries) ListMediaUsages(ctx context.Context, id sql.NullInt32) ([]ListMediaUsagesRow, error) {
+	rows, err := q.db.QueryContext(ctx, listMediaUsages, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListMediaUsagesRow{}
+	for rows.Next() {
+		var i ListMediaUsagesRow
+		if err := rows.Scan(&i.UsageType, &i.ReferenceID, &i.Label); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const upsertMediaTranslation = `-- name: UpsertMediaTranslation :exec
-INSERT INTO media_translations(media_id, locale, title)
-VALUES ($1, $2, $3)
-ON CONFLICT (media_id, locale) DO UPDATE SET title = EXCLUDED.title
+INSERT INTO media_translations(media_id, locale, title, alt_text)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT (media_id, locale) DO UPDATE SET title = EXCLUDED.title, alt_text = EXCLUDED.alt_text
 `
 
 type UpsertMediaTranslationParams struct {
 	MediaID int32  `json:"media_id"`
 	Locale  string `json:"locale"`
 	Title   string `json:"title"`
+	AltText string `json:"alt_text"`
 }
 
 func (q *Queries) UpsertMediaTranslation(ctx context.Context, arg UpsertMediaTranslationParams) error {
-	_, err := q.db.ExecContext(ctx, upsertMediaTranslation, arg.MediaID, arg.Locale, arg.Title)
+	_, err := q.db.ExecContext(ctx, upsertMediaTranslation,
+		arg.MediaID,
+		arg.Locale,
+		arg.Title,
+		arg.AltText,
+	)
 	return err
 }

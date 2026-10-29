@@ -400,8 +400,12 @@ export interface paths {
     put?: never;
     /**
      * Upload a media file
-     * @description Multipart upload. Accepted MIME types: PNG, JPEG, WebP, PDF, MP4, WebM, MP3, OGG.
-     *     Maximum size configured by `MEDIA_MAX_MB` (default 50 MB).
+     * @description Accepts only JPEG, PNG, and WebP image content, sniffed independently of the filename and
+     *     declared Content-Type. Images are limited to 10,000 pixels per side and 40 megapixels,
+     *     EXIF-oriented, metadata-stripped,
+     *     re-encoded, and stored as 480/960/1600px responsive variants. Maximum size is configured
+     *     by `MEDIA_MAX_MB` (default 50 MB). Both en and am alt text are required unless `decorative`
+     *     is explicitly true.
      */
     post: operations["uploadMedia"];
     delete?: never;
@@ -591,6 +595,277 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/media/{id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get localized metadata for a public image
+     * @description Returns metadata only when the image is referenced by public content.
+     */
+    get: operations["getPublicMedia"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/media/{id}/file": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Serve a public responsive image variant
+     * @description Accepts widths 480, 960, and 1600; supports ETag validation and byte ranges.
+     */
+    get: operations["getPublicMediaFile"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    /** Return public image headers without a body */
+    head: operations["headPublicMediaFile"];
+    patch?: never;
+    trace?: never;
+  };
+  "/api/site/home-slides": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List active localized home slides */
+    get: operations["getPublicHomeSlides"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/site/settings": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get localized site branding and social image */
+    get: operations["getPublicSiteSettings"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/site/blocks": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List localized plain-text page blocks
+     * @description Block values are plain text and may contain line breaks, never HTML.
+     */
+    get: operations["getPublicSiteBlocks"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/site/about-images": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List localized about-page images */
+    get: operations["getPublicAboutImages"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/staff/media/{id}/file": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Preview an image before public use */
+    get: operations["staffGetMediaFile"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    /** Return image preview headers */
+    head: operations["staffHeadMediaFile"];
+    patch?: never;
+    trace?: never;
+  };
+  "/api/staff/media/{id}/usages": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List content references to an image */
+    get: operations["getMediaUsages"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/admin/home-slides": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List all slides, including inactive slides */
+    get: operations["adminGetHomeSlides"];
+    put?: never;
+    /** Create a home slide */
+    post: operations["adminCreateHomeSlide"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/admin/home-slides/{id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Update slide and translations */
+    put: operations["adminUpdateHomeSlide"];
+    post?: never;
+    /** Delete a home slide */
+    delete: operations["adminDeleteHomeSlide"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/admin/site-settings": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Read branding settings and translations */
+    get: operations["adminGetSiteSettings"];
+    /** Update branding settings and translations */
+    put: operations["adminUpdateSiteSettings"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/admin/site-blocks": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List editable page blocks and translations */
+    get: operations["adminGetSiteBlocks"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/admin/site-blocks/{page}/{key}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Create or replace a translated plain-text block */
+    put: operations["adminUpsertSiteBlock"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/admin/about-images": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List about-page images and translations */
+    get: operations["adminGetAboutImages"];
+    put?: never;
+    /** Add an about-page image */
+    post: operations["adminCreateAboutImage"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/admin/about-images/{id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Update about-page image */
+    put: operations["adminUpdateAboutImage"];
+    post?: never;
+    /** Remove an about-page image */
+    delete: operations["adminDeleteAboutImage"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -642,6 +917,7 @@ export interface components {
     };
     PostTranslation: {
       title: string;
+      /** @description Plain text with line breaks; inline images use only {{media:<id>}} tokens. Arbitrary Markdown image URLs are rejected. */
       content: string;
     };
     PostTranslations: {
@@ -657,6 +933,8 @@ export interface components {
       event_date: string;
       /** Format: date-time */
       ends_at?: string;
+      /** Format: int64 */
+      cover_media_id?: number;
       location: string;
       /** Format: date-time */
       created_at?: string;
@@ -684,7 +962,11 @@ export interface components {
       /** Format: int64 */
       size_bytes?: number;
       /** @enum {string} */
-      kind: "image" | "video" | "audio" | "document";
+      kind: "image";
+      alt_text: string;
+      width: number;
+      height: number;
+      decorative: boolean;
       /** Format: date-time */
       created_at?: string;
       /** @enum {string} */
@@ -693,11 +975,137 @@ export interface components {
       translations?: components["schemas"]["MediaTranslations"];
     };
     MediaTranslation: {
-      title: string;
+      title?: string;
+      alt_text: string;
     };
     MediaTranslations: {
       en?: components["schemas"]["MediaTranslation"];
       am?: components["schemas"]["MediaTranslation"];
+    };
+    MediaUsage: {
+      /** @enum {string} */
+      usage_type:
+        | "post_cover"
+        | "post_inline"
+        | "event_cover"
+        | "home_slide"
+        | "about_image"
+        | "site_setting";
+      /** Format: int64 */
+      reference_id: number;
+      label: string;
+    };
+    SiteTextTranslation: {
+      /** @description Plain text with line breaks; raw HTML markup is rejected. */
+      text: string;
+    };
+    SiteTextTranslations: {
+      en: components["schemas"]["SiteTextTranslation"];
+      am: components["schemas"]["SiteTextTranslation"];
+    };
+    HomeSlideTranslation: {
+      caption: string;
+    };
+    HomeSlideTranslations: {
+      en: components["schemas"]["HomeSlideTranslation"];
+      am: components["schemas"]["HomeSlideTranslation"];
+    };
+    HomeSlide: {
+      /** Format: int64 */
+      id: number;
+      /** Format: int64 */
+      media_id: number;
+      image_url: string;
+      caption: string;
+      link: string;
+      sort_order: number;
+      active: boolean;
+      /** @enum {string} */
+      language: "en" | "am";
+      fallback: boolean;
+      translations?: components["schemas"]["HomeSlideTranslations"];
+    };
+    HomeSlideInput: {
+      /** Format: int64 */
+      media_id: number;
+      link: string;
+      sort_order: number;
+      active: boolean;
+      translations: components["schemas"]["HomeSlideTranslations"];
+    };
+    SiteSettingsTranslation: {
+      site_name: string;
+      tagline: string;
+    };
+    SiteSettingsTranslations: {
+      en: components["schemas"]["SiteSettingsTranslation"];
+      am: components["schemas"]["SiteSettingsTranslation"];
+    };
+    SiteSettings: {
+      /** Format: int64 */
+      logo_media_id?: number | null;
+      logo_url: string;
+      /** Format: int64 */
+      favicon_media_id?: number | null;
+      favicon_url: string;
+      /** Format: int64 */
+      social_image_media_id?: number | null;
+      social_image_url: string;
+      site_name: string;
+      tagline: string;
+      /** @enum {string} */
+      language: "en" | "am";
+      fallback: boolean;
+      translations?: components["schemas"]["SiteSettingsTranslations"];
+    };
+    SiteSettingsInput: {
+      /** Format: int64 */
+      logo_media_id?: number | null;
+      /** Format: int64 */
+      favicon_media_id?: number | null;
+      /** Format: int64 */
+      social_image_media_id?: number | null;
+      translations: components["schemas"]["SiteSettingsTranslations"];
+    };
+    SiteBlock: {
+      page: string;
+      key: string;
+      text: string;
+      /** @enum {string} */
+      language: "en" | "am";
+      fallback: boolean;
+      /** Format: date-time */
+      updated_at: string;
+      translations?: components["schemas"]["SiteTextTranslations"];
+    };
+    SiteBlockInput: {
+      translations: components["schemas"]["SiteTextTranslations"];
+    };
+    AboutImageTranslation: {
+      caption: string;
+    };
+    AboutImageTranslations: {
+      en: components["schemas"]["AboutImageTranslation"];
+      am: components["schemas"]["AboutImageTranslation"];
+    };
+    AboutImage: {
+      /** Format: int64 */
+      id: number;
+      /** Format: int64 */
+      media_id: number;
+      image_url: string;
+      caption: string;
+      sort_order: number;
+      /** @enum {string} */
+      language: "en" | "am";
+      fallback: boolean;
+      translations?: components["schemas"]["AboutImageTranslations"];
+    };
+    AboutImageInput: {
+      /** Format: int64 */
+      media_id: number;
+      sort_order: number;
+      translations: components["schemas"]["AboutImageTranslations"];
     };
     /** @description Contact message as returned to staff */
     ContactMessage: {
@@ -863,6 +1271,8 @@ export interface components {
        * @description Optional; must be after event_date
        */
       ends_at?: string;
+      /** Format: int64 */
+      cover_media_id?: number;
     };
     UpdateEventRequest: {
       translations: {
@@ -873,6 +1283,9 @@ export interface components {
       event_date: string;
       /** Format: date-time */
       ends_at?: string;
+      /** Format: int64 */
+      cover_media_id?: number;
+      clear_cover_media?: boolean;
     };
     UpdateProfileRequest: {
       name: string;
@@ -918,7 +1331,11 @@ export interface components {
     };
     UploadMediaResponse: {
       message: string;
+      /** Format: int64 */
+      id: number;
       file_path: string;
+      width: number;
+      height: number;
     };
   };
   responses: {
@@ -1304,7 +1721,7 @@ export interface operations {
         page?: components["parameters"]["PageParam"];
         limit?: components["parameters"]["LimitParam"];
         /** @description Filter by media kind */
-        kind?: "image" | "video" | "audio" | "document";
+        kind?: "image";
       };
       header?: never;
       path?: never;
@@ -1882,7 +2299,7 @@ export interface operations {
         lang?: components["parameters"]["LanguageParam"];
         page?: components["parameters"]["PageParam"];
         limit?: components["parameters"]["LimitParam"];
-        kind?: "image" | "video" | "audio" | "document";
+        kind?: "image";
       };
       header?: never;
       path?: never;
@@ -1925,8 +2342,13 @@ export interface operations {
         "multipart/form-data": {
           /** Format: binary */
           file: string;
-          /** @description JSON object with at least one en/am title, e.g. {"en":{"title":"Photo"}}. */
+          /** @description JSON object with en and am alt_text values; titles are optional. */
           translations: string;
+          /**
+           * @description Explicit true is the only way to omit both localized alt texts.
+           * @enum {string}
+           */
+          decorative?: "true" | "false";
         };
       };
     };
@@ -1987,6 +2409,15 @@ export interface operations {
       401: components["responses"]["Unauthorized"];
       403: components["responses"]["Forbidden"];
       404: components["responses"]["NotFound"];
+      /** @description Media is in use; the error details contain a `usages` array of reference locations. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
       500: components["responses"]["InternalServerError"];
     };
   };
@@ -2333,6 +2764,589 @@ export interface operations {
       403: components["responses"]["Forbidden"];
       404: components["responses"]["NotFound"];
       500: components["responses"]["InternalServerError"];
+    };
+  };
+  getPublicMedia: {
+    parameters: {
+      query?: {
+        /** @description Requested locale; defaults from Accept-Language when omitted. */
+        lang?: components["parameters"]["LanguageParam"];
+      };
+      header?: never;
+      path: {
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Localized public image metadata */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Media"];
+        };
+      };
+      404: components["responses"]["NotFound"];
+      422: components["responses"]["UnprocessableEntity"];
+      500: components["responses"]["InternalServerError"];
+    };
+  };
+  getPublicMediaFile: {
+    parameters: {
+      query?: {
+        w?: 480 | 960 | 1600;
+      };
+      header?: never;
+      path: {
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Re-encoded public image */
+      200: {
+        headers: {
+          ETag?: string;
+          "Cache-Control"?: string;
+          "Accept-Ranges"?: string;
+          [name: string]: unknown;
+        };
+        content: {
+          "image/jpeg": string;
+          "image/png": string;
+          "image/webp": string;
+        };
+      };
+      /** @description Partial image response for a byte range */
+      206: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description ETag matched; no body */
+      304: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      404: components["responses"]["NotFound"];
+      /** @description Requested byte range is not satisfiable */
+      416: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      500: components["responses"]["InternalServerError"];
+    };
+  };
+  headPublicMediaFile: {
+    parameters: {
+      query?: {
+        w?: 480 | 960 | 1600;
+      };
+      header?: never;
+      path: {
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Public image headers */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      404: components["responses"]["NotFound"];
+    };
+  };
+  getPublicHomeSlides: {
+    parameters: {
+      query?: {
+        /** @description Requested locale; defaults from Accept-Language when omitted. */
+        lang?: components["parameters"]["LanguageParam"];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Localized active slides with language fallback metadata */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            items: components["schemas"]["HomeSlide"][];
+            /** @enum {string} */
+            language: "en" | "am";
+          };
+        };
+      };
+      422: components["responses"]["UnprocessableEntity"];
+      500: components["responses"]["InternalServerError"];
+    };
+  };
+  getPublicSiteSettings: {
+    parameters: {
+      query?: {
+        /** @description Requested locale; defaults from Accept-Language when omitted. */
+        lang?: components["parameters"]["LanguageParam"];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Localized site settings with fallback metadata */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SiteSettings"];
+        };
+      };
+      422: components["responses"]["UnprocessableEntity"];
+      500: components["responses"]["InternalServerError"];
+    };
+  };
+  getPublicSiteBlocks: {
+    parameters: {
+      query?: {
+        /** @description Requested locale; defaults from Accept-Language when omitted. */
+        lang?: components["parameters"]["LanguageParam"];
+        page?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Localized blocks with fallback metadata */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            items: components["schemas"]["SiteBlock"][];
+            /** @enum {string} */
+            language: "en" | "am";
+          };
+        };
+      };
+      422: components["responses"]["UnprocessableEntity"];
+      500: components["responses"]["InternalServerError"];
+    };
+  };
+  getPublicAboutImages: {
+    parameters: {
+      query?: {
+        /** @description Requested locale; defaults from Accept-Language when omitted. */
+        lang?: components["parameters"]["LanguageParam"];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description About images with localized captions and fallback metadata */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            items: components["schemas"]["AboutImage"][];
+            /** @enum {string} */
+            language: "en" | "am";
+          };
+        };
+      };
+      422: components["responses"]["UnprocessableEntity"];
+      500: components["responses"]["InternalServerError"];
+    };
+  };
+  staffGetMediaFile: {
+    parameters: {
+      query?: {
+        w?: 480 | 960 | 1600;
+      };
+      header?: never;
+      path: {
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Private image preview */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+      404: components["responses"]["NotFound"];
+    };
+  };
+  staffHeadMediaFile: {
+    parameters: {
+      query?: {
+        w?: 480 | 960 | 1600;
+      };
+      header?: never;
+      path: {
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Private image headers */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+      404: components["responses"]["NotFound"];
+    };
+  };
+  getMediaUsages: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Places where the image is used */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            usages: components["schemas"]["MediaUsage"][];
+          };
+        };
+      };
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+      404: components["responses"]["NotFound"];
+      500: components["responses"]["InternalServerError"];
+    };
+  };
+  adminGetHomeSlides: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Slides with both translations */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+    };
+  };
+  adminCreateHomeSlide: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["HomeSlideInput"];
+      };
+    };
+    responses: {
+      /** @description Slide created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+      422: components["responses"]["UnprocessableEntity"];
+    };
+  };
+  adminUpdateHomeSlide: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["HomeSlideInput"];
+      };
+    };
+    responses: {
+      /** @description Slide updated */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+      404: components["responses"]["NotFound"];
+      422: components["responses"]["UnprocessableEntity"];
+    };
+  };
+  adminDeleteHomeSlide: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Slide deleted */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+      404: components["responses"]["NotFound"];
+    };
+  };
+  adminGetSiteSettings: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Site settings with both translations */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SiteSettings"];
+        };
+      };
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+    };
+  };
+  adminUpdateSiteSettings: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SiteSettingsInput"];
+      };
+    };
+    responses: {
+      /** @description Settings updated */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+      422: components["responses"]["UnprocessableEntity"];
+    };
+  };
+  adminGetSiteBlocks: {
+    parameters: {
+      query?: {
+        page?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Page blocks and translations */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+    };
+  };
+  adminUpsertSiteBlock: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        page: string;
+        key: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SiteBlockInput"];
+      };
+    };
+    responses: {
+      /** @description Block saved */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+      422: components["responses"]["UnprocessableEntity"];
+    };
+  };
+  adminGetAboutImages: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description About images with both translations */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+    };
+  };
+  adminCreateAboutImage: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AboutImageInput"];
+      };
+    };
+    responses: {
+      /** @description About image created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+      422: components["responses"]["UnprocessableEntity"];
+    };
+  };
+  adminUpdateAboutImage: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AboutImageInput"];
+      };
+    };
+    responses: {
+      /** @description About image updated */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+      404: components["responses"]["NotFound"];
+      422: components["responses"]["UnprocessableEntity"];
+    };
+  };
+  adminDeleteAboutImage: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description About image removed */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+      404: components["responses"]["NotFound"];
     };
   };
 }

@@ -16,6 +16,7 @@ export class ApiError extends Error {
     message: string,
     readonly code: string,
     readonly status: number,
+    readonly details: Record<string, unknown> = {},
   ) {
     super(message);
     this.name = "ApiError";
@@ -33,7 +34,9 @@ function getUrl(endpoint: string) {
   const base = API_URL.replace(/\/$/, "");
   return `${base}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
 }
-function isApiErrorBody(value: unknown): value is { error: { code?: unknown; message?: unknown } } {
+function isApiErrorBody(
+  value: unknown,
+): value is { error: { code?: unknown; message?: unknown; details?: unknown } } {
   return (
     typeof value === "object" &&
     value !== null &&
@@ -177,7 +180,11 @@ export async function apiFetch<T = unknown>(
           !/(^|\/)(login|register|refresh)$/.test(endpoint.split("?")[0])
         )
           window.dispatchEvent(new Event("auth:session-expired"));
-        throw new ApiError(message, code, response.status);
+        const details =
+          typeof errorBody?.details === "object" && errorBody.details !== null
+            ? (errorBody.details as Record<string, unknown>)
+            : {};
+        throw new ApiError(message, code, response.status, details);
       }
       return payload as T;
     }

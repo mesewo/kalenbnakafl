@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"image"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -14,23 +15,39 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"image/png"
 	"kalenbnakafl/handlers"
 	"kalenbnakafl/internal/storage"
 	"kalenbnakafl/models"
 )
 
-var validTestPNG = []byte{0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52}
+var validTestPNG = func() []byte {
+	var out bytes.Buffer
+	if err := png.Encode(&out, image.NewRGBA(image.Rect(0, 0, 1, 1))); err != nil {
+		panic(err)
+	}
+	return out.Bytes()
+}()
 
 func mediaUploadRequest(t *testing.T, r http.Handler, path string, cookie *http.Cookie, filename string) *httptest.ResponseRecorder {
 	return mediaUploadRequestWithData(t, r, path, cookie, filename, validTestPNG)
 }
 
 func mediaUploadRequestWithData(t *testing.T, r http.Handler, path string, cookie *http.Cookie, filename string, data []byte) *httptest.ResponseRecorder {
+	return mediaUploadRequestWithTranslations(t, r, path, cookie, filename, `{"en":{"title":"Test upload","alt_text":"Test image"},"am":{"title":"Test upload","alt_text":"የሙከራ ምስል"}}`, "", data)
+}
+
+func mediaUploadRequestWithTranslations(t *testing.T, r http.Handler, path string, cookie *http.Cookie, filename, translations, decorative string, data []byte) *httptest.ResponseRecorder {
 	t.Helper()
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
-	if err := writer.WriteField("translations", `{"en":{"title":"Test upload"}}`); err != nil {
+	if err := writer.WriteField("translations", translations); err != nil {
 		t.Fatal(err)
+	}
+	if decorative != "" {
+		if err := writer.WriteField("decorative", decorative); err != nil {
+			t.Fatal(err)
+		}
 	}
 	header := make(textproto.MIMEHeader)
 	header.Set("Content-Disposition", fmt.Sprintf(`form-data; name="file"; filename=%q`, filename))
@@ -117,16 +134,24 @@ func TestMediaUploadDeleteAndInsertFailureCleanup(t *testing.T) {
 	if err := json.Unmarshal(upload.Body.Bytes(), &uploaded); err != nil {
 		t.Fatalf("decode upload response: %v", err)
 	}
-	if uploaded.Message != "Media uploaded" || !strings.HasPrefix(uploaded.FilePath, "/uploads/") {
+	if uploaded.Message != "Media uploaded" || !strings.HasPrefix(uploaded.FilePath, "/api/media/") {
 		t.Fatalf("unexpected upload response: %+v", uploaded)
 	}
-	storedFile := filepath.Join(dir, filepath.Base(uploaded.FilePath))
+	var storedPath string
+	if err := db.QueryRow(`SELECT file_path FROM media WHERE file_path <> '' ORDER BY id DESC LIMIT 1`).Scan(&storedPath); err != nil {
+		t.Fatal(err)
+	}
+	storedFile := filepath.Join(dir, filepath.Base(storedPath))
 	if _, err := os.Stat(storedFile); err != nil {
 		t.Fatalf("uploaded file not on disk: %v", err)
 	}
 	var mediaID int32
-	if err := db.QueryRow(`SELECT id FROM media WHERE file_path=$1`, uploaded.FilePath).Scan(&mediaID); err != nil {
+	if err := db.QueryRow(`SELECT id FROM media ORDER BY id DESC LIMIT 1`).Scan(&mediaID); err != nil {
 		t.Fatalf("media row missing: %v", err)
+	}
+	postID := insertTestPost(t, db, adminID, true)
+	if _, err := db.Exec(`INSERT INTO post_media_references(post_id,locale,media_id) VALUES($1,'en',$2)`, postID, mediaID); err != nil {
+		t.Fatalf("add media usage fixture: %v", err)
 	}
 	list := authRequest(r, http.MethodGet, "/api/staff/media", "", cookie)
 	var items models.Page[models.Media]
@@ -138,7 +163,35 @@ func TestMediaUploadDeleteAndInsertFailureCleanup(t *testing.T) {
 	if public.Code != http.StatusOK || json.Unmarshal(public.Body.Bytes(), &publicPage) != nil || publicPage.Total != 1 || publicPage.Items[0].Kind != "image" {
 		t.Fatalf("public media page status=%d body=%s page=%+v", public.Code, public.Body, publicPage)
 	}
+	fileURL := fmt.Sprintf("/api/media/%d/file?w=480", mediaID)
+	rangedRequest := httptest.NewRequest(http.MethodGet, fileURL, nil)
+	rangedRequest.Header.Set("Range", "bytes=0-7")
+	rangedResponse := httptest.NewRecorder()
+	r.ServeHTTP(rangedResponse, rangedRequest)
+	if rangedResponse.Code != http.StatusPartialContent || rangedResponse.Header().Get("Accept-Ranges") != "bytes" ||
+		rangedResponse.Header().Get("Cache-Control") != "public, max-age=31536000, immutable" ||
+		rangedResponse.Header().Get("ETag") == "" || rangedResponse.Header().Get("Content-Range") == "" {
+		t.Fatalf("range response status=%d headers=%v", rangedResponse.Code, rangedResponse.Header())
+	}
+	conditional := httptest.NewRequest(http.MethodGet, fileURL, nil)
+	conditional.Header.Set("If-None-Match", rangedResponse.Header().Get("ETag"))
+	conditionalResponse := httptest.NewRecorder()
+	r.ServeHTTP(conditionalResponse, conditional)
+	if conditionalResponse.Code != http.StatusNotModified {
+		t.Fatalf("conditional media response status=%d want=304", conditionalResponse.Code)
+	}
+	usages := authRequest(r, http.MethodGet, fmt.Sprintf("/api/staff/media/%d/usages", mediaID), "", cookie)
+	if usages.Code != http.StatusOK || !strings.Contains(usages.Body.String(), `"post_inline"`) {
+		t.Fatalf("usage status=%d body=%s", usages.Code, usages.Body)
+	}
 	deleted := authRequest(r, http.MethodDelete, fmt.Sprintf("/api/staff/media/%d", mediaID), "", cookie)
+	if deleted.Code != http.StatusConflict || !strings.Contains(deleted.Body.String(), `"post_inline"`) {
+		t.Fatalf("delete in-use media status=%d body=%s", deleted.Code, deleted.Body)
+	}
+	if _, err := db.Exec(`DELETE FROM post_media_references WHERE post_id=$1 AND media_id=$2`, postID, mediaID); err != nil {
+		t.Fatalf("remove media usage fixture: %v", err)
+	}
+	deleted = authRequest(r, http.MethodDelete, fmt.Sprintf("/api/staff/media/%d", mediaID), "", cookie)
 	if deleted.Code != http.StatusOK {
 		t.Fatalf("delete status=%d body=%s", deleted.Code, deleted.Body)
 	}
@@ -157,11 +210,12 @@ func TestMediaUploadDeleteAndInsertFailureCleanup(t *testing.T) {
 	if err := json.Unmarshal(missingFileUpload.Body.Bytes(), &uploaded); err != nil {
 		t.Fatal(err)
 	}
-	missingPath := filepath.Join(dir, filepath.Base(uploaded.FilePath))
+	var missingStoragePath string
 	var missingID int32
-	if err := db.QueryRow(`SELECT id FROM media WHERE file_path=$1`, uploaded.FilePath).Scan(&missingID); err != nil {
+	if err := db.QueryRow(`SELECT id, file_path FROM media ORDER BY id DESC LIMIT 1`).Scan(&missingID, &missingStoragePath); err != nil {
 		t.Fatal(err)
 	}
+	missingPath := filepath.Join(dir, filepath.Base(missingStoragePath))
 	if err := os.Remove(missingPath); err != nil {
 		t.Fatal(err)
 	}
@@ -210,7 +264,8 @@ func TestMediaUploadValidationAndOpaqueNames(t *testing.T) {
 		{"oversize", "large.png", overLimit, http.StatusRequestEntityTooLarge},
 		{"disallowed type", "payload.exe", []byte("MZ executable"), http.StatusUnprocessableEntity},
 		{"executable named png", "payload.png", []byte("MZ executable"), http.StatusUnprocessableEntity},
-		{"extension mismatch", "payload.pdf", validTestPNG, http.StatusUnprocessableEntity},
+		{"svg named png", "vector.png", []byte(`<svg xmlns="http://www.w3.org/2000/svg"></svg>`), http.StatusUnprocessableEntity},
+		{"filename ignored", "payload.pdf", validTestPNG, http.StatusCreated},
 		{"zero byte", "empty.png", nil, http.StatusUnprocessableEntity},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -235,18 +290,22 @@ func TestMediaUploadValidationAndOpaqueNames(t *testing.T) {
 		if err := json.Unmarshal(response.Body.Bytes(), &result); err != nil {
 			t.Fatal(err)
 		}
-		storedName := filepath.Base(result.FilePath)
-		validOpaqueName := len(storedName) == 36 && strings.HasSuffix(storedName, ".png")
-		for _, ch := range storedName[:min(len(storedName), 32)] {
-			validOpaqueName = validOpaqueName && (ch >= '0' && ch <= '9' || ch >= 'a' && ch <= 'f')
+		if !strings.HasPrefix(result.FilePath, "/api/media/") || strings.Contains(result.FilePath, "x.png") || strings.Contains(result.FilePath, "double") {
+			t.Fatalf("unexpected image endpoint path: %q", result.FilePath)
 		}
-		if !validOpaqueName || strings.Contains(result.FilePath, "x.png") || strings.Contains(result.FilePath, "double") {
-			t.Fatalf("client filename affected storage path: %q", result.FilePath)
+	}
+	for _, translations := range []string{
+		`{"en":{"alt_text":"English alternative"}}`,
+		`{"en":{"alt_text":"English alternative"},"am":{"alt_text":""}}`,
+	} {
+		response := mediaUploadRequestWithTranslations(t, r, "/api/staff/media", cookie, "missing-alt.png", translations, "", validTestPNG)
+		if response.Code != http.StatusBadRequest {
+			t.Errorf("missing bilingual alt text status=%d body=%s", response.Code, response.Body)
 		}
 	}
 	var count int
-	if err := db.QueryRow(`SELECT count(*) FROM media`).Scan(&count); err != nil || count != 2 {
-		t.Fatalf("stored row count=%d err=%v want=2", count, err)
+	if err := db.QueryRow(`SELECT count(*) FROM media`).Scan(&count); err != nil || count != 3 {
+		t.Fatalf("stored row count=%d err=%v want=3", count, err)
 	}
 }
 func TestVolunteerContributionHoursPreserved(t *testing.T) {

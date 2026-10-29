@@ -72,9 +72,11 @@ func validEventTranslations(input map[string]*models.EventTranslation, allowRemo
 	return result, true
 }
 
-func validMediaTranslations(input map[string]*models.MediaTranslation) (map[string]*models.MediaTranslation, bool) {
+func validMediaTranslations(input map[string]*models.MediaTranslation, decorative bool) (map[string]*models.MediaTranslation, bool) {
 	if len(input) == 0 || len(input) > 2 {
-		return nil, false
+		if len(input) != 0 || !decorative {
+			return nil, false
+		}
 	}
 	result := make(map[string]*models.MediaTranslation, len(input))
 	for locale, translation := range input {
@@ -82,10 +84,16 @@ func validMediaTranslations(input map[string]*models.MediaTranslation) (map[stri
 			return nil, false
 		}
 		translation.Title = clean(translation.Title)
-		if !validateText(translation.Title, 180) {
+		translation.AltText = clean(translation.AltText)
+		if (translation.Title != "" && !validateText(translation.Title, 180)) ||
+			(translation.AltText != "" && !validateText(translation.AltText, 500)) ||
+			(!decorative && translation.AltText == "") {
 			return nil, false
 		}
 		result[locale] = translation
+	}
+	if !decorative && (result["en"] == nil || result["am"] == nil) {
+		return nil, false
 	}
 	return result, true
 }
@@ -136,13 +144,13 @@ func eventTranslationValues(enTitle, enDescription, enLocation, amTitle, amDescr
 	return translations, selected.Title, selected.Description, selected.Location, effective, fallback
 }
 
-func mediaTranslationValues(enTitle, amTitle sql.NullString, language string) (map[string]models.MediaTranslation, string, string, bool) {
+func mediaTranslationValues(enTitle, enAltText, amTitle, amAltText sql.NullString, language string) (map[string]models.MediaTranslation, string, string, string, bool) {
 	translations := map[string]models.MediaTranslation{}
 	if enTitle.Valid {
-		translations["en"] = models.MediaTranslation{Title: enTitle.String}
+		translations["en"] = models.MediaTranslation{Title: enTitle.String, AltText: enAltText.String}
 	}
 	if amTitle.Valid {
-		translations["am"] = models.MediaTranslation{Title: amTitle.String}
+		translations["am"] = models.MediaTranslation{Title: amTitle.String, AltText: amAltText.String}
 	}
 	selected, found := translations[language]
 	fallback := false
@@ -156,5 +164,9 @@ func mediaTranslationValues(enTitle, amTitle sql.NullString, language string) (m
 		effective = other
 		fallback = true
 	}
-	return translations, selected.Title, effective, fallback
+	title := selected.Title
+	if title == "" {
+		title = selected.AltText
+	}
+	return translations, title, selected.AltText, effective, fallback
 }

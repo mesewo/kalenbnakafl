@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { Link } from "@/i18n/navigation";
+import { PostBody } from "@/components/PostBody";
 import { fetchPublic, PublicApiError } from "@/lib/server-api";
 import { formatDate, type PageResponse, type Post } from "@/lib/api";
 import { localizedMetadata } from "@/lib/metadata";
@@ -64,9 +65,7 @@ export default async function BlogPostPage({ params }: Props) {
       </section>
       <article className="section">
         <div className="container" style={{ maxWidth: "52rem" }}>
-          <div className="lede" style={{ whiteSpace: "pre-wrap" }}>
-            {post.content}
-          </div>
+          <PostBody content={post.content} locale={locale} coverMediaID={post.cover_media_id} />
         </div>
       </article>
     </main>
