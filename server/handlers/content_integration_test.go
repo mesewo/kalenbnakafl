@@ -135,6 +135,9 @@ func TestEventAndMediaLocaleFallback(t *testing.T) {
 	eventID := insertTestEvent(t, db)
 	adminID := createAuthUser(t, q, "Media Staff", "media-locale@example.org", "a-long-test-password", "admin")
 	mediaID := insertMatrixMedia(t, db, adminID)
+	if _, err := db.Exec(`UPDATE events SET cover_media_id=$1 WHERE id=$2`, mediaID, eventID); err != nil {
+		t.Fatalf("attach public event cover media: %v", err)
+	}
 	for _, tc := range []struct {
 		path  string
 		check func(*testing.T, *httptest.ResponseRecorder)
