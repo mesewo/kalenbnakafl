@@ -15,6 +15,7 @@ test("admin uploads, uses, and protects a bilingual cover image", async ({ page 
   expect(adminPassword, "ADMIN_PASSWORD must be set for the smoke test").toBeTruthy();
   const suffix = `${Date.now()}-${testInfo.workerIndex}-${randomUUID().slice(0, 8)}`;
   const imageTitle = `Smoke image ${suffix}`;
+  const amharicImageTitle = `የማኅበረሰብ ፎቶ ${suffix}`;
   const englishAlt = `Community garden volunteers ${suffix}`;
   const amharicAlt = `የማኅበረሰብ ፈቃደኞች ${suffix}`;
   const postTitle = `Image post ${suffix}`;
@@ -36,6 +37,7 @@ test("admin uploads, uses, and protects a bilingual cover image", async ({ page 
     buffer: image,
   });
   await page.getByLabel("Image name (English)").fill(imageTitle);
+  await page.getByLabel("Image name (አማርኛ)").fill(amharicImageTitle);
   await page.getByLabel("Alternative text (English)").fill(englishAlt);
   await page.getByLabel("Alternative text (አማርኛ)").fill(amharicAlt);
   const uploadResponse = page.waitForResponse(
@@ -53,7 +55,7 @@ test("admin uploads, uses, and protects a bilingual cover image", async ({ page 
   let dialog = page.getByRole("dialog");
   await dialog.getByRole("button", { name: "የሽፋን ፎቶ ይምረጡ" }).click();
   let picker = page.getByRole("dialog", { name: "ፎቶ ይምረጡ" });
-  await picker.getByRole("button", { name: new RegExp(imageTitle) }).click();
+  await picker.getByRole("button", { name: new RegExp(amharicImageTitle) }).click();
   await expect(picker.getByRole("button", { name: "ይህን ፎቶ ይጠቀሙ" })).toBeVisible();
   await expect
     .poll(() =>

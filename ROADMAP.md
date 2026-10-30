@@ -2,11 +2,11 @@
 
 ### Current state / next step
 
-- The bilingual admin media library provides all-library search, thumbnails, upload progress/errors, localized alt text, decorative uploads, usage details, and conflict-aware deletion; the media form's file input now has the missing visually-hidden style, and media cards render as soon as the list loads.
+- The bilingual admin media library provides all-library search, thumbnails, upload progress/errors, localized alt text, decorative uploads, usage details, and conflict-aware deletion; its file input has the missing visually-hidden style, cards render as soon as the list loads, and the media E2E selects an explicit Amharic image title in the Amharic picker.
 - Post/event covers and safe `{{media:<id>}}` body tokens render through localized public media metadata on listing/detail pages; the events detail route and explicit post-cover removal API are implemented and documented.
 - Backend build, vet, tests, SQLC diff, Goose validation, and CGO-disabled image tests passed; frontend lint, TypeScript, i18n validation (455 messages), targeted formatting, and production build passed. Build-time static generation logs expected API connection-refused warnings because the API is offline.
-- Remaining verification: latest CI reported 360px overflow on the English media page; adding the missing visually-hidden file-input style addresses a page-specific overflow candidate but still needs browser confirmation. The upload E2E fixture's bad PNG checksum is corrected, and the test now asserts upload HTTP 201 before looking for the card.
-- Next: run PostgreSQL integration tests, Compose smoke, and `npx playwright test e2e/media-experience.spec.ts` when services are available, then obtain native Amharic review for [docs/i18n-review.md](./docs/i18n-review.md).
+- Remaining verification: latest CI reported 360px overflow on the English media page; the file-input style fix still needs browser confirmation. The upload fixture checksum is valid, and the E2E asserts HTTP 201 before checking the library.
+- Next: rerun authenticated Playwright flows in CI/Compose; local Compose build currently fails in Docker's npm ci layer (`Exit handler never called`, leaving `next` unavailable), and browser E2E requires admin credentials. Then run PostgreSQL integration tests and obtain native Amharic review for [docs/i18n-review.md](./docs/i18n-review.md).
 **Goal:** a repo and a live demo that survive a 10-minute recruiter/hiring-manager review for a *senior full-stack* role: one-command startup, real security, real tests, CI, docs, and a polished, working UI.
 
 **Rhythm:** each phase = 1–3 focused sessions (≈2–4 h each) with Gemini. Finish a phase's *Exit criteria* before starting the next. Total ≈ 3–4 weeks part-time.
