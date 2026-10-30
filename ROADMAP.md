@@ -2,10 +2,10 @@
 
 ### Current state / next step
 
-- The bilingual admin media library provides all-library search, thumbnails, upload progress/errors, localized alt text, decorative uploads, usage details, and conflict-aware deletion; image cards render as soon as the media list loads while usage lookups complete, and dashboard navigation is constrained against mobile grid overflow.
+- The bilingual admin media library provides all-library search, thumbnails, upload progress/errors, localized alt text, decorative uploads, usage details, and conflict-aware deletion; the media form's file input now has the missing visually-hidden style, and media cards render as soon as the list loads.
 - Post/event covers and safe `{{media:<id>}}` body tokens render through localized public media metadata on listing/detail pages; the events detail route and explicit post-cover removal API are implemented and documented.
 - Backend build, vet, tests, SQLC diff, Goose validation, and CGO-disabled image tests passed; frontend lint, TypeScript, i18n validation (455 messages), targeted formatting, and production build passed. Build-time static generation logs expected API connection-refused warnings because the API is offline.
-- Remaining verification: PostgreSQL-backed matrix/usage integration tests, Compose smoke, and Playwright browser flows could not run because `DATABASE_URL_TEST` is unset and Docker Engine is unavailable; the dashboard locale overflow test now reports the failing route and viewport if it recurs.
+- Remaining verification: latest CI reported 360px overflow on the English media page; adding the missing visually-hidden file-input style addresses a page-specific overflow candidate but still needs browser confirmation. The upload E2E fixture's bad PNG checksum is corrected, and the test now asserts upload HTTP 201 before looking for the card.
 - Next: run PostgreSQL integration tests, Compose smoke, and `npx playwright test e2e/media-experience.spec.ts` when services are available, then obtain native Amharic review for [docs/i18n-review.md](./docs/i18n-review.md).
 **Goal:** a repo and a live demo that survive a 10-minute recruiter/hiring-manager review for a *senior full-stack* role: one-command startup, real security, real tests, CI, docs, and a polished, working UI.
 

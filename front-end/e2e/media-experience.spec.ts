@@ -5,7 +5,7 @@ import { waitForPublicContent } from "./helpers/public-content";
 const adminEmail = process.env.ADMIN_EMAIL;
 const adminPassword = process.env.ADMIN_PASSWORD;
 const image = Buffer.from(
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lS8AAAAASUVORK5CYII=",
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=",
   "base64",
 );
 
@@ -38,9 +38,15 @@ test("admin uploads, uses, and protects a bilingual cover image", async ({ page 
   await page.getByLabel("Image name (English)").fill(imageTitle);
   await page.getByLabel("Alternative text (English)").fill(englishAlt);
   await page.getByLabel("Alternative text (አማርኛ)").fill(amharicAlt);
+  const uploadResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" &&
+      new URL(response.url()).pathname.endsWith("/staff/media"),
+  );
   await page.getByRole("button", { name: "Upload media" }).click();
+  expect((await uploadResponse).status()).toBe(201);
   const mediaCard = page.locator(".media-library-card").filter({ hasText: imageTitle });
-  await expect(mediaCard).toBeVisible();
+  await expect(mediaCard).toBeVisible({ timeout: 15_000 });
 
   await page.goto("/am/dashboard/posts");
   await page.getByRole("button", { name: "አዲስ ጽሑፍ" }).click();

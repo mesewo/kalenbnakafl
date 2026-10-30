@@ -109,6 +109,7 @@ export default function MediaUploadForm({
           type="file"
           accept="image/jpeg,image/png,image/webp"
           aria-label={t("file")}
+          tabIndex={-1}
           onChange={(event) => chooseFile(event.currentTarget.files?.[0])}
         />
         {file && <p className="meta">{file.name}</p>}
