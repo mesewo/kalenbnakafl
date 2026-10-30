@@ -271,7 +271,7 @@ test("admin manages slider, About photos, and branding in both locales", async (
     await expect(page.getByAltText(amharicAlt)).toBeVisible();
     await expect(page.getByRole("button", { name: "ራስ-ሰር እንቅስቃሴ ጠፍቷል" })).toBeVisible();
     await page.getByRole("button", { name: "ቀጣዩ ምስል" }).click();
-    await expect(page.getByText(englishSlideCaption, { exact: true })).toBeVisible();
+    await expect(page.getByText(amharicSlideCaption, { exact: true })).toBeVisible();
     await expect(page.getByText(amharicSiteName).first()).toBeVisible();
     const favicon = page.locator('link[rel="icon"]');
     const faviconID = await page.evaluate(async () => {
