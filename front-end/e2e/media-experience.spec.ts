@@ -19,6 +19,7 @@ test("admin uploads, uses, and protects a bilingual cover image", async ({ page 
   const englishAlt = `Community garden volunteers ${suffix}`;
   const amharicAlt = `የማኅበረሰብ ፈቃደኞች ${suffix}`;
   const postTitle = `Image post ${suffix}`;
+  const postSlug = `image-post-${suffix}`;
   const amharicPostTitle = `የምስል ጽሑፍ ${suffix}`;
   const eventTitle = `Image event ${suffix}`;
   const amharicEventTitle = `የምስል ዝግጅት ${suffix}`;
@@ -171,7 +172,7 @@ test("admin uploads, uses, and protects a bilingual cover image", async ({ page 
   page.once("dialog", (confirm) => confirm.accept());
   await usedMediaCard.getByRole("button", { name: "Delete" }).click();
   await expect(page.locator(".status-error[role='alert']")).toContainText("in use");
-  await expect(usedMediaCard).toContainText(postTitle);
+  await expect(usedMediaCard).toContainText(postSlug);
   await expect(usedMediaCard).toContainText(eventTitle);
 });
 
