@@ -170,7 +170,7 @@ test("admin uploads, uses, and protects a bilingual cover image", async ({ page 
   const usedMediaCard = page.locator(".media-library-card").filter({ hasText: imageTitle });
   page.once("dialog", (confirm) => confirm.accept());
   await usedMediaCard.getByRole("button", { name: "Delete" }).click();
-  await expect(page.getByRole("alert")).toContainText("in use");
+  await expect(page.locator(".status-error[role='alert']")).toContainText("in use");
   await expect(usedMediaCard).toContainText(postTitle);
   await expect(usedMediaCard).toContainText(eventTitle);
 });
