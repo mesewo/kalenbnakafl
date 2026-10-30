@@ -167,7 +167,11 @@ test("admin manages slider, About photos, and branding in both locales", async (
     await page.getByRole("button", { name: "ስላይድ ያክሉ" }).last().click();
     await expect(page.getByRole("status").filter({ hasText: "ለውጦቹ ተቀምጠዋል" })).toBeVisible();
     await page.getByRole("button", { name: "ስላይድ ያክሉ" }).first().click();
-    await page.getByRole("button", { name: "ምስል ይምረጡ" }).click();
+    await page
+      .locator(".site-content-card")
+      .last()
+      .getByRole("button", { name: "ምስል ይምረጡ" })
+      .click();
     picker = page.getByRole("dialog", { name: "ፎቶ ይምረጡ" });
     await picker.getByRole("button", { name: new RegExp(titles.share) }).click();
     await picker.getByRole("button", { name: "ይህን ፎቶ ይጠቀሙ" }).click();
