@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"crypto/rand"
 	"database/sql"
 	"encoding/base32"
@@ -20,6 +21,54 @@ import (
 
 var validSlug = regexp.MustCompile(`^[a-z0-9-]{3,100}$`)
 var generatedSlugChars = base32.NewEncoding("abcdefghijklmnopqrstuvwxyz234567").WithPadding(base32.NoPadding)
+var inlineMediaToken = regexp.MustCompile(`\{\{media:([1-9][0-9]*)\}\}`)
+var markdownImage = regexp.MustCompile(`!\[[^\]]*\]\([^)]+\)`)
+
+func (a *API) validInlineMediaReferences(ctx context.Context, translations map[string]*models.PostTranslation) (bool, error) {
+	for _, translation := range translations {
+		if translation == nil {
+			continue
+		}
+		if markdownImage.MatchString(translation.Content) {
+			return false, nil
+		}
+		matches := inlineMediaToken.FindAllStringSubmatch(translation.Content, -1)
+		withoutTokens := inlineMediaToken.ReplaceAllString(translation.Content, "")
+		if strings.Contains(withoutTokens, "{{media:") {
+			return false, nil
+		}
+		for _, match := range matches {
+			id, err := strconv.ParseInt(match[1], 10, 32)
+			if err != nil {
+				return false, nil
+			}
+			var exists bool
+			if err := a.db.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM media WHERE id=$1 AND kind='image')`, id).Scan(&exists); err != nil {
+				return false, err
+			}
+			if !exists {
+				return false, nil
+			}
+		}
+	}
+	return true, nil
+}
+
+func syncPostMediaReferences(ctx context.Context, tx *sql.Tx, postID int32, locale, content string) error {
+	if _, err := tx.ExecContext(ctx, `DELETE FROM post_media_references WHERE post_id=$1 AND locale=$2`, postID, locale); err != nil {
+		return err
+	}
+	for _, match := range inlineMediaToken.FindAllStringSubmatch(content, -1) {
+		id, err := strconv.ParseInt(match[1], 10, 32)
+		if err != nil {
+			return err
+		}
+		if _, err := tx.ExecContext(ctx, `INSERT INTO post_media_references (post_id,locale,media_id) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING`, postID, locale, id); err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
 func postEventConstraintStatus(err error) (int, bool) {
 	var postgresErr *pq.Error
@@ -168,6 +217,26 @@ func (a *API) CreatePost(c *gin.Context) {
 		httpx.Fail(c, http.StatusBadRequest, "posts.translations_are_required_and_must_be_valid")
 		return
 	}
+	validReferences, err := a.validInlineMediaReferences(c.Request.Context(), translations)
+	if err != nil {
+		httpx.Internal(c, "Could not validate inline post images")
+		return
+	}
+	if !validReferences {
+		httpx.Fail(c, http.StatusUnprocessableEntity, "posts.inline_media_reference_is_invalid")
+		return
+	}
+	if input.CoverMediaID != nil {
+		isImage, err := validateImageMediaID(c.Request.Context(), a.db, *input.CoverMediaID)
+		if err != nil {
+			httpx.Internal(c, "Could not validate post cover image")
+			return
+		}
+		if !isImage {
+			httpx.Fail(c, http.StatusUnprocessableEntity, "posts.cover_image_is_invalid")
+			return
+		}
+	}
 	userID, ok := c.Get("user_id")
 	if !ok {
 		httpx.Fail(c, http.StatusUnauthorized, "posts.authentication_required")
@@ -217,6 +286,9 @@ func (a *API) CreatePost(c *gin.Context) {
 				if err = queries.UpsertPostTranslation(c.Request.Context(), dbgen.UpsertPostTranslationParams{PostID: postID, Locale: locale, Title: translation.Title, Content: translation.Content}); err != nil {
 					break
 				}
+				if err = syncPostMediaReferences(c.Request.Context(), tx, postID, locale, translation.Content); err != nil {
+					break
+				}
 			}
 		}
 		if err == nil {
@@ -257,6 +329,30 @@ func (a *API) UpdatePost(c *gin.Context) {
 	if !valid {
 		httpx.Fail(c, http.StatusBadRequest, "posts.translation_is_invalid")
 		return
+	}
+	validReferences, err := a.validInlineMediaReferences(c.Request.Context(), translations)
+	if err != nil {
+		httpx.Internal(c, "Could not validate inline post images")
+		return
+	}
+	if !validReferences {
+		httpx.Fail(c, http.StatusUnprocessableEntity, "posts.inline_media_reference_is_invalid")
+		return
+	}
+	if input.ClearCoverMedia && input.CoverMediaID != nil {
+		httpx.Fail(c, http.StatusBadRequest, "posts.cover_image_is_invalid")
+		return
+	}
+	if input.CoverMediaID != nil {
+		isImage, err := validateImageMediaID(c.Request.Context(), a.db, *input.CoverMediaID)
+		if err != nil {
+			httpx.Internal(c, "Could not validate post cover image")
+			return
+		}
+		if !isImage {
+			httpx.Fail(c, http.StatusUnprocessableEntity, "posts.cover_image_is_invalid")
+			return
+		}
 	}
 	slug := sql.NullString{}
 	if strings.TrimSpace(input.Slug) != "" {
@@ -304,12 +400,20 @@ func (a *API) UpdatePost(c *gin.Context) {
 				httpx.Fail(c, http.StatusNotFound, "posts.translation_not_found")
 				return
 			}
-		} else if err := queries.UpsertPostTranslation(c.Request.Context(), dbgen.UpsertPostTranslationParams{PostID: int32(id), Locale: locale, Title: translation.Title, Content: translation.Content}); err != nil {
-			httpx.Fail(c, http.StatusInternalServerError, "posts.failed_to_update_post")
-			return
+		} else {
+			err := queries.UpsertPostTranslation(c.Request.Context(), dbgen.UpsertPostTranslationParams{PostID: int32(id), Locale: locale, Title: translation.Title, Content: translation.Content})
+			if err == nil {
+				err = syncPostMediaReferences(c.Request.Context(), tx, int32(id), locale, translation.Content)
+			}
+			if err != nil {
+				httpx.Fail(c, http.StatusInternalServerError, "posts.failed_to_update_post")
+				return
+			}
 		}
 	}
-	if _, err := queries.UpdatePostFields(c.Request.Context(), dbgen.UpdatePostFieldsParams{Slug: slug, CoverMediaID: coverID, ID: int32(id)}); err != nil {
+	if _, err := queries.UpdatePostFields(c.Request.Context(), dbgen.UpdatePostFieldsParams{
+		Slug: slug, CoverMediaID: coverID, ClearCoverMedia: input.ClearCoverMedia, ID: int32(id),
+	}); err != nil {
 		if status, constraint := postEventConstraintStatus(err); constraint {
 			httpx.Fail(c, status, "posts.failed_to_update_post")
 			return

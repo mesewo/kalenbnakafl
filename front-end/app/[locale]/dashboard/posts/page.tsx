@@ -1,15 +1,17 @@
 "use client";
+import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { apiFetch, formatDate, type PageResponse, type Post } from "@/lib/api";
+import { apiFetch, formatDate, type MediaItem, type PageResponse, type Post } from "@/lib/api";
 import PostModal from "@/components/PostModal";
 export default function PostsPage() {
   const locale = useLocale();
   const t = useTranslations("dashboard");
   const { user } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
+  const [mediaByID, setMediaByID] = useState<Record<number, MediaItem>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [modal, setModal] = useState<{ open: boolean; post: Post | null }>({
@@ -21,9 +23,12 @@ export default function PostsPage() {
     if (!user) return;
     setLoading(true);
     try {
-      setPosts(
-        (await (await apiFetch<PageResponse<Post>>(`${prefix}/posts?limit=50`, {})).items) || [],
-      );
+      const [postPage, mediaPage] = await Promise.all([
+        apiFetch<PageResponse<Post>>(`${prefix}/posts?limit=50`, {}),
+        apiFetch<PageResponse<MediaItem>>("/staff/media?kind=image&limit=100", {}),
+      ]);
+      setPosts(postPage.items || []);
+      setMediaByID(Object.fromEntries(mediaPage.items.map((item) => [item.id, item])));
     } catch (err) {
       setError(err instanceof Error ? err.message : t("loadPostsFailed"));
     } finally {
@@ -52,6 +57,23 @@ export default function PostsPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : t("updatePostFailed"));
     }
+  }
+  function renderCover(mediaID?: number) {
+    if (!mediaID)
+      return <div className="dashboard-cover-thumb cover-placeholder" aria-hidden="true" />;
+    const cover = mediaByID[mediaID];
+    return (
+      <div className="dashboard-cover-thumb">
+        <Image
+          src={`/api/staff/media/${mediaID}/file?w=480`}
+          alt={cover?.decorative ? "" : (cover?.alt_text ?? "")}
+          width={cover?.width || 480}
+          height={cover?.height || 270}
+          loading="lazy"
+          unoptimized
+        />
+      </div>
+    );
   }
   return (
     <div>
@@ -88,6 +110,7 @@ export default function PostsPage() {
               {posts.map((post) => (
                 <tr key={post.id}>
                   <td>
+                    {renderCover(post.cover_media_id)}
                     <strong>{post.title}</strong>
                     {(!post.translations?.am?.title || !post.translations?.am?.content) && (
                       <span className="badge status-pending">{t("missingAmharic")}</span>

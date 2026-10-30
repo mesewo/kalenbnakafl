@@ -1,9 +1,10 @@
 "use client";
+import Image from "next/image";
 import { Fragment, useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { apiFetch, formatDate, type EventItem, type PageResponse } from "@/lib/api";
+import { apiFetch, formatDate, type EventItem, type MediaItem, type PageResponse } from "@/lib/api";
 type Attendee = { name: string; email: string; created_at: string };
 import EventModal from "@/components/EventModal";
 export default function EventsAdminPage() {
@@ -11,6 +12,7 @@ export default function EventsAdminPage() {
   const t = useTranslations("dashboard");
   const { user } = useAuth();
   const [events, setEvents] = useState<EventItem[]>([]);
+  const [mediaByID, setMediaByID] = useState<Record<number, MediaItem>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [attendeeEvent, setAttendeeEvent] = useState<number | null>(null);
@@ -31,10 +33,12 @@ export default function EventsAdminPage() {
     if (!user) return;
     setLoading(true);
     try {
-      setEvents(
-        (await (await apiFetch<PageResponse<EventItem>>(`${prefix}/events?limit=50`, {})).items) ||
-          [],
-      );
+      const [eventPage, mediaPage] = await Promise.all([
+        apiFetch<PageResponse<EventItem>>(`${prefix}/events?limit=50`, {}),
+        apiFetch<PageResponse<MediaItem>>("/staff/media?kind=image&limit=100", {}),
+      ]);
+      setEvents(eventPage.items || []);
+      setMediaByID(Object.fromEntries(mediaPage.items.map((item) => [item.id, item])));
     } catch (err) {
       setError(err instanceof Error ? err.message : t("loadEventsFailed"));
     } finally {
@@ -68,6 +72,23 @@ export default function EventsAdminPage() {
     }
     setAttendeeEvent(eventID);
     void loadAttendees(eventID, 1);
+  }
+  function renderCover(mediaID?: number) {
+    if (!mediaID)
+      return <div className="dashboard-cover-thumb cover-placeholder" aria-hidden="true" />;
+    const cover = mediaByID[mediaID];
+    return (
+      <div className="dashboard-cover-thumb">
+        <Image
+          src={`/api/staff/media/${mediaID}/file?w=480`}
+          alt={cover?.decorative ? "" : (cover?.alt_text ?? "")}
+          width={cover?.width || 480}
+          height={cover?.height || 270}
+          loading="lazy"
+          unoptimized
+        />
+      </div>
+    );
   }
   async function remove(event: EventItem) {
     if (!window.confirm(t("confirmDeleteEvent", { title: event.title }))) return;
@@ -113,6 +134,7 @@ export default function EventsAdminPage() {
                 <Fragment key={event.id}>
                   <tr>
                     <td>
+                      {renderCover(event.cover_media_id)}
                       <strong>{event.title}</strong>
                       {(!event.translations?.am?.title || !event.translations?.am?.description) && (
                         <span className="badge status-pending">{t("missingAmharic")}</span>

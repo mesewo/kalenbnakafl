@@ -3,6 +3,7 @@ import { Link } from "@/i18n/navigation";
 import { fetchPublic } from "@/lib/server-api";
 import { excerpt, formatDate, type PageResponse, type Post } from "@/lib/api";
 import { localizedMetadata } from "@/lib/metadata";
+import PublicMediaImage from "@/components/PublicMediaImage";
 
 export const revalidate = 60;
 type Props = { params: Promise<{ locale: "en" | "am" }>; searchParams: Promise<{ page?: string }> };
@@ -41,6 +42,11 @@ export default async function BlogPage({ params, searchParams }: Props) {
             <div className="grid-2">
               {result.items.map((post) => (
                 <article className="card card-accent" key={post.id}>
+                  <PublicMediaImage
+                    mediaID={post.cover_media_id}
+                    locale={locale}
+                    className="public-media-card"
+                  />
                   <span className="meta">
                     {formatDate(post.published_at || post.created_at, false, locale)}
                   </span>

@@ -19,9 +19,10 @@ type Post struct {
 	Fallback     bool                       `json:"fallback"`
 }
 type PostInput struct {
-	Translations map[string]*PostTranslation `json:"translations"`
-	Slug         string                      `json:"slug"`
-	CoverMediaID *int                        `json:"cover_media_id"`
+	Translations    map[string]*PostTranslation `json:"translations"`
+	Slug            string                      `json:"slug"`
+	CoverMediaID    *int                        `json:"cover_media_id"`
+	ClearCoverMedia bool                        `json:"clear_cover_media"`
 }
 type PostTranslation struct {
 	Title   string `json:"title"`
@@ -37,15 +38,18 @@ type Event struct {
 	EventDate    time.Time                   `json:"event_date"`
 	EndsAt       *time.Time                  `json:"ends_at,omitempty"`
 	Location     string                      `json:"location"`
+	CoverMediaID *int                        `json:"cover_media_id,omitempty"`
 	CreatedAt    time.Time                   `json:"created_at,omitempty"`
 	Translations map[string]EventTranslation `json:"translations,omitempty"`
 	Language     string                      `json:"language"`
 	Fallback     bool                        `json:"fallback"`
 }
 type EventInput struct {
-	Translations map[string]*EventTranslation `json:"translations"`
-	EventDate    string                       `json:"event_date"`
-	EndsAt       string                       `json:"ends_at"`
+	Translations    map[string]*EventTranslation `json:"translations"`
+	EventDate       string                       `json:"event_date"`
+	EndsAt          string                       `json:"ends_at"`
+	CoverMediaID    *int                         `json:"cover_media_id"`
+	ClearCoverMedia bool                         `json:"clear_cover_media"`
 }
 type EventTranslation struct {
 	Title       string `json:"title"`
@@ -62,9 +66,13 @@ type Media struct {
 	ID           int                         `json:"id"`
 	Title        string                      `json:"title"`
 	FilePath     string                      `json:"file_path"`
+	AltText      string                      `json:"alt_text"`
 	MediaType    string                      `json:"media_type,omitempty"`
 	OriginalName string                      `json:"original_name,omitempty"`
 	SizeBytes    int64                       `json:"size_bytes,omitempty"`
+	Width        int                         `json:"width"`
+	Height       int                         `json:"height"`
+	Decorative   bool                        `json:"decorative"`
 	Kind         string                      `json:"kind"`
 	CreatedAt    time.Time                   `json:"created_at,omitempty"`
 	Translations map[string]MediaTranslation `json:"translations,omitempty"`
@@ -72,5 +80,6 @@ type Media struct {
 	Fallback     bool                        `json:"fallback"`
 }
 type MediaTranslation struct {
-	Title string `json:"title"`
+	Title   string `json:"title,omitempty"`
+	AltText string `json:"alt_text,omitempty"`
 }

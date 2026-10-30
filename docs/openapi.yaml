@@ -14,9 +14,9 @@ info:
     **Pagination**: `page` (int, default 1) and `limit` (int, default 10, max 50) query params;
     response `{"items":[...],"page":1,"limit":10,"total":42}`.
 
-    **Content language**: Posts, events, and media reads accept `?lang=en|am`; when omitted,
-    `Accept-Language` selects the locale and English is the default. Missing translations fall back
-    to the available locale, reported by `language` and `fallback` in each item.
+    **Content language**: Posts, events, media, and site-content reads accept `?lang=en|am`; when
+    omitted, `Accept-Language` selects the locale and English is the default. Missing translations
+    fall back to the available locale, reported by `language` and `fallback` in each item.
 
     **Message language**: Response messages use `?lang`, then a supported `lang` cookie, then
     `Accept-Language`, with English as the default.
@@ -124,7 +124,10 @@ components:
       type: object
       properties:
         title: {type: string, maxLength: 180}
-        content: {type: string, maxLength: 20000}
+        content:
+          type: string
+          maxLength: 20000
+          description: Plain text with line breaks; inline images use only {{media:<id>}} tokens. Arbitrary Markdown image URLs are rejected.
       required: [title, content]
     PostTranslations:
       type: object
@@ -151,6 +154,9 @@ components:
         ends_at:
           type: string
           format: date-time
+        cover_media_id:
+          type: integer
+          format: int64
         location:
           type: string
         created_at:
@@ -195,26 +201,198 @@ components:
           format: int64
         kind:
           type: string
-          enum: [image, video, audio, document]
+          enum: [image]
+        alt_text:
+          type: string
+          maxLength: 500
+        width:
+          type: integer
+          minimum: 0
+        height:
+          type: integer
+          minimum: 0
+        decorative:
+          type: boolean
         created_at:
           type: string
           format: date-time
         language: {type: string, enum: [en, am]}
         fallback: {type: boolean}
         translations: {$ref: "#/components/schemas/MediaTranslations"}
-      required: [id, title, file_path, kind, language, fallback]
+      required: [id, title, file_path, kind, language, fallback, alt_text, width, height, decorative]
 
     MediaTranslation:
       type: object
       properties:
         title: {type: string, maxLength: 180}
-      required: [title]
+        alt_text: {type: string, maxLength: 500}
+      required: [alt_text]
     MediaTranslations:
       type: object
       properties:
         en: {$ref: "#/components/schemas/MediaTranslation"}
         am: {$ref: "#/components/schemas/MediaTranslation"}
       additionalProperties: false
+
+    MediaUsage:
+      type: object
+      properties:
+        usage_type:
+          type: string
+          enum: [post_cover, post_inline, event_cover, home_slide, about_image, site_setting]
+        reference_id: {type: integer, format: int64}
+        label: {type: string}
+      required: [usage_type, reference_id, label]
+
+    SiteTextTranslation:
+      type: object
+      properties:
+        text:
+          type: string
+          maxLength: 20000
+          description: Plain text with line breaks; raw HTML markup is rejected.
+      required: [text]
+
+    SiteTextTranslations:
+      type: object
+      properties:
+        en: {$ref: "#/components/schemas/SiteTextTranslation"}
+        am: {$ref: "#/components/schemas/SiteTextTranslation"}
+      required: [en, am]
+      additionalProperties: false
+
+    HomeSlideTranslation:
+      type: object
+      properties:
+        caption: {type: string, maxLength: 2000}
+      required: [caption]
+
+    HomeSlideTranslations:
+      type: object
+      properties:
+        en: {$ref: "#/components/schemas/HomeSlideTranslation"}
+        am: {$ref: "#/components/schemas/HomeSlideTranslation"}
+      required: [en, am]
+      additionalProperties: false
+
+    HomeSlide:
+      type: object
+      properties:
+        id: {type: integer, format: int64}
+        media_id: {type: integer, format: int64}
+        image_url: {type: string}
+        caption: {type: string}
+        link: {type: string}
+        sort_order: {type: integer}
+        active: {type: boolean}
+        language: {type: string, enum: [en, am]}
+        fallback: {type: boolean}
+        translations: {$ref: "#/components/schemas/HomeSlideTranslations"}
+      required: [id, media_id, image_url, caption, link, sort_order, active, language, fallback]
+
+    HomeSlideInput:
+      type: object
+      properties:
+        media_id: {type: integer, format: int64}
+        link: {type: string, maxLength: 1000, pattern: "^/(?!/)"}
+        sort_order: {type: integer, minimum: 0, maximum: 1000000}
+        active: {type: boolean}
+        translations: {$ref: "#/components/schemas/HomeSlideTranslations"}
+      required: [media_id, link, sort_order, active, translations]
+
+    SiteSettingsTranslation:
+      type: object
+      properties:
+        site_name: {type: string, maxLength: 180}
+        tagline: {type: string, maxLength: 1000}
+      required: [site_name, tagline]
+
+    SiteSettingsTranslations:
+      type: object
+      properties:
+        en: {$ref: "#/components/schemas/SiteSettingsTranslation"}
+        am: {$ref: "#/components/schemas/SiteSettingsTranslation"}
+      required: [en, am]
+      additionalProperties: false
+
+    SiteSettings:
+      type: object
+      properties:
+        logo_media_id: {type: integer, format: int64, nullable: true}
+        logo_url: {type: string}
+        favicon_media_id: {type: integer, format: int64, nullable: true}
+        favicon_url: {type: string}
+        social_image_media_id: {type: integer, format: int64, nullable: true}
+        social_image_url: {type: string}
+        site_name: {type: string}
+        tagline: {type: string}
+        language: {type: string, enum: [en, am]}
+        fallback: {type: boolean}
+        translations: {$ref: "#/components/schemas/SiteSettingsTranslations"}
+      required: [logo_url, favicon_url, social_image_url, site_name, tagline, language, fallback]
+
+    SiteSettingsInput:
+      type: object
+      properties:
+        logo_media_id: {type: integer, format: int64, nullable: true}
+        favicon_media_id: {type: integer, format: int64, nullable: true}
+        social_image_media_id: {type: integer, format: int64, nullable: true}
+        translations: {$ref: "#/components/schemas/SiteSettingsTranslations"}
+      required: [translations]
+
+    SiteBlock:
+      type: object
+      properties:
+        page: {type: string}
+        key: {type: string}
+        text: {type: string}
+        language: {type: string, enum: [en, am]}
+        fallback: {type: boolean}
+        updated_at: {type: string, format: date-time}
+        updated_by_name: {type: string}
+        translations: {$ref: "#/components/schemas/SiteTextTranslations"}
+      required: [page, key, text, language, fallback, updated_at]
+
+    SiteBlockInput:
+      type: object
+      properties:
+        translations: {$ref: "#/components/schemas/SiteTextTranslations"}
+      required: [translations]
+
+    AboutImageTranslation:
+      type: object
+      properties:
+        caption: {type: string, maxLength: 2000}
+      required: [caption]
+
+    AboutImageTranslations:
+      type: object
+      properties:
+        en: {$ref: "#/components/schemas/AboutImageTranslation"}
+        am: {$ref: "#/components/schemas/AboutImageTranslation"}
+      required: [en, am]
+      additionalProperties: false
+
+    AboutImage:
+      type: object
+      properties:
+        id: {type: integer, format: int64}
+        media_id: {type: integer, format: int64}
+        image_url: {type: string}
+        caption: {type: string}
+        sort_order: {type: integer}
+        language: {type: string, enum: [en, am]}
+        fallback: {type: boolean}
+        translations: {$ref: "#/components/schemas/AboutImageTranslations"}
+      required: [id, media_id, image_url, caption, sort_order, language, fallback]
+
+    AboutImageInput:
+      type: object
+      properties:
+        media_id: {type: integer, format: int64}
+        sort_order: {type: integer, minimum: 0, maximum: 1000000}
+        translations: {$ref: "#/components/schemas/AboutImageTranslations"}
+      required: [media_id, sort_order, translations]
 
     ContactMessage:
       type: object
@@ -523,6 +701,8 @@ components:
         cover_media_id:
           type: integer
           format: int64
+        clear_cover_media:
+          type: boolean
       required: [translations]
 
     PublishPostRequest:
@@ -547,6 +727,9 @@ components:
           type: string
           format: date-time
           description: Optional; must be after event_date
+        cover_media_id:
+          type: integer
+          format: int64
       required: [translations, event_date]
 
     UpdateEventRequest:
@@ -566,6 +749,11 @@ components:
         ends_at:
           type: string
           format: date-time
+        cover_media_id:
+          type: integer
+          format: int64
+        clear_cover_media:
+          type: boolean
       required: [translations, event_date]
 
     UpdateProfileRequest:
@@ -666,9 +854,14 @@ components:
       properties:
         message:
           type: string
+        id:
+          type: integer
+          format: int64
         file_path:
           type: string
-      required: [message, file_path]
+        width: {type: integer}
+        height: {type: integer}
+      required: [message, id, file_path, width, height]
 
   # ──────────── reusable parameters ────────────
   parameters:
@@ -1032,7 +1225,7 @@ paths:
           description: Filter by media kind
           schema:
             type: string
-            enum: [image, video, audio, document]
+            enum: [image]
       responses:
         "200":
           description: Paginated media
@@ -1622,7 +1815,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [image, video, audio, document]
+            enum: [image]
       responses:
         "200":
           description: Paginated media
@@ -1645,8 +1838,12 @@ paths:
       operationId: uploadMedia
       summary: Upload a media file
       description: |
-        Multipart upload. Accepted MIME types: PNG, JPEG, WebP, PDF, MP4, WebM, MP3, OGG.
-        Maximum size configured by `MEDIA_MAX_MB` (default 50 MB).
+        Accepts only JPEG, PNG, and WebP image content, sniffed independently of the filename and
+        declared Content-Type. Images are limited to 10,000 pixels per side and 40 megapixels,
+        EXIF-oriented, metadata-stripped,
+        re-encoded, and stored as 480/960/1600px responsive variants. Maximum size is configured
+        by `MEDIA_MAX_MB` (default 50 MB). Both en and am alt text are required unless `decorative`
+        is explicitly true.
       x-roles: [admin, editor]
       tags: [staff, media]
       security:
@@ -1663,7 +1860,11 @@ paths:
                   format: binary
                 translations:
                   type: string
-                  description: JSON object with at least one en/am title, e.g. {"en":{"title":"Photo"}}.
+                  description: JSON object with en and am alt_text values; titles are optional.
+                decorative:
+                  type: string
+                  enum: ["true", "false"]
+                  description: Explicit true is the only way to omit both localized alt texts.
               required: [file, translations]
       responses:
         "201":
@@ -1721,6 +1922,12 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "409":
+          description: Media is in use; the error details contain a `usages` array of reference locations.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -2121,3 +2328,440 @@ paths:
           $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalServerError"
+
+  /api/media/{id}:
+    get:
+      operationId: getPublicMedia
+      summary: Get localized metadata for a public image
+      description: Returns metadata only when the image is referenced by public content.
+      tags: [media]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: integer, format: int64}
+        - $ref: "#/components/parameters/LanguageParam"
+      responses:
+        "200":
+          description: Localized public image metadata
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Media"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "422": {$ref: "#/components/responses/UnprocessableEntity"}
+        "500": {$ref: "#/components/responses/InternalServerError"}
+
+  /api/media/{id}/file:
+    get:
+      operationId: getPublicMediaFile
+      summary: Serve a public responsive image variant
+      description: Accepts widths 480, 960, and 1600; supports ETag validation and byte ranges.
+      tags: [media]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: integer, format: int64}
+        - name: w
+          in: query
+          schema: {type: integer, enum: [480, 960, 1600], default: 1600}
+      responses:
+        "200":
+          description: Re-encoded public image
+          headers:
+            ETag: {schema: {type: string}}
+            Cache-Control: {schema: {type: string, example: "public, max-age=31536000, immutable"}}
+            Accept-Ranges: {schema: {type: string, example: bytes}}
+          content:
+            image/jpeg: {schema: {type: string, format: binary}}
+            image/png: {schema: {type: string, format: binary}}
+            image/webp: {schema: {type: string, format: binary}}
+        "206":
+          description: Partial image response for a byte range
+        "304": {description: ETag matched; no body}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "416": {description: Requested byte range is not satisfiable}
+        "500": {$ref: "#/components/responses/InternalServerError"}
+    head:
+      operationId: headPublicMediaFile
+      summary: Return public image headers without a body
+      tags: [media]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: integer, format: int64}
+        - name: w
+          in: query
+          schema: {type: integer, enum: [480, 960, 1600], default: 1600}
+      responses:
+        "200": {description: Public image headers}
+        "404": {$ref: "#/components/responses/NotFound"}
+
+  /api/site/home-slides:
+    get:
+      operationId: getPublicHomeSlides
+      summary: List active localized home slides
+      tags: [site]
+      parameters:
+        - $ref: "#/components/parameters/LanguageParam"
+      responses:
+        "200":
+          description: Localized active slides with language fallback metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: {type: array, items: {$ref: "#/components/schemas/HomeSlide"}}
+                  language: {type: string, enum: [en, am]}
+                required: [items, language]
+        "422": {$ref: "#/components/responses/UnprocessableEntity"}
+        "500": {$ref: "#/components/responses/InternalServerError"}
+
+  /api/site/settings:
+    get:
+      operationId: getPublicSiteSettings
+      summary: Get localized site branding and social image
+      tags: [site]
+      parameters:
+        - $ref: "#/components/parameters/LanguageParam"
+      responses:
+        "200":
+          description: Localized site settings with fallback metadata
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/SiteSettings"}
+        "422": {$ref: "#/components/responses/UnprocessableEntity"}
+        "500": {$ref: "#/components/responses/InternalServerError"}
+
+  /api/site/blocks:
+    get:
+      operationId: getPublicSiteBlocks
+      summary: List localized plain-text page blocks
+      description: Block values are plain text and may contain line breaks, never HTML.
+      tags: [site]
+      parameters:
+        - $ref: "#/components/parameters/LanguageParam"
+        - name: page
+          in: query
+          schema: {type: string, pattern: "^[a-z0-9][a-z0-9_-]{0,63}$"}
+      responses:
+        "200":
+          description: Localized blocks with fallback metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: {type: array, items: {$ref: "#/components/schemas/SiteBlock"}}
+                  language: {type: string, enum: [en, am]}
+                required: [items, language]
+        "422": {$ref: "#/components/responses/UnprocessableEntity"}
+        "500": {$ref: "#/components/responses/InternalServerError"}
+
+  /api/site/about-images:
+    get:
+      operationId: getPublicAboutImages
+      summary: List localized about-page images
+      tags: [site]
+      parameters:
+        - $ref: "#/components/parameters/LanguageParam"
+      responses:
+        "200":
+          description: About images with localized captions and fallback metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: {type: array, items: {$ref: "#/components/schemas/AboutImage"}}
+                  language: {type: string, enum: [en, am]}
+                required: [items, language]
+        "422": {$ref: "#/components/responses/UnprocessableEntity"}
+        "500": {$ref: "#/components/responses/InternalServerError"}
+
+  /api/staff/media/{id}/file:
+    get:
+      operationId: staffGetMediaFile
+      summary: Preview an image before public use
+      x-roles: [admin, editor]
+      tags: [staff, media]
+      security: [{cookieAuth: []}]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: integer, format: int64}
+        - name: w
+          in: query
+          schema: {type: integer, enum: [480, 960, 1600], default: 1600}
+      responses:
+        "200": {description: Private image preview}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+    head:
+      operationId: staffHeadMediaFile
+      summary: Return image preview headers
+      x-roles: [admin, editor]
+      tags: [staff, media]
+      security: [{cookieAuth: []}]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: integer, format: int64}
+        - name: w
+          in: query
+          schema: {type: integer, enum: [480, 960, 1600], default: 1600}
+      responses:
+        "200": {description: Private image headers}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+
+  /api/staff/media/{id}/usages:
+    get:
+      operationId: getMediaUsages
+      summary: List content references to an image
+      x-roles: [admin, editor]
+      tags: [staff, media]
+      security: [{cookieAuth: []}]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: integer, format: int64}
+      responses:
+        "200":
+          description: Places where the image is used
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usages: {type: array, items: {$ref: "#/components/schemas/MediaUsage"}}
+                required: [usages]
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "500": {$ref: "#/components/responses/InternalServerError"}
+
+  /api/admin/home-slides:
+    get:
+      operationId: adminGetHomeSlides
+      summary: List all slides, including inactive slides
+      x-roles: [admin]
+      tags: [admin, site]
+      security: [{cookieAuth: []}]
+      responses:
+        "200": {description: Slides with both translations}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+    post:
+      operationId: adminCreateHomeSlide
+      summary: Create a home slide
+      x-roles: [admin]
+      tags: [admin, site]
+      security: [{cookieAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/HomeSlideInput"}
+      responses:
+        "201": {description: Slide created}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "422": {$ref: "#/components/responses/UnprocessableEntity"}
+  /api/admin/home-slides/{id}:
+    put:
+      operationId: adminUpdateHomeSlide
+      summary: Update slide and translations
+      x-roles: [admin]
+      tags: [admin, site]
+      security: [{cookieAuth: []}]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: integer, format: int64}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/HomeSlideInput"}
+      responses:
+        "200": {description: Slide updated}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "422": {$ref: "#/components/responses/UnprocessableEntity"}
+    delete:
+      operationId: adminDeleteHomeSlide
+      summary: Delete a home slide
+      x-roles: [admin]
+      tags: [admin, site]
+      security: [{cookieAuth: []}]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: integer, format: int64}
+      responses:
+        "200": {description: Slide deleted}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+
+  /api/admin/site-settings:
+    get:
+      operationId: adminGetSiteSettings
+      summary: Read branding settings and translations
+      x-roles: [admin]
+      tags: [admin, site]
+      security: [{cookieAuth: []}]
+      responses:
+        "200":
+          description: Site settings with both translations
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/SiteSettings"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+    put:
+      operationId: adminUpdateSiteSettings
+      summary: Update branding settings and translations
+      x-roles: [admin]
+      tags: [admin, site]
+      security: [{cookieAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/SiteSettingsInput"}
+      responses:
+        "200": {description: Settings updated}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "422": {$ref: "#/components/responses/UnprocessableEntity"}
+
+  /api/admin/site-blocks:
+    get:
+      operationId: adminGetSiteBlocks
+      summary: List editable page blocks and translations
+      x-roles: [admin]
+      tags: [admin, site]
+      security: [{cookieAuth: []}]
+      parameters:
+        - name: page
+          in: query
+          schema: {type: string, pattern: "^[a-z0-9][a-z0-9_-]{0,63}$"}
+      responses:
+        "200":
+          description: Page blocks and both translations, including editor attribution
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: {type: array, items: {$ref: "#/components/schemas/SiteBlock"}}
+                  language: {type: string, enum: [en, am]}
+                required: [items, language]
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /api/admin/site-blocks/{page}/{key}:
+    put:
+      operationId: adminUpsertSiteBlock
+      summary: Create or replace a translated plain-text block
+      description: Text is plain text with line breaks only. Contact email and phone blocks are validated before saving.
+      x-roles: [admin]
+      tags: [admin, site]
+      security: [{cookieAuth: []}]
+      parameters:
+        - name: page
+          in: path
+          required: true
+          schema: {type: string, pattern: "^[a-z0-9][a-z0-9_-]{0,63}$"}
+        - name: key
+          in: path
+          required: true
+          schema: {type: string, pattern: "^[a-z0-9][a-z0-9_-]{0,63}$"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/SiteBlockInput"}
+      responses:
+        "200": {description: Block saved}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "422": {$ref: "#/components/responses/UnprocessableEntity"}
+
+  /api/admin/about-images:
+    get:
+      operationId: adminGetAboutImages
+      summary: List about-page images and translations
+      x-roles: [admin]
+      tags: [admin, site]
+      security: [{cookieAuth: []}]
+      responses:
+        "200": {description: About images with both translations}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+    post:
+      operationId: adminCreateAboutImage
+      summary: Add an about-page image
+      x-roles: [admin]
+      tags: [admin, site]
+      security: [{cookieAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/AboutImageInput"}
+      responses:
+        "201": {description: About image created}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "422": {$ref: "#/components/responses/UnprocessableEntity"}
+  /api/admin/about-images/{id}:
+    put:
+      operationId: adminUpdateAboutImage
+      summary: Update about-page image
+      x-roles: [admin]
+      tags: [admin, site]
+      security: [{cookieAuth: []}]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: integer, format: int64}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/AboutImageInput"}
+      responses:
+        "200": {description: About image updated}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "422": {$ref: "#/components/responses/UnprocessableEntity"}
+    delete:
+      operationId: adminDeleteAboutImage
+      summary: Remove an about-page image
+      x-roles: [admin]
+      tags: [admin, site]
+      security: [{cookieAuth: []}]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: integer, format: int64}
+      responses:
+        "200": {description: About image removed}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}

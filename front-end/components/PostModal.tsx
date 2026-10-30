@@ -1,7 +1,9 @@
 "use client";
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch, type Post } from "@/lib/api";
+import MediaPicker from "@/components/MediaPicker";
 import type { components } from "@/types/api.d.ts";
 
 type Locale = "en" | "am";
@@ -32,7 +34,12 @@ export default function PostModal({
   const [locale, setLocale] = useState<Locale>("en");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [coverMediaID, setCoverMediaID] = useState<number | null>(null);
+  const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
+  const [pickerPurpose, setPickerPurpose] = useState<"cover" | "inline">("cover");
   const closeRef = useRef<HTMLButtonElement>(null);
+  const contentRef = useRef<HTMLTextAreaElement>(null);
+  const selectionRef = useRef<{ start: number; end: number }>({ start: 0, end: 0 });
   useEffect(() => {
     setDraft({
       en: post?.translations?.en ?? emptyDraft.en,
@@ -40,6 +47,8 @@ export default function PostModal({
     });
     setSlug(post?.slug || "");
     setLocale("en");
+    setCoverMediaID(post?.cover_media_id ?? null);
+    setMediaPickerOpen(false);
     setError("");
   }, [post, isOpen]);
   useEffect(() => {
@@ -85,6 +94,7 @@ export default function PostModal({
         const body: CreatePostRequest = {
           translations: values,
           ...(cleanSlug ? { slug: cleanSlug } : {}),
+          ...(coverMediaID !== null ? { cover_media_id: coverMediaID } : {}),
         };
         await apiFetch("/staff/posts", { method: "POST", body: JSON.stringify(body) });
       } else {
@@ -98,7 +108,8 @@ export default function PostModal({
           }
         }
         const slugChanged = cleanSlug !== post.slug;
-        if (!operations.length && slugChanged) {
+        const coverChanged = (post.cover_media_id ?? null) !== coverMediaID;
+        if (!operations.length && (slugChanged || coverChanged)) {
           const language = original.en ? "en" : "am";
           operations.push({ language, value: original[language] ?? null });
         }
@@ -111,6 +122,10 @@ export default function PostModal({
           const body: UpdatePostRequest = {
             translations,
             ...(index === 0 && slugChanged && cleanSlug ? { slug: cleanSlug } : {}),
+            ...(index === 0 && coverMediaID !== null ? { cover_media_id: coverMediaID } : {}),
+            ...(index === 0 && coverMediaID === null && post.cover_media_id
+              ? { clear_cover_media: true }
+              : {}),
           };
           await apiFetch(`/staff/posts/${post.id}`, {
             method: "PATCH",
@@ -125,6 +140,24 @@ export default function PostModal({
     } finally {
       setLoading(false);
     }
+  }
+
+  function insertInlineImage(mediaID: number) {
+    const content = draft[locale].content;
+    const { start, end } = selectionRef.current;
+    const token = `{{media:${mediaID}}}`;
+    const before = content.slice(0, start);
+    const after = content.slice(end);
+    const prefix = before && !before.endsWith("\n") ? "\n" : "";
+    const suffix = after && !after.startsWith("\n") ? "\n" : "";
+    const nextContent = `${before}${prefix}${token}${suffix}${after}`;
+    change("content", nextContent);
+    const cursor = before.length + prefix.length + token.length + suffix.length;
+    requestAnimationFrame(() => {
+      contentRef.current?.focus();
+      contentRef.current?.setSelectionRange(cursor, cursor);
+      selectionRef.current = { start: cursor, end: cursor };
+    });
   }
 
   return (
@@ -189,17 +222,76 @@ export default function PostModal({
             />
           </div>
           <div className="field">
+            <p className="field-label">{t("postCover")}</p>
+            {coverMediaID !== null ? (
+              <div className="cover-preview">
+                <Image
+                  src={`/api/staff/media/${coverMediaID}/file?w=960`}
+                  alt=""
+                  width={960}
+                  height={540}
+                  sizes="(max-width: 560px) 100vw, 520px"
+                  unoptimized
+                />
+                <button
+                  className="btn btn-outline btn-small"
+                  type="button"
+                  onClick={() => setCoverMediaID(null)}
+                >
+                  {t("removeCover")}
+                </button>
+              </div>
+            ) : (
+              <div className="cover-placeholder" aria-hidden="true" />
+            )}
+            <p className="meta">{t("postCoverHint")}</p>
+            <button
+              className="btn btn-outline"
+              type="button"
+              onClick={() => {
+                setPickerPurpose("cover");
+                setMediaPickerOpen(true);
+              }}
+            >
+              {coverMediaID === null ? t("selectCover") : t("changeCover")}
+            </button>
+          </div>
+          <div className="field">
             <label htmlFor="post-content">
               {t("postContent")} {"("}
               {locale === "en" ? t("english") : t("amharic")}
               {")"}
             </label>
             <textarea
+              ref={contentRef}
               id="post-content"
               value={draft[locale].content}
               maxLength={20000}
+              onSelect={(event) => {
+                selectionRef.current = {
+                  start: event.currentTarget.selectionStart,
+                  end: event.currentTarget.selectionEnd,
+                };
+              }}
               onChange={(e) => change("content", e.target.value)}
             />
+            <button
+              className="btn btn-outline btn-small"
+              type="button"
+              onClick={() => {
+                const content = draft[locale].content;
+                selectionRef.current = contentRef.current
+                  ? {
+                      start: contentRef.current.selectionStart,
+                      end: contentRef.current.selectionEnd,
+                    }
+                  : { start: content.length, end: content.length };
+                setPickerPurpose("inline");
+                setMediaPickerOpen(true);
+              }}
+            >
+              {t("insertImage")}
+            </button>
           </div>
           <p className="meta">{t("clearPostTranslationHelp")}</p>
           <div className="form-actions">
@@ -212,6 +304,20 @@ export default function PostModal({
           </div>
         </form>
       </div>
+      <MediaPicker
+        isOpen={mediaPickerOpen}
+        selectedMediaID={pickerPurpose === "cover" ? coverMediaID : null}
+        slotHint={t("postCoverHint")}
+        onClose={() => setMediaPickerOpen(false)}
+        onSelect={(mediaID) => {
+          if (pickerPurpose === "inline") {
+            insertInlineImage(mediaID);
+          } else {
+            setCoverMediaID(mediaID);
+          }
+          setMediaPickerOpen(false);
+        }}
+      />
     </div>
   );
 }

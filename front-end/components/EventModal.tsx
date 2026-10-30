@@ -1,8 +1,10 @@
 "use client";
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { apiFetch, type EventItem } from "@/lib/api";
 import { formatDate } from "@/lib/api";
+import MediaPicker from "@/components/MediaPicker";
 import type { components } from "@/types/api.d.ts";
 
 type Locale = "en" | "am";
@@ -35,6 +37,8 @@ export default function EventModal({
   const [locale, setLocale] = useState<Locale>("en");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [coverMediaID, setCoverMediaID] = useState<number | null>(null);
+  const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
   const closeRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     setDraft({
@@ -43,6 +47,8 @@ export default function EventModal({
     });
     setEventDate(event?.event_date ? new Date(event.event_date).toISOString().slice(0, 16) : "");
     setEndsAt(event?.ends_at ? new Date(event.ends_at).toISOString().slice(0, 16) : "");
+    setCoverMediaID(event?.cover_media_id ?? null);
+    setMediaPickerOpen(false);
     setLocale("en");
     setError("");
   }, [event, isOpen]);
@@ -98,6 +104,7 @@ export default function EventModal({
           translations: values,
           event_date: start,
           ...(end ? { ends_at: end } : {}),
+          ...(coverMediaID !== null ? { cover_media_id: coverMediaID } : {}),
         };
         await apiFetch("/staff/events", { method: "POST", body: JSON.stringify(body) });
       } else {
@@ -109,12 +116,13 @@ export default function EventModal({
           if (JSON.stringify(next) !== JSON.stringify(previous ?? null))
             operations.push({ language, value: next });
         }
-        if (!operations.length) {
+        const coverChanged = (event.cover_media_id ?? null) !== coverMediaID;
+        if (!operations.length || coverChanged) {
           const language = original.en ? "en" : "am";
-          operations.push({ language, value: original[language] ?? null });
+          if (!operations.length) operations.push({ language, value: original[language] ?? null });
         }
         operations.sort((a, b) => Number(a.value === null) - Number(b.value === null));
-        for (const operation of operations) {
+        for (const [index, operation] of operations.entries()) {
           const translations: UpdateEventRequest["translations"] = {
             [operation.language]: operation.value,
           };
@@ -122,6 +130,10 @@ export default function EventModal({
             translations,
             event_date: start,
             ends_at: end,
+            ...(index === 0 && coverMediaID !== null ? { cover_media_id: coverMediaID } : {}),
+            ...(index === 0 && coverMediaID === null && event.cover_media_id
+              ? { clear_cover_media: true }
+              : {}),
           };
           await apiFetch(`/staff/events/${event.id}`, {
             method: "PATCH",
@@ -217,6 +229,38 @@ export default function EventModal({
             />
           </div>
           <div className="field">
+            <p className="field-label">{tDashboard("eventCover")}</p>
+            {coverMediaID !== null ? (
+              <div className="cover-preview">
+                <Image
+                  src={`/api/staff/media/${coverMediaID}/file?w=960`}
+                  alt=""
+                  width={960}
+                  height={540}
+                  sizes="(max-width: 560px) 100vw, 520px"
+                  unoptimized
+                />
+                <button
+                  className="btn btn-outline btn-small"
+                  type="button"
+                  onClick={() => setCoverMediaID(null)}
+                >
+                  {tDashboard("removeCover")}
+                </button>
+              </div>
+            ) : (
+              <div className="cover-placeholder" aria-hidden="true" />
+            )}
+            <p className="meta">{tDashboard("eventCoverHint")}</p>
+            <button
+              className="btn btn-outline"
+              type="button"
+              onClick={() => setMediaPickerOpen(true)}
+            >
+              {coverMediaID === null ? tDashboard("selectCover") : tDashboard("changeCover")}
+            </button>
+          </div>
+          <div className="field">
             <label htmlFor="event-date">{tDashboard("dateAndTime")}</label>
             <input
               id="event-date"
@@ -260,6 +304,16 @@ export default function EventModal({
           </div>
         </form>
       </div>
+      <MediaPicker
+        isOpen={mediaPickerOpen}
+        selectedMediaID={coverMediaID}
+        slotHint={tDashboard("eventCoverHint")}
+        onClose={() => setMediaPickerOpen(false)}
+        onSelect={(mediaID) => {
+          setCoverMediaID(mediaID);
+          setMediaPickerOpen(false);
+        }}
+      />
     </div>
   );
 }

@@ -4,6 +4,72 @@ Every Amharic string below was drafted for this change and **needs native review
 
 | Message key | Draft |
 |---|---|
+| `events.cover_image_is_invalid` | የዝግጅቱ የሽፋን ምስል ትክክለኛ ምስል መሆን አለበት። |
+| `media.decorative_flag_is_invalid` | የጌጣጌጥ ምልክቱ ትክክል አይደለም። |
+| `media.variant_width_is_invalid` | የምስሉ ቅጂ ስፋት ትክክል አይደለም። |
+| `posts.cover_image_is_invalid` | የጽሑፉ የሽፋን ምስል ትክክለኛ ምስል መሆን አለበት። |
+| `posts.inline_media_reference_is_invalid` | የጽሑፍ ውስጥ ያሉ ምስሎች ትክክለኛ የምስል መለያ ቁጥሮችን መጠቀም አለባቸው። |
+| `site.about_image_created` | የስለ እኛ ገጽ ምስል ተፈጥሯል። |
+| `site.about_image_deleted` | የስለ እኛ ገጽ ምስል ተሰርዟል። |
+| `site.about_image_not_found` | የስለ እኛ ገጽ ምስል አልተገኘም። |
+| `site.about_image_updated` | የስለ እኛ ገጽ ምስል ታድሷል። |
+| `site.block_saved` | የገጽ ጽሑፉ ተቀምጧል። |
+| `site.home_slide_created` | የመነሻ ገጽ ስላይድ ተፈጥሯል። |
+| `site.home_slide_deleted` | የመነሻ ገጽ ስላይድ ተሰርዟል። |
+| `site.home_slide_not_found` | የመነሻ ገጽ ስላይዱ አልተገኘም። |
+| `site.home_slide_updated` | የመነሻ ገጽ ስላይድ ታድሷል። |
+| `site.invalid_about_image` | የስለ እኛ ገጽ ምስል መረጃ ትክክል አይደለም። |
+| `site.invalid_block_key` | የገጽ ወይም የይዘት መለያ ቁጥር ትክክል አይደለም። |
+| `site.invalid_home_slide` | የመነሻ ገጽ ስላይድ መረጃ ትክክል አይደለም። |
+| `site.invalid_site_block` | የገጹ ጽሑፍ በእንግሊዝኛና በአማርኛ መሆን እና ቀላል ጽሑፍ ብቻ መሆን አለበት። |
+| `site.invalid_site_settings` | የድረ ገጹ ቅንብሮች ትክክል አይደሉም። |
+| `site.settings_updated` | የድረ ገጹ ቅንብሮች ታድሰዋል። |
+| `dashboard.mediaAltText` | አማራጭ ጽሑፍ |
+| `dashboard.mediaLanguage` | የምስል ትርጉም ቋንቋ |
+| `dashboard.mediaAltHelp` | ምስሉ ጌጣጌጥ ካልሆነ በእንግሊዝኛና በአማርኛ አማራጭ ጽሑፍ ያቅርቡ። |
+| `dashboard.mediaAltRequired` | ምስል ይምረጡና በሁለቱም ቋንቋዎች አማራጭ ጽሑፍ ያቅርቡ፣ ወይም ምስሉን ጌጣጌጥ ብለው ይምረጡ። |
+| `dashboard.mediaLibraryHelp` | ፎቶዎችን ያክሉ፣ መግለጫቸውን ያዘምኑ፣ እና እያንዳንዱ የት እንደተጠቀመ ይመልከቱ። |
+| `dashboard.mediaAddImages` | ፎቶዎችን ያክሉ |
+| `dashboard.mediaImageName` | የምስሉ ስም |
+| `dashboard.mediaChooseFile` | ፎቶ ይምረጡ |
+| `dashboard.mediaDropFiles` | ፎቶን እዚህ ይጎትቱ ወይም ከመሣሪያዎ ይምረጡ። |
+| `dashboard.mediaInvalidType` | ይህ የፋይል አይነት አይፈቀድም። JPG፣ PNG ወይም WebP ይጠቀሙ። |
+| `dashboard.mediaFileTooLarge` | ይህ ፎቶ በጣም ትልቅ ነው። አነስ ያለ ፋይል ይምረጡ። |
+| `dashboard.mediaUploadProgress` | የፎቶ መስቀል ሂደት |
+| `dashboard.mediaSearch` | ምስሎችን ይፈልጉ |
+| `dashboard.mediaSearchPlaceholder` | በስም ወይም በመግለጫ ይፈልጉ |
+| `dashboard.mediaImageCount` | {count, plural, one {# ምስል} other {# ምስሎች}} |
+| `dashboard.mediaDimensions` | {width} × {height} |
+| `dashboard.mediaNoSearchResults` | ከፍለጋዎ ጋር የሚዛመድ ምስል የለም። |
+| `dashboard.mediaUntitled` | ስም ያልተሰጠው ምስል |
+| `dashboard.mediaPickerTitle` | ፎቶ ይምረጡ |
+| `dashboard.mediaExistingImages` | ያሉ ፎቶዎች |
+| `dashboard.mediaUploadNew` | አዲስ ፎቶ ይስቀሉ |
+| `dashboard.mediaUseImage` | ይህን ፎቶ ይጠቀሙ |
+| `dashboard.mediaPages` | የምስል ገጾች |
+| `dashboard.postCover` | የጽሑፍ ሽፋን ፎቶ |
+| `dashboard.postCoverHint` | ሰፊ ፎቶ፣ ቢያንስ 1600×900። |
+| `dashboard.eventCover` | የዝግጅት ሽፋን ፎቶ |
+| `dashboard.eventCoverHint` | ሰፊ ፎቶ፣ ቢያንስ 1600×900። |
+| `dashboard.selectCover` | የሽፋን ፎቶ ይምረጡ |
+| `dashboard.changeCover` | የሽፋን ፎቶውን ይቀይሩ |
+| `dashboard.removeCover` | ሽፋኑን ያስወግዱ |
+| `dashboard.insertImage` | ምስል ያስገቡ |
+| `dashboard.deleting` | በመሰረዝ ላይ… |
+| `events.details` | የዝግጅቱን ዝርዝር ይመልከቱ |
+| `events.back` | ← ወደ ሁሉም ዝግጅቶች |
+| `events.notFound` | ዝግጅቱ አልተገኘም |
+| `dashboard.decorativeImage` | ጌጣጌጥ ምስል (አማራጭ ጽሑፍ አያስፈልግም) |
+| `dashboard.mediaUsageHeading` | የት እንደተጠቀመ |
+| `dashboard.mediaUnused` | በአሁኑ ጊዜ አልተጠቀመም። |
+| `dashboard.mediaInUse` | ይህ ምስል በይዘት ውስጥ ስለተጠቀመ መሰረዝ አይቻልም። |
+| `dashboard.mediaCannotDeleteInUse` | ምስሉን ከመሰረዝዎ በፊት እነዚህን ማገናኛዎች ያስወግዱ ወይም ይቀይሩ። |
+| `dashboard.usagePostCover` | የጽሑፍ ሽፋን፦ {label} |
+| `dashboard.usagePostInline` | በጽሑፍ ውስጥ፦ {label} |
+| `dashboard.usageEventCover` | የዝግጅት ሽፋን፦ {label} |
+| `dashboard.usageHomeSlide` | የመነሻ ገጽ ስላይድ፦ {label} |
+| `dashboard.usageAboutImage` | የስለ እኛ ገጽ ምስል፦ {label} |
+| `dashboard.usageSiteSetting` | የድረ ገጽ ብራንዲንግ፦ {label} |
 | `auth.password_too_short` | የይለፍ ቃሉ ቢያንስ 12 ቁምፊዎች ሊኖሩት ይገባል። |
 | `auth.password_too_long` | የይለፍ ቃሉ ከ72 ባይት መብለጥ የለበትም። |
 | `auth.password_too_common` | ይህ የይለፍ ቃል በጣም በብዛት የሚጠቀሙት ስለሆነ ሌላ ይምረጡ። |
@@ -160,7 +226,7 @@ Every Amharic string below was drafted for this change and **needs native review
 | `contact.reply` | ሰው ይመልስልዎታል። |
 | `contact.replyText` | እያንዳንዱን መልእክት እናነባለን፤ በተቻለን ፍጥነትም እንመልሳለን። ስለ ዝግጅት ወይም በጎ ፈቃደኝነት ከሆነ አውዱን ያካትቱ። |
 | `contact.email` | በኢሜይል መጻፍ ይመርጣሉ? |
-| `contact.emailText` | hello@kalenbnakafl.org ላይ ይጻፉልንና ምን ማሰስ እንደሚፈልጉ ይንገሩን። |
+| `contact.emailText` | ማሰስ የሚፈልጉትን ይንገሩን። |
 | `contact.formTitle` | ውይይት ይጀምሩ። |
 | `contact.say` | ሰላም ይበሉ |
 | `contact.name` | ስምዎ |
@@ -430,3 +496,167 @@ Every Amharic string below was drafted for this change and **needs native review
 | `dashboard.clearPostTranslationHelp` | ቋንቋን ለማስወገድ ሁለቱንም መስኮች ባዶ ያድርጉ። ቢያንስ አንድ ቋንቋ መቆየት አለበት። |
 | `dashboard.savePostFailed` | ጽሑፉን ማስቀመጥ አልተቻለም። |
 | `dashboard.saveEventFailed` | ዝግጅቱን ማስቀመጥ አልተቻለም። |
+| `site.homeSlider` | ተመራጭ ምስሎች |
+| `site.carousel` | ተንሸራታች ማሳያ |
+| `site.slidePosition` | ስላይድ {current} ከ {total} |
+| `site.previousSlide` | ያለፈው ምስል |
+| `site.nextSlide` | ቀጣዩ ምስል |
+| `site.pauseSlides` | የምስል ማሳያውን ያቁሙ |
+| `site.resumeSlides` | የምስል ማሳያውን ይቀጥሉ |
+| `site.motionPaused` | ራስ-ሰር እንቅስቃሴ ጠፍቷል |
+| `about.gallery` | ስለ ማኅበረሰባችን |
+| `dashboard.homeSliderTitle` | የመነሻ ገጽ ስላይዶች |
+| `dashboard.aboutImagesTitle` | የስለ እኛ ምስሎች |
+| `dashboard.brandingTitle` | የድረ ገጽ መለያ |
+| `dashboard.siteContentEyebrow` | የድረ ገጽ ይዘት |
+| `dashboard.homeSliderHelp` | በመነሻ ገጹ ላይ የሚታዩ ምስሎችን ይምረጡ፣ በሁለቱም ቋንቋዎች መግለጫ ይጻፉና ቅደም ተከተላቸውን ያዘጋጁ። |
+| `dashboard.addHomeSlide` | ስላይድ ያክሉ |
+| `dashboard.loadingSiteContent` | የድረ ገጽ ይዘት በመጫን ላይ… |
+| `dashboard.siteContentLoadFailed` | የድረ ገጽ ይዘትን መጫን አልተቻለም። |
+| `dashboard.siteContentSaved` | ለውጦቹ ተቀምጠዋል። የሕዝብ ገጹ በአንድ ደቂቃ ውስጥ ይዘምናል። |
+| `dashboard.siteContentDeleted` | ንጥሉ ተወግዷል። |
+| `dashboard.siteContentSaveFailed` | ለውጦቹን ማስቀመጥ አልተቻለም። |
+| `dashboard.homeSlideChooseImage` | ስላይዱን ከማስቀመጥዎ በፊት ምስል ይምረጡ። |
+| `dashboard.confirmDeleteSlide` | ይህ ስላይድ ከመነሻ ገጹ ይወገድ? |
+| `dashboard.homeSlideNumber` | ስላይድ {number} |
+| `dashboard.moveSlideUp` | ስላይዱን ወደ ላይ ያንቀሳቅሱ |
+| `dashboard.moveSlideDown` | ስላይዱን ወደ ታች ያንቀሳቅሱ |
+| `dashboard.englishCaption` | የእንግሊዝኛ መግለጫ |
+| `dashboard.amharicCaption` | የአማርኛ መግለጫ |
+| `dashboard.optionalSlideLink` | አማራጭ የውስጥ አገናኝ |
+| `dashboard.slideActive` | ይህን ስላይድ በሕዝብ መነሻ ገጽ ላይ አሳይ |
+| `dashboard.homeSlideSizeHint` | ሰፊ አግድም ምስል ይምረጡ፤ ቢያንስ 1600 × 700 ፒክስል መሆኑ ይመከራል። |
+| `dashboard.noHomeSlides` | ገና ስላይድ የለም። የሕዝብ መነሻ ገጹ መደበኛውን የመግቢያ ክፍል ያሳያል። |
+| `dashboard.aboutImagesHelp` | በስለ እኛ ገጽ ላይ የሚታዩ ፎቶዎችን በሁለቱም ቋንቋዎች መግለጫ ጨምረው ያዘጋጁ። |
+| `dashboard.addAboutImage` | የስለ እኛ ምስል ያክሉ |
+| `dashboard.aboutImageChooseImage` | ከማስቀመጥዎ በፊት ምስል ይምረጡ። |
+| `dashboard.confirmDeleteAboutImage` | ይህ ምስል ከስለ እኛ ገጽ ይወገድ? |
+| `dashboard.aboutImageNumber` | የስለ እኛ ምስል {number} |
+| `dashboard.moveAboutImageUp` | የስለ እኛ ምስሉን ወደ ላይ ያንቀሳቅሱ |
+| `dashboard.moveAboutImageDown` | የስለ እኛ ምስሉን ወደ ታች ያንቀሳቅሱ |
+| `dashboard.aboutImageSizeHint` | ግልጽ አግድም ወይም ካሬ ምስል ይምረጡ፤ ቢያንስ 960 ፒክስል ስፋት መሆኑ ይመከራል። |
+| `dashboard.noAboutImages` | ለስለ እኛ ገጽ ፎቶ አልተጨመረም። የገጹ ጽሑፍና ምሳሌዎች እንደተለመደው ይታያሉ። |
+| `dashboard.brandingHelp` | የድረ ገጹን ስምና ምስላዊ መለያ በእንግሊዝኛና በአማርኛ ያዘጋጁ። |
+| `dashboard.brandingLogo` | የድረ ገጽ አርማ |
+| `dashboard.brandingLogoHint` | የሚመከረው፦ ቢያንስ 320 × 80 ፒክስል፣ ሰፊ ቅርጽ (2:1 እስከ 5:1)። |
+| `dashboard.brandingFavicon` | የትር አዶ |
+| `dashboard.brandingFaviconHint` | የሚመከረው፦ ካሬ ምስል፣ ቢያንስ 512 × 512 ፒክስል። |
+| `dashboard.brandingSocialImage` | ለማኅበራዊ ማጋራት ምስል |
+| `dashboard.brandingSocialImageHint` | የሚመከረው፦ ቢያንስ 1200 × 630 ፒክስል (በግምት 1.91:1)። |
+| `dashboard.brandingStaticFallback` | ምስል እስኪመርጡ ድረስ አሁን ያለው የብራንድ ምስል ይጠቀማል። |
+| `dashboard.brandingImageDetailsMissing` | የምስሉን መጠን ማረጋገጥ አልተቻለም። ከማዕከሉ እንደገና ይምረጡት። |
+| `dashboard.brandingLogoDimensionsInvalid` | አርማው ቢያንስ 320 × 80 ፒክስል እና ሰፊ (2:1 እስከ 5:1) መሆን አለበት። |
+| `dashboard.brandingFaviconDimensionsInvalid` | የትር አዶው ካሬና ቢያንስ 512 × 512 ፒክስል መሆን አለበት። |
+| `dashboard.brandingSocialDimensionsInvalid` | የማኅበራዊ ምስሉ ቢያንስ 1200 × 630 ፒክስል እና ሰፊ ቅርጽ መሆን አለበት። |
+| `dashboard.changeBrandImage` | ምስሉን ይቀይሩ |
+| `dashboard.removeBrandImage` | ምስሉን ያስወግዱ |
+| `dashboard.brandingTextTitle` | ስምና መለያ ሐረግ |
+| `dashboard.siteName` | የድረ ገጽ ስም |
+| `dashboard.siteTagline` | መለያ ሐረግ |
+| `contact.emailAddress` | hello@kalenbnakafl.org |
+| `contact.addressLabel` | አድራሻ |
+| `contact.hoursLabel` | የቢሮ ሰዓት |
+| `contact.phoneLabel` | ስልክ |
+| `dashboard.pageContentNav` | የገጽ ይዘት |
+| `dashboard.adminGuideNav` | የአስተዳዳሪ መመሪያ |
+| `dashboard.pageContentTitle` | የገጽ ይዘት |
+| `dashboard.pageContentIntro` | በእንግሊዝኛና በአማርኛ የሕዝብ ገጹን ጽሑፍ ያርትዑ። መስክ ባዶ ከሆነ የካታሎግ ነባሪው ወይም ያለው ሌላ ቋንቋ ይታያል። |
+| `dashboard.contentHomePage` | ዋና ገጽ |
+| `dashboard.contentAboutPage` | ስለ እኛ ገጽ |
+| `dashboard.contentContactPage` | የግንኙነት ገጽ |
+| `dashboard.contentEnglish` | እንግሊዝኛ |
+| `dashboard.contentAmharic` | አማርኛ |
+| `dashboard.contentFieldHelp` | ቀላል ጽሑፍ ብቻ ይጠቀሙ። የመስመር ለውጦች ይቆያሉ፤ HTML አይደገፍም። |
+| `dashboard.contentDefaultHint` | የካታሎግ ነባሪውን ወይም ያለውን ሌላ ቋንቋ ለመጠቀም ባዶ ይተዉ። |
+| `dashboard.contentCharacterCount` | {count} / {maximum} ቁምፊዎች |
+| `dashboard.contentLastEdited` | በ{date} በ{name} የተስተካከለ |
+| `dashboard.contentUnknownEditor` | አስተዳዳሪ |
+| `dashboard.contentNotEdited` | የተቀመጠ ለውጥ የለም፤ የካታሎግ ነባሪው እየታየ ነው። |
+| `dashboard.contentFallback` | አንድ ቋንቋ ከጎደለ በሕዝብ ገጹ ላይ ያለው ሌላ ቋንቋ ይታያል። |
+| `dashboard.contentUnsaved` | ያልተቀመጡ ለውጦች አሉ። ከመውጣትዎ በፊት የተቀየሩትን ይቆጥቡ። |
+| `dashboard.contentSaved` | የገጽ ጽሑፉ ተቀምጧል። |
+| `dashboard.contentLoading` | የገጽ ጽሑፍ በመጫን ላይ… |
+| `dashboard.loadPageContentFailed` | የገጽ ጽሑፍን መጫን አልተቻለም። |
+| `dashboard.savePageContentFailed` | የገጽ ጽሑፉን ማስቀመጥ አልተቻለም። |
+| `dashboard.contentReset` | ወደ ነባሪ ይመልሱ |
+| `dashboard.confirmContentReset` | ሁለቱንም ቋንቋዎች ወደ ካታሎግ ነባሪ መመለስ ይፈልጋሉ? |
+| `dashboard.contentEmailInvalid` | በሁለቱም ቋንቋዎች ትክክለኛ ኢሜይል ያስገቡ። |
+| `dashboard.contentPhoneInvalid` | ቁጥሮችንና የስልክ ምልክቶችን ብቻ የያዘ ስልክ ቁጥር ያስገቡ። |
+| `dashboard.homeHeroEyebrow` | የዋና ገጽ የመግቢያ መለያ |
+| `dashboard.homeHeroTitle` | የዋና ገጽ ርዕስ |
+| `dashboard.homeHeroIntro` | የዋና ገጽ መግቢያ |
+| `dashboard.homeSharedEyebrow` | የጋራ ሥራ መለያ |
+| `dashboard.homeThriveHeading` | የጋራ ሥራ ርዕስ |
+| `dashboard.homeOneHeading` | የማኅበረሰብ ማስታወሻ ርዕስ |
+| `dashboard.homeOneText` | የማኅበረሰብ ማስታወሻ መግለጫ |
+| `dashboard.homeHowEyebrow` | የአሠራር መለያ |
+| `dashboard.homeHowTitle` | የአሠራር ርዕስ |
+| `dashboard.homeHowIntro` | የአሠራር መግለጫ |
+| `dashboard.homeConnectTitle` | የማገናኘት ካርድ ርዕስ |
+| `dashboard.homeConnectText` | የማገናኘት ካርድ መግለጫ |
+| `dashboard.homeLearnTitle` | የመማር ካርድ ርዕስ |
+| `dashboard.homeLearnText` | የመማር ካርድ መግለጫ |
+| `dashboard.homeActTitle` | የተግባር ካርድ ርዕስ |
+| `dashboard.homeActText` | የተግባር ካርድ መግለጫ |
+| `dashboard.homePeopleStat` | ሰዎችን ያማከለ ፕሮግራም መለያ |
+| `dashboard.homeWaysStat` | የመሳተፊያ መንገድ መለያ |
+| `dashboard.homeIdeasStat` | ማጋራት የሚገባቸው ሐሳቦች መለያ |
+| `dashboard.homeProgressStat` | በተግባር የሚመጣ እድገት መለያ |
+| `dashboard.homeComingEyebrow` | የሚመጡ ዝግጅቶች መለያ |
+| `dashboard.homeComingTitle` | የሚመጡ ዝግጅቶች ርዕስ |
+| `dashboard.homeNoEvents` | ዝግጅት ባይኖር የሚታይ መልእክት |
+| `dashboard.homeStoriesEyebrow` | የማኅበረሰብ ታሪኮች መለያ |
+| `dashboard.homeStoriesTitle` | የማኅበረሰብ ታሪኮች ርዕስ |
+| `dashboard.homeNoPosts` | ጽሑፍ ባይኖር የሚታይ መልእክት |
+| `dashboard.homeCtaTitle` | የዋና ገጽ የድርጊት ጥሪ ርዕስ |
+| `dashboard.aboutHeroEyebrow` | የስለ እኛ መግቢያ መለያ |
+| `dashboard.aboutHeroTitle` | የስለ እኛ ገጽ ርዕስ |
+| `dashboard.aboutHeroIntro` | የስለ እኛ መግቢያ |
+| `dashboard.aboutValuesEyebrow` | የእሴቶች መለያ |
+| `dashboard.aboutValuesTitle` | የእሴቶች ርዕስ |
+| `dashboard.aboutValuesFirst` | የመጀመሪያው የእሴት አንቀጽ |
+| `dashboard.aboutValuesSecond` | ሁለተኛው የእሴት አንቀጽ |
+| `dashboard.aboutApproachEyebrow` | የአቀራረብ መለያ |
+| `dashboard.aboutApproachTitle` | የአቀራረብ ርዕስ |
+| `dashboard.aboutApproachIntro` | የአቀራረብ መግለጫ |
+| `dashboard.aboutAccessibleTitle` | የተደራሽነት መርህ ርዕስ |
+| `dashboard.aboutAccessibleText` | የተደራሽነት መርህ መግለጫ |
+| `dashboard.aboutPracticalTitle` | የተግባራዊነት መርህ ርዕስ |
+| `dashboard.aboutPracticalText` | የተግባራዊነት መርህ መግለጫ |
+| `dashboard.aboutCollaborativeTitle` | የትብብር መርህ ርዕስ |
+| `dashboard.aboutCollaborativeText` | የትብብር መርህ መግለጫ |
+| `dashboard.aboutCtaTitle` | የስለ እኛ የድርጊት ጥሪ ርዕስ |
+| `dashboard.contactHeroEyebrow` | የግንኙነት መግቢያ መለያ |
+| `dashboard.contactHeroTitle` | የግንኙነት ገጽ ርዕስ |
+| `dashboard.contactHeroIntro` | የግንኙነት መግቢያ |
+| `dashboard.contactExpectEyebrow` | ምላሽ የሚጠበቅበት መለያ |
+| `dashboard.contactReplyTitle` | የምላሽ ርዕስ |
+| `dashboard.contactReplyText` | ስለ ምላሽ የሚገልጽ ጽሑፍ |
+| `dashboard.contactEmailHeading` | የኢሜይል ግንኙነት ርዕስ |
+| `dashboard.contactEmailInvite` | በኢሜይል እንዲጽፉ ጥሪ |
+| `dashboard.contactFormEyebrow` | የግንኙነት ቅጽ መለያ |
+| `dashboard.contactFormTitle` | የግንኙነት ቅጽ ርዕስ |
+| `dashboard.contactFormHelp` | የግንኙነት ቅጽ መግቢያ |
+| `dashboard.contactEmailAddress` | የግንኙነት ኢሜይል አድራሻ |
+| `dashboard.contactAddress` | የግንኙነት አድራሻ |
+| `dashboard.contactOfficeHours` | የቢሮ ሰዓት |
+| `dashboard.contactPhone` | የግንኙነት ስልክ ቁጥር |
+| `dashboard.adminGuideTitle` | የአስተዳዳሪ መመሪያ |
+| `dashboard.adminGuideIntro` | የሕዝብ ድረ ገጹን ወቅታዊ ለማድረግ አጭር መመሪያ። |
+| `dashboard.guideUploadTitle` | ፎቶ ይስቀሉ |
+| `dashboard.guideUploadText` | ወደ ሚዲያ ይሂዱ፣ JPEG፣ PNG ወይም WebP ፎቶ ይምረጡ፣ በሁለቱም ቋንቋዎች ስምና አማራጭ ጽሑፍ ያክሉ፣ ከዚያ ይስቀሉ። መረጃ የማይሰጥ ምስል ብቻ ጌጣጌጥ ብለው ይምረጡ። |
+| `dashboard.guideAltTitle` | አማራጭ ጽሑፍ ይጻፉ |
+| `dashboard.guideAltText` | በምስሉ ውስጥ አስፈላጊ የሆነውን በአጭር ዓረፍተ ነገር ይግለጹ። አማራጭ ጽሑፍ ስክሪን ሪደር ለሚጠቀሙ ሰዎች ይረዳል፤ ምስሉ ካልተጫነም ይታያል። |
+| `dashboard.guideCoverTitle` | የሽፋን ፎቶ ያዘጋጁ |
+| `dashboard.guideCoverText` | ጽሑፍ ወይም ዝግጅት ያርትዑና በሽፋን ክፍሉ ፎቶ ይምረጡ። ሰፊ ምስሎች ይሻላሉ፤ ቢያንስ 1600 × 900 ፒክስል ይጠቀሙ። |
+| `dashboard.guideSliderTitle` | የመነሻ ገጽ ስላይድ ይቀይሩ |
+| `dashboard.guideSliderText` | ወደ የመነሻ ገጽ ስላይዶች ይሂዱ፤ ፎቶ ያክሉ፣ በእንግሊዝኛና በአማርኛ መግለጫ ይጻፉ፣ ስላይዱን ያብሩ/ያጥፉ፣ ወይም ወደ ላይና ወደ ታች ያንቀሳቅሱ። የመጀመሪያው ንቁ ስላይድ ቀድሞ ይታያል። |
+| `dashboard.guidePageTextTitle` | የገጽ ጽሑፍ ያርትዑ |
+| `dashboard.guidePageTextText` | ወደ የገጽ ይዘት ይሂዱ፣ የእንግሊዝኛና የአማርኛ መስኮችን ያርትዑ፣ እያንዳንዱንም ያስቀምጡ። ጽሑፉ ቀላል ጽሑፍ ነው፤ የመስመር ለውጦች ይቆያሉ። ወደ ነባሪ መመለስ የካታሎጉን ጽሑፍ ይመልሳል። |
+| `dashboard.guideSizesTitle` | የመጠን ምክሮች ምን ማለት ናቸው? |
+| `dashboard.guideSizesText` | የመጠን ምክሮች በፒክስል የሚመከሩ ልኬቶች ናቸው፦ ለሰፊ ሽፋን 1600 × 900፣ ለአርማ 320 × 80 ወይም ከዚያ በላይ፣ ለካሬ የድረ ገጽ አዶ 512 × 512፣ ለማኅበራዊ ማጋራት 1200 × 630። ትልቅ ፒክስል መጠን በጥራት ከፍ ባላቸው ስክሪኖች ላይ ምስሉን ግልጽ ያደርገዋል። |
+| `dashboard.guideHelpTitle` | እገዛ ይፈልጋሉ? |
+| `dashboard.guideHelpText` | ለውጥ ማስቀመጥ ካልቻሉ ወይም እርግጠኛ ካልሆኑ የድረ ገጹን አስተዳዳሪ ወይም የድርጅቱን የድረ ገጽ ድጋፍ ሰው ያነጋግሩ። |
+| `dashboard.chooseHomeSlideImage` | ምስል ይምረጡ |
+| `dashboard.chooseAboutImage` | ምስል ይምረጡ |
+| `dashboard.chooseBrandImage` | ምስል ይምረጡ |

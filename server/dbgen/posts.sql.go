@@ -259,19 +259,29 @@ func (q *Queries) PublishPost(ctx context.Context, arg PublishPostParams) (int64
 const updatePostFields = `-- name: UpdatePostFields :execrows
 UPDATE posts
 SET slug = COALESCE($1, slug),
-    cover_media_id = COALESCE($2, cover_media_id),
+    cover_media_id = CASE
+        WHEN $2::boolean THEN NULL
+        WHEN $3::integer IS NOT NULL THEN $3
+        ELSE cover_media_id
+    END,
     updated_at = CURRENT_TIMESTAMP
-WHERE id = $3
+WHERE id = $4
 `
 
 type UpdatePostFieldsParams struct {
-	Slug         sql.NullString `json:"slug"`
-	CoverMediaID sql.NullInt32  `json:"cover_media_id"`
-	ID           int32          `json:"id"`
+	Slug            sql.NullString `json:"slug"`
+	ClearCoverMedia bool           `json:"clear_cover_media"`
+	CoverMediaID    sql.NullInt32  `json:"cover_media_id"`
+	ID              int32          `json:"id"`
 }
 
 func (q *Queries) UpdatePostFields(ctx context.Context, arg UpdatePostFieldsParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, updatePostFields, arg.Slug, arg.CoverMediaID, arg.ID)
+	result, err := q.db.ExecContext(ctx, updatePostFields,
+		arg.Slug,
+		arg.ClearCoverMedia,
+		arg.CoverMediaID,
+		arg.ID,
+	)
 	if err != nil {
 		return 0, err
 	}

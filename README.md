@@ -17,6 +17,12 @@ API reference: open [`docs/api.html`](docs/api.html) for the Redoc view of [`doc
 
 The repository includes an optional deployment setup for a portfolio/demo using Render, Neon, Vercel, and private Backblaze B2 storage. No live URL or public demo credentials are published here; configure the provider accounts and share any demo editor/volunteer credentials privately. See the [deployment guide](docs/DEPLOYMENT.md) for setup, limitations, backups, and rollback steps. The free-tier combination is not a production hosting recommendation.
 
+## Admin handover
+
+Administrators can manage photos, covers, the home slider, branding, and the editable Home, About, and Contact text from the dashboard. For page text, open **Page content**, edit English and Amharic separately, and save each block. Text accepts plain words and line breaks only; it does not accept HTML. A blank language uses the other saved language when available, while **Reset to default** clears both overrides and restores the bilingual catalog wording. Contact email and phone values are checked before saving.
+
+The dashboard's **Admin guide** includes the photo upload and alternative-text steps, cover and slider instructions, and explanations of the recommended image dimensions. Contact the organization's designated website administrator or support person for access or publishing help. Admin credentials must be shared privately and never added to this repository.
+
 ## Troubleshooting
 
 ### Docker reports “Pool overlaps with other one”

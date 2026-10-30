@@ -21,7 +21,7 @@ func TestRegisteredRouteRoleMatrix(t *testing.T) {
 		loginEmails[role] = role + "-login@matrix-all.example.org"
 		createAuthUser(t, q, role+" login", loginEmails[role], "a-long-test-password", role)
 	}
-	const guest, denied, allow, created, conflict = http.StatusUnauthorized, http.StatusForbidden, http.StatusOK, http.StatusCreated, http.StatusConflict
+	const guest, denied, notFound, allow, created, conflict = http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusOK, http.StatusCreated, http.StatusConflict
 	// Status order: guest, user, volunteer, editor, admin.
 	table := map[string][5]int{
 		"POST /api/register": {created, created, created, created, created}, "POST /api/login": {allow, allow, allow, allow, allow},
@@ -29,18 +29,40 @@ func TestRegisteredRouteRoleMatrix(t *testing.T) {
 		"POST /api/contact": {created, created, created, created, created}, "GET /api/staff/contact-messages": {guest, denied, denied, allow, allow}, "PATCH /api/staff/contact-messages/:id": {guest, denied, denied, allow, allow}, "GET /api/posts": {allow, allow, allow, allow, allow},
 		"GET /api/posts/:slug": {allow, allow, allow, allow, allow}, "GET /api/events": {allow, allow, allow, allow, allow},
 		"GET /api/events/:id": {allow, allow, allow, allow, allow}, "GET /api/media": {allow, allow, allow, allow, allow},
-		"GET /api/staff/posts": {guest, denied, denied, allow, allow}, "POST /api/staff/posts": {guest, denied, denied, created, created},
+		"GET /api/media/:id":         {notFound, notFound, notFound, notFound, notFound},
+		"GET /api/media/:id/file":    {notFound, notFound, notFound, notFound, notFound},
+		"HEAD /api/media/:id/file":   {notFound, notFound, notFound, notFound, notFound},
+		"GET /api/site/home-slides":  {allow, allow, allow, allow, allow},
+		"GET /api/site/settings":     {allow, allow, allow, allow, allow},
+		"GET /api/site/blocks":       {allow, allow, allow, allow, allow},
+		"GET /api/site/about-images": {allow, allow, allow, allow, allow},
+		"GET /api/staff/posts":       {guest, denied, denied, allow, allow}, "POST /api/staff/posts": {guest, denied, denied, created, created},
 		"PATCH /api/staff/posts/:id": {guest, denied, denied, allow, allow}, "DELETE /api/staff/posts/:id": {guest, denied, denied, allow, allow},
 		"PATCH /api/staff/posts/:id/publish": {guest, denied, denied, allow, allow}, "GET /api/staff/events": {guest, denied, denied, allow, allow},
 		"POST /api/staff/events": {guest, denied, denied, created, created}, "PATCH /api/staff/events/:id": {guest, denied, denied, allow, allow},
 		"DELETE /api/staff/events/:id": {guest, denied, denied, allow, allow}, "GET /api/staff/media": {guest, denied, denied, allow, allow},
 		"POST /api/staff/media": {guest, denied, denied, created, created}, "DELETE /api/staff/media/:id": {guest, denied, denied, allow, allow},
-		"GET /api/admin/users": {guest, denied, denied, denied, allow}, "POST /api/admin/users": {guest, denied, denied, denied, created},
+		"GET /api/staff/media/:id/file":   {guest, denied, denied, notFound, notFound},
+		"HEAD /api/staff/media/:id/file":  {guest, denied, denied, notFound, notFound},
+		"GET /api/staff/media/:id/usages": {guest, denied, denied, allow, allow},
+		"GET /api/admin/users":            {guest, denied, denied, denied, allow}, "POST /api/admin/users": {guest, denied, denied, denied, created},
 		"PATCH /api/admin/users/:id": {guest, denied, denied, denied, allow}, "DELETE /api/admin/users/:id": {guest, denied, denied, denied, allow},
 		"GET /api/admin/volunteers": {guest, denied, denied, denied, allow}, "POST /api/admin/volunteers/:id/contributions": {guest, denied, denied, denied, created},
 		"GET /api/admin/volunteer-applications": {guest, denied, denied, denied, allow}, "PATCH /api/admin/volunteer-applications/:id": {guest, denied, denied, denied, conflict},
-		"GET /api/admin/events/:id/signups": {guest, denied, denied, denied, allow},
-		"GET /api/me":                       {guest, allow, allow, allow, allow}, "POST /api/me/volunteer-application": {guest, http.StatusConflict, http.StatusConflict, http.StatusConflict, http.StatusConflict},
+		"GET /api/admin/events/:id/signups":     {guest, denied, denied, denied, allow},
+		"GET /api/admin/home-slides":            {guest, denied, denied, denied, allow},
+		"POST /api/admin/home-slides":           {guest, denied, denied, denied, created},
+		"PUT /api/admin/home-slides/:id":        {guest, denied, denied, denied, notFound},
+		"DELETE /api/admin/home-slides/:id":     {guest, denied, denied, denied, notFound},
+		"GET /api/admin/site-settings":          {guest, denied, denied, denied, allow},
+		"PUT /api/admin/site-settings":          {guest, denied, denied, denied, allow},
+		"GET /api/admin/site-blocks":            {guest, denied, denied, denied, allow},
+		"PUT /api/admin/site-blocks/:page/:key": {guest, denied, denied, denied, allow},
+		"GET /api/admin/about-images":           {guest, denied, denied, denied, allow},
+		"POST /api/admin/about-images":          {guest, denied, denied, denied, created},
+		"PUT /api/admin/about-images/:id":       {guest, denied, denied, denied, notFound},
+		"DELETE /api/admin/about-images/:id":    {guest, denied, denied, denied, notFound},
+		"GET /api/me":                           {guest, allow, allow, allow, allow}, "POST /api/me/volunteer-application": {guest, http.StatusConflict, http.StatusConflict, http.StatusConflict, http.StatusConflict},
 		"GET /api/me/volunteer-application": {guest, allow, allow, allow, allow}, "GET /api/me/signups": {guest, allow, allow, allow, allow},
 		"POST /api/events/:id/signup": {guest, created, created, created, created}, "DELETE /api/events/:id/signup": {guest, allow, allow, allow, allow}, "GET /api/profile": {guest, allow, allow, allow, allow},
 		"PUT /api/profile": {guest, allow, allow, allow, allow},
@@ -66,6 +88,7 @@ func TestRegisteredRouteRoleMatrix(t *testing.T) {
 	postID := insertTestPost(t, db, postAuthor, true)
 	eventID := insertTestEvent(t, db)
 	mediaID := insertMatrixMedia(t, db, postAuthor)
+	siteMediaID := insertMatrixMedia(t, db, postAuthor)
 	var contactID int32
 	if err := db.QueryRowContext(t.Context(), `INSERT INTO contact_messages (name, email, message) VALUES ('Matrix', 'matrix@example.org', 'Inbox fixture') RETURNING id`).Scan(&contactID); err != nil {
 		t.Fatalf("insert contact fixture: %v", err)
@@ -101,7 +124,10 @@ func TestRegisteredRouteRoleMatrix(t *testing.T) {
 			path = strings.ReplaceAll(path, "/contact-messages/:id", "/contact-messages/"+fmt.Sprint(contactID))
 			path = strings.ReplaceAll(path, "/volunteer-applications/:id", "/volunteer-applications/"+fmt.Sprint(applicationID))
 			path = strings.ReplaceAll(path, "/volunteers/:id", "/volunteers/"+fmt.Sprint(ids["volunteer"]))
-			body := matrixRequestBody(key, role, ri, date)
+			path = strings.ReplaceAll(path, "/home-slides/:id", "/home-slides/2147483000")
+			path = strings.ReplaceAll(path, "/about-images/:id", "/about-images/2147483000")
+			path = strings.ReplaceAll(path, "/site-blocks/:page/:key", "/site-blocks/home/hero")
+			body := matrixRequestBody(key, role, ri, date, int(siteMediaID))
 			cookie := cookies[role]
 			if role == "guest" {
 				cookie = nil
@@ -153,7 +179,7 @@ func TestRegisteredRouteRoleMatrix(t *testing.T) {
 	}
 }
 
-func matrixRequestBody(key, role string, index int, date string) string {
+func matrixRequestBody(key, role string, index int, date string, mediaID int) string {
 	switch key {
 	case "POST /api/register":
 		return fmt.Sprintf(`{"name":"New","email":"new-%s@example.org","password":"a-long-test-password"}`, role)
@@ -185,6 +211,14 @@ func matrixRequestBody(key, role string, index int, date string) string {
 		return `{"hours":1.25,"contribution_date":"2026-10-24"}`
 	case "PUT /api/profile":
 		return fmt.Sprintf(`{"name":"Updated","email":"profile-%s@example.org"}`, role)
+	case "POST /api/admin/home-slides", "PUT /api/admin/home-slides/:id":
+		return fmt.Sprintf(`{"media_id":%d,"sort_order":0,"active":true,"translations":{"en":{"caption":"English caption"},"am":{"caption":"Amharic caption"}}}`, mediaID)
+	case "PUT /api/admin/site-settings":
+		return fmt.Sprintf(`{"logo_media_id":%d,"favicon_media_id":%d,"social_image_media_id":%d,"translations":{"en":{"site_name":"Site","tagline":"Tagline"},"am":{"site_name":"Site","tagline":"Tagline"}}}`, mediaID, mediaID, mediaID)
+	case "PUT /api/admin/site-blocks/:page/:key":
+		return `{"translations":{"en":{"text":"English text"},"am":{"text":"Amharic text"}}}`
+	case "POST /api/admin/about-images", "PUT /api/admin/about-images/:id":
+		return fmt.Sprintf(`{"media_id":%d,"sort_order":0,"translations":{"en":{"caption":"English caption"},"am":{"caption":"Amharic caption"}}}`, mediaID)
 	default:
 		return `{}`
 	}

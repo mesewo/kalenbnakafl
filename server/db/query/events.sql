@@ -2,7 +2,7 @@
 SELECT e.id,
        en.title AS en_title, en.description AS en_description, en.location AS en_location,
        am.title AS am_title, am.description AS am_description, am.location AS am_location,
-       e.event_date, e.ends_at, e.created_at
+       e.event_date, e.ends_at, e.cover_media_id, e.created_at
 FROM events e
 LEFT JOIN event_translations en ON en.event_id = e.id AND en.locale = 'en'
 LEFT JOIN event_translations am ON am.event_id = e.id AND am.locale = 'am'
@@ -19,15 +19,15 @@ WHERE (NOT sqlc.arg(upcoming)::boolean OR event_date >= CURRENT_TIMESTAMP);
 SELECT e.id,
        en.title AS en_title, en.description AS en_description, en.location AS en_location,
        am.title AS am_title, am.description AS am_description, am.location AS am_location,
-       e.event_date, e.ends_at, e.created_at
+       e.event_date, e.ends_at, e.cover_media_id, e.created_at
 FROM events e
 LEFT JOIN event_translations en ON en.event_id = e.id AND en.locale = 'en'
 LEFT JOIN event_translations am ON am.event_id = e.id AND am.locale = 'am'
 WHERE e.id = sqlc.arg(id);
 
 -- name: CreateEvent :one
-INSERT INTO events (event_date, ends_at)
-VALUES (sqlc.arg(event_date), sqlc.narg(ends_at))
+INSERT INTO events (event_date, ends_at, cover_media_id)
+VALUES (sqlc.arg(event_date), sqlc.narg(ends_at), sqlc.narg(cover_media_id))
 RETURNING id;
 
 -- name: UpsertEventTranslation :exec
@@ -46,7 +46,12 @@ SELECT id FROM events WHERE id = sqlc.arg(id) FOR UPDATE;
 
 -- name: UpdateEventFields :execrows
 UPDATE events
-SET event_date = sqlc.arg(event_date), ends_at = sqlc.narg(ends_at)
+SET event_date = sqlc.arg(event_date), ends_at = sqlc.narg(ends_at),
+    cover_media_id = CASE
+        WHEN sqlc.arg(clear_cover_media)::boolean THEN NULL
+        WHEN sqlc.narg(cover_media_id)::integer IS NOT NULL THEN sqlc.narg(cover_media_id)::integer
+        ELSE cover_media_id
+    END
 WHERE id = sqlc.arg(id);
 
 -- name: DeleteEvent :execrows
