@@ -226,7 +226,7 @@ Every Amharic string below was drafted for this change and **needs native review
 | `contact.reply` | ሰው ይመልስልዎታል። |
 | `contact.replyText` | እያንዳንዱን መልእክት እናነባለን፤ በተቻለን ፍጥነትም እንመልሳለን። ስለ ዝግጅት ወይም በጎ ፈቃደኝነት ከሆነ አውዱን ያካትቱ። |
 | `contact.email` | በኢሜይል መጻፍ ይመርጣሉ? |
-| `contact.emailText` | hello@kalenbnakafl.org ላይ ይጻፉልንና ምን ማሰስ እንደሚፈልጉ ይንገሩን። |
+| `contact.emailText` | ማሰስ የሚፈልጉትን ይንገሩን። |
 | `contact.formTitle` | ውይይት ይጀምሩ። |
 | `contact.say` | ሰላም ይበሉ |
 | `contact.name` | ስምዎ |
@@ -553,3 +553,110 @@ Every Amharic string below was drafted for this change and **needs native review
 | `dashboard.brandingTextTitle` | ስምና መለያ ሐረግ |
 | `dashboard.siteName` | የድረ ገጽ ስም |
 | `dashboard.siteTagline` | መለያ ሐረግ |
+| `contact.emailAddress` | hello@kalenbnakafl.org |
+| `contact.addressLabel` | አድራሻ |
+| `contact.hoursLabel` | የቢሮ ሰዓት |
+| `contact.phoneLabel` | ስልክ |
+| `dashboard.pageContentNav` | የገጽ ይዘት |
+| `dashboard.adminGuideNav` | የአስተዳዳሪ መመሪያ |
+| `dashboard.pageContentTitle` | የገጽ ይዘት |
+| `dashboard.pageContentIntro` | በእንግሊዝኛና በአማርኛ የሕዝብ ገጹን ጽሑፍ ያርትዑ። መስክ ባዶ ከሆነ የካታሎግ ነባሪው ወይም ያለው ሌላ ቋንቋ ይታያል። |
+| `dashboard.contentHomePage` | ዋና ገጽ |
+| `dashboard.contentAboutPage` | ስለ እኛ ገጽ |
+| `dashboard.contentContactPage` | የግንኙነት ገጽ |
+| `dashboard.contentEnglish` | እንግሊዝኛ |
+| `dashboard.contentAmharic` | አማርኛ |
+| `dashboard.contentFieldHelp` | ቀላል ጽሑፍ ብቻ ይጠቀሙ። የመስመር ለውጦች ይቆያሉ፤ HTML አይደገፍም። |
+| `dashboard.contentDefaultHint` | የካታሎግ ነባሪውን ወይም ያለውን ሌላ ቋንቋ ለመጠቀም ባዶ ይተዉ። |
+| `dashboard.contentCharacterCount` | {count} / {maximum} ቁምፊዎች |
+| `dashboard.contentLastEdited` | በ{date} በ{name} የተስተካከለ |
+| `dashboard.contentUnknownEditor` | አስተዳዳሪ |
+| `dashboard.contentNotEdited` | የተቀመጠ ለውጥ የለም፤ የካታሎግ ነባሪው እየታየ ነው። |
+| `dashboard.contentFallback` | አንድ ቋንቋ ከጎደለ በሕዝብ ገጹ ላይ ያለው ሌላ ቋንቋ ይታያል። |
+| `dashboard.contentUnsaved` | ያልተቀመጡ ለውጦች አሉ። ከመውጣትዎ በፊት የተቀየሩትን ይቆጥቡ። |
+| `dashboard.contentSaved` | የገጽ ጽሑፉ ተቀምጧል። |
+| `dashboard.contentLoading` | የገጽ ጽሑፍ በመጫን ላይ… |
+| `dashboard.loadPageContentFailed` | የገጽ ጽሑፍን መጫን አልተቻለም። |
+| `dashboard.savePageContentFailed` | የገጽ ጽሑፉን ማስቀመጥ አልተቻለም። |
+| `dashboard.contentReset` | ወደ ነባሪ ይመልሱ |
+| `dashboard.confirmContentReset` | ሁለቱንም ቋንቋዎች ወደ ካታሎግ ነባሪ መመለስ ይፈልጋሉ? |
+| `dashboard.contentEmailInvalid` | በሁለቱም ቋንቋዎች ትክክለኛ ኢሜይል ያስገቡ። |
+| `dashboard.contentPhoneInvalid` | ቁጥሮችንና የስልክ ምልክቶችን ብቻ የያዘ ስልክ ቁጥር ያስገቡ። |
+| `dashboard.homeHeroEyebrow` | የዋና ገጽ የመግቢያ መለያ |
+| `dashboard.homeHeroTitle` | የዋና ገጽ ርዕስ |
+| `dashboard.homeHeroIntro` | የዋና ገጽ መግቢያ |
+| `dashboard.homeSharedEyebrow` | የጋራ ሥራ መለያ |
+| `dashboard.homeThriveHeading` | የጋራ ሥራ ርዕስ |
+| `dashboard.homeOneHeading` | የማኅበረሰብ ማስታወሻ ርዕስ |
+| `dashboard.homeOneText` | የማኅበረሰብ ማስታወሻ መግለጫ |
+| `dashboard.homeHowEyebrow` | የአሠራር መለያ |
+| `dashboard.homeHowTitle` | የአሠራር ርዕስ |
+| `dashboard.homeHowIntro` | የአሠራር መግለጫ |
+| `dashboard.homeConnectTitle` | የማገናኘት ካርድ ርዕስ |
+| `dashboard.homeConnectText` | የማገናኘት ካርድ መግለጫ |
+| `dashboard.homeLearnTitle` | የመማር ካርድ ርዕስ |
+| `dashboard.homeLearnText` | የመማር ካርድ መግለጫ |
+| `dashboard.homeActTitle` | የተግባር ካርድ ርዕስ |
+| `dashboard.homeActText` | የተግባር ካርድ መግለጫ |
+| `dashboard.homePeopleStat` | ሰዎችን ያማከለ ፕሮግራም መለያ |
+| `dashboard.homeWaysStat` | የመሳተፊያ መንገድ መለያ |
+| `dashboard.homeIdeasStat` | ማጋራት የሚገባቸው ሐሳቦች መለያ |
+| `dashboard.homeProgressStat` | በተግባር የሚመጣ እድገት መለያ |
+| `dashboard.homeComingEyebrow` | የሚመጡ ዝግጅቶች መለያ |
+| `dashboard.homeComingTitle` | የሚመጡ ዝግጅቶች ርዕስ |
+| `dashboard.homeNoEvents` | ዝግጅት ባይኖር የሚታይ መልእክት |
+| `dashboard.homeStoriesEyebrow` | የማኅበረሰብ ታሪኮች መለያ |
+| `dashboard.homeStoriesTitle` | የማኅበረሰብ ታሪኮች ርዕስ |
+| `dashboard.homeNoPosts` | ጽሑፍ ባይኖር የሚታይ መልእክት |
+| `dashboard.homeCtaTitle` | የዋና ገጽ የድርጊት ጥሪ ርዕስ |
+| `dashboard.aboutHeroEyebrow` | የስለ እኛ መግቢያ መለያ |
+| `dashboard.aboutHeroTitle` | የስለ እኛ ገጽ ርዕስ |
+| `dashboard.aboutHeroIntro` | የስለ እኛ መግቢያ |
+| `dashboard.aboutValuesEyebrow` | የእሴቶች መለያ |
+| `dashboard.aboutValuesTitle` | የእሴቶች ርዕስ |
+| `dashboard.aboutValuesFirst` | የመጀመሪያው የእሴት አንቀጽ |
+| `dashboard.aboutValuesSecond` | ሁለተኛው የእሴት አንቀጽ |
+| `dashboard.aboutApproachEyebrow` | የአቀራረብ መለያ |
+| `dashboard.aboutApproachTitle` | የአቀራረብ ርዕስ |
+| `dashboard.aboutApproachIntro` | የአቀራረብ መግለጫ |
+| `dashboard.aboutAccessibleTitle` | የተደራሽነት መርህ ርዕስ |
+| `dashboard.aboutAccessibleText` | የተደራሽነት መርህ መግለጫ |
+| `dashboard.aboutPracticalTitle` | የተግባራዊነት መርህ ርዕስ |
+| `dashboard.aboutPracticalText` | የተግባራዊነት መርህ መግለጫ |
+| `dashboard.aboutCollaborativeTitle` | የትብብር መርህ ርዕስ |
+| `dashboard.aboutCollaborativeText` | የትብብር መርህ መግለጫ |
+| `dashboard.aboutCtaTitle` | የስለ እኛ የድርጊት ጥሪ ርዕስ |
+| `dashboard.contactHeroEyebrow` | የግንኙነት መግቢያ መለያ |
+| `dashboard.contactHeroTitle` | የግንኙነት ገጽ ርዕስ |
+| `dashboard.contactHeroIntro` | የግንኙነት መግቢያ |
+| `dashboard.contactExpectEyebrow` | ምላሽ የሚጠበቅበት መለያ |
+| `dashboard.contactReplyTitle` | የምላሽ ርዕስ |
+| `dashboard.contactReplyText` | ስለ ምላሽ የሚገልጽ ጽሑፍ |
+| `dashboard.contactEmailHeading` | የኢሜይል ግንኙነት ርዕስ |
+| `dashboard.contactEmailInvite` | በኢሜይል እንዲጽፉ ጥሪ |
+| `dashboard.contactFormEyebrow` | የግንኙነት ቅጽ መለያ |
+| `dashboard.contactFormTitle` | የግንኙነት ቅጽ ርዕስ |
+| `dashboard.contactFormHelp` | የግንኙነት ቅጽ መግቢያ |
+| `dashboard.contactEmailAddress` | የግንኙነት ኢሜይል አድራሻ |
+| `dashboard.contactAddress` | የግንኙነት አድራሻ |
+| `dashboard.contactOfficeHours` | የቢሮ ሰዓት |
+| `dashboard.contactPhone` | የግንኙነት ስልክ ቁጥር |
+| `dashboard.adminGuideTitle` | የአስተዳዳሪ መመሪያ |
+| `dashboard.adminGuideIntro` | የሕዝብ ድረ ገጹን ወቅታዊ ለማድረግ አጭር መመሪያ። |
+| `dashboard.guideUploadTitle` | ፎቶ ይስቀሉ |
+| `dashboard.guideUploadText` | ወደ ሚዲያ ይሂዱ፣ JPEG፣ PNG ወይም WebP ፎቶ ይምረጡ፣ በሁለቱም ቋንቋዎች ስምና አማራጭ ጽሑፍ ያክሉ፣ ከዚያ ይስቀሉ። መረጃ የማይሰጥ ምስል ብቻ ጌጣጌጥ ብለው ይምረጡ። |
+| `dashboard.guideAltTitle` | አማራጭ ጽሑፍ ይጻፉ |
+| `dashboard.guideAltText` | በምስሉ ውስጥ አስፈላጊ የሆነውን በአጭር ዓረፍተ ነገር ይግለጹ። አማራጭ ጽሑፍ ስክሪን ሪደር ለሚጠቀሙ ሰዎች ይረዳል፤ ምስሉ ካልተጫነም ይታያል። |
+| `dashboard.guideCoverTitle` | የሽፋን ፎቶ ያዘጋጁ |
+| `dashboard.guideCoverText` | ጽሑፍ ወይም ዝግጅት ያርትዑና በሽፋን ክፍሉ ፎቶ ይምረጡ። ሰፊ ምስሎች ይሻላሉ፤ ቢያንስ 1600 × 900 ፒክስል ይጠቀሙ። |
+| `dashboard.guideSliderTitle` | የመነሻ ገጽ ስላይድ ይቀይሩ |
+| `dashboard.guideSliderText` | ወደ የመነሻ ገጽ ስላይዶች ይሂዱ፤ ፎቶ ያክሉ፣ በእንግሊዝኛና በአማርኛ መግለጫ ይጻፉ፣ ስላይዱን ያብሩ/ያጥፉ፣ ወይም ወደ ላይና ወደ ታች ያንቀሳቅሱ። የመጀመሪያው ንቁ ስላይድ ቀድሞ ይታያል። |
+| `dashboard.guidePageTextTitle` | የገጽ ጽሑፍ ያርትዑ |
+| `dashboard.guidePageTextText` | ወደ የገጽ ይዘት ይሂዱ፣ የእንግሊዝኛና የአማርኛ መስኮችን ያርትዑ፣ እያንዳንዱንም ያስቀምጡ። ጽሑፉ ቀላል ጽሑፍ ነው፤ የመስመር ለውጦች ይቆያሉ። ወደ ነባሪ መመለስ የካታሎጉን ጽሑፍ ይመልሳል። |
+| `dashboard.guideSizesTitle` | የመጠን ምክሮች ምን ማለት ናቸው? |
+| `dashboard.guideSizesText` | የመጠን ምክሮች በፒክስል የሚመከሩ ልኬቶች ናቸው፦ ለሰፊ ሽፋን 1600 × 900፣ ለአርማ 320 × 80 ወይም ከዚያ በላይ፣ ለካሬ የድረ ገጽ አዶ 512 × 512፣ ለማኅበራዊ ማጋራት 1200 × 630። ትልቅ ፒክስል መጠን በጥራት ከፍ ባላቸው ስክሪኖች ላይ ምስሉን ግልጽ ያደርገዋል። |
+| `dashboard.guideHelpTitle` | እገዛ ይፈልጋሉ? |
+| `dashboard.guideHelpText` | ለውጥ ማስቀመጥ ካልቻሉ ወይም እርግጠኛ ካልሆኑ የድረ ገጹን አስተዳዳሪ ወይም የድርጅቱን የድረ ገጽ ድጋፍ ሰው ያነጋግሩ። |
+| `dashboard.chooseHomeSlideImage` | ምስል ይምረጡ |
+| `dashboard.chooseAboutImage` | ምስል ይምረጡ |
+| `dashboard.chooseBrandImage` | ምስል ይምረጡ |

@@ -82,7 +82,11 @@ flowchart LR
 | GET | `/staff/media/{id}/usages` · `/staff/media/{id}/file?w=480\|960\|1600` | admin/editor | usage locations and private preview |
 | GET/POST/PATCH/DELETE | `/admin/users` | admin | user CRUD |
 | GET/POST/PUT/DELETE | `/admin/home-slides` · `/admin/about-images` | admin | bilingual image collections |
-| GET/PUT | `/admin/site-settings` · `/admin/site-blocks/{page}/{key}` | admin | translated branding settings and plain-text page blocks |
+| GET/PUT | `/admin/site-settings` | admin | translated branding settings |
+| GET | `/admin/site-blocks` | admin | both translations and last editor name/time for page blocks |
+| PUT | `/admin/site-blocks/{page}/{key}` | admin | saves bilingual plain-text page content; contact email/phone are validated |
+
+The admin page-content editor covers the static, organization-editable prose and headings on Home, About, and Contact. Public pages request localized block values during 60-second ISR; unavailable API content or an unset block falls back to the bilingual frontend catalog. An empty translation uses the other saved language when present, and an empty override in both languages restores catalog defaults. Blocks are rendered as text nodes with line breaks (never HTML); contact email and phone blocks are validated before writes. Admin block listings include the last editor name and timestamp.
 
 | GET · POST | `/admin/volunteers` · `/admin/volunteers/{id}/contributions` | admin | list volunteers and add contributions |
 | GET | `/admin/volunteer-applications?status&page&limit` | admin | filtered, newest-first paginated applications; applicant name/email only |

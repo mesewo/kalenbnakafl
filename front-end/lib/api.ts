@@ -13,6 +13,7 @@ export type HomeSlide = components["schemas"]["HomeSlide"];
 export type HomeSlideInput = components["schemas"]["HomeSlideInput"];
 export type SiteSettings = components["schemas"]["SiteSettings"];
 export type SiteSettingsInput = components["schemas"]["SiteSettingsInput"];
+export type SiteBlock = components["schemas"]["SiteBlock"];
 export type AboutImage = components["schemas"]["AboutImage"];
 export type AboutImageInput = components["schemas"]["AboutImageInput"];
 

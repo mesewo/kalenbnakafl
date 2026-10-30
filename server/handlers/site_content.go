@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/mail"
 	"regexp"
 	"strings"
 	"time"
@@ -59,6 +60,8 @@ type aboutImageInput struct {
 }
 
 var siteKeyPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,63}$`)
+var contactEmailPattern = regexp.MustCompile(`^[^\s@]+@[^\s@]+\.[^\s@]+$`)
+var contactPhonePattern = regexp.MustCompile(`^\+?[0-9][0-9 .()\-]{5,24}$`)
 
 func siteText(value string, maxLength int) (string, bool) {
 	value = strings.ReplaceAll(value, "\r\n", "\n")
@@ -447,10 +450,11 @@ func (a *API) getSiteBlocks(c *gin.Context, admin bool) {
 		return
 	}
 	rows, err := a.db.QueryContext(c.Request.Context(), `
-SELECT b.page,b.block_key,en.text,am.text,b.updated_at
+SELECT b.page,b.block_key,en.text,am.text,b.updated_at,COALESCE(u.name,'')
 FROM site_blocks b
 LEFT JOIN site_block_translations en ON en.block_id=b.id AND en.locale='en'
 LEFT JOIN site_block_translations am ON am.block_id=b.id AND am.locale='am'
+LEFT JOIN users u ON u.id=b.updated_by
 WHERE $1='' OR b.page=$1
 ORDER BY b.page,b.block_key`, page)
 	if err != nil {
@@ -466,8 +470,9 @@ ORDER BY b.page,b.block_key`, page)
 	for rows.Next() {
 		var blockPage, key string
 		var en, am sql.NullString
+		var updatedBy string
 		var updatedAt time.Time
-		if err := rows.Scan(&blockPage, &key, &en, &am, &updatedAt); err != nil {
+		if err := rows.Scan(&blockPage, &key, &en, &am, &updatedAt, &updatedBy); err != nil {
 			httpx.Internal(c, "Could not read site blocks")
 			return
 		}
@@ -478,6 +483,7 @@ ORDER BY b.page,b.block_key`, page)
 		}
 		if admin {
 			block["translations"] = gin.H{"en": gin.H{"text": en.String}, "am": gin.H{"text": am.String}}
+			block["updated_by_name"] = updatedBy
 		}
 		items = append(items, block)
 	}
@@ -500,7 +506,8 @@ func (a *API) UpsertSiteBlock(c *gin.Context) {
 		return
 	}
 	for _, translation := range input.Translations {
-		if _, ok := siteText(translation.Text, 20000); !ok {
+		text, ok := siteText(translation.Text, 20000)
+		if !ok || !validContactBlock(page, key, text) {
 			httpx.Fail(c, http.StatusUnprocessableEntity, "site.invalid_site_block")
 			return
 		}
@@ -541,6 +548,21 @@ RETURNING id`, page, key, authorID).Scan(&id)
 		return
 	}
 	httpx.Success(c, http.StatusOK, "site.block_saved")
+}
+
+func validContactBlock(page, key, text string) bool {
+	if page != "contact" || strings.TrimSpace(text) == "" {
+		return true
+	}
+	switch key {
+	case "email_address":
+		address, err := mail.ParseAddress(text)
+		return err == nil && address.Address == text && contactEmailPattern.MatchString(text)
+	case "phone":
+		return contactPhonePattern.MatchString(text)
+	default:
+		return true
+	}
 }
 
 func (a *API) GetAboutImages(c *gin.Context) {

@@ -4,7 +4,15 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useApiWakeup } from "@/lib/use-api-wakeup";
 
-export default function ContactForm() {
+export default function ContactForm({
+  eyebrow,
+  title,
+  helpText,
+}: {
+  eyebrow: string;
+  title: string;
+  helpText: string;
+}) {
   const t = useTranslations("contact");
   const common = useTranslations("common");
   const isWaking = useApiWakeup();
@@ -32,8 +40,8 @@ export default function ContactForm() {
     <form onSubmit={handleSubmit} className="form-card" noValidate>
       <div className="section-head" style={{ marginBottom: "1.5rem" }}>
         <div>
-          <span className="eyebrow">{t("say")}</span>
-          <h2>{t("formTitle")}</h2>
+          <span className="eyebrow site-block-text">{eyebrow}</span>
+          <h2 className="site-block-text">{title}</h2>
         </div>
       </div>
       {isWaking && (
@@ -84,7 +92,9 @@ export default function ContactForm() {
           required
           aria-describedby="message-help"
         />
-        <small id="message-help">{t("help")}</small>
+        <small id="message-help" className="site-block-text">
+          {helpText}
+        </small>
       </div>
       <button className="btn btn-primary" type="submit" disabled={loading}>
         {loading ? t("sending") : t("send")}

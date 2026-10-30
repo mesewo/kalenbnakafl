@@ -131,7 +131,60 @@ test("admin manages slider, About photos, and branding in both locales", async (
       };
     };
   });
+  const originalHeroTranslations = await page.evaluate(async () => {
+    const response = await fetch("/api/admin/site-blocks?page=home");
+    if (!response.ok) throw new Error("Could not save the original page text for cleanup");
+    const result = (await response.json()) as {
+      items: Array<{
+        key: string;
+        translations?: { en?: { text: string }; am?: { text: string } };
+      }>;
+    };
+    const block = result.items.find((item) => item.key === "hero_title");
+    return {
+      en: block?.translations?.en?.text ?? "",
+      am: block?.translations?.am?.text ?? "",
+    };
+  });
   try {
+    const amharicPageTitle = `የዋና ገጽ ርዕስ ${suffix}`;
+    await page.goto("/am/dashboard/page-content");
+    const heroContent = page.locator(".site-block-card").filter({ hasText: "የዋና ገጽ ርዕስ" });
+    await heroContent.getByLabel("አማርኛ", { exact: true }).fill(amharicPageTitle);
+    await expect(heroContent.getByText("አንድ ቋንቋ ከጎደለ", { exact: false })).toBeVisible();
+    await heroContent.getByRole("button", { name: "ለውጦቹን ያስቀምጡ" }).click();
+    await expect(page.getByRole("status").filter({ hasText: "የገጽ ጽሑፉ ተቀምጧል" })).toBeVisible();
+    for (const locale of ["am", "en"] as const) {
+      await expect
+        .poll(
+          async () => {
+            await page.goto(`/${locale}`);
+            return page.getByRole("heading", { name: amharicPageTitle, exact: true }).count();
+          },
+          { timeout: 90_000, intervals: [3000, 5000, 10000] },
+        )
+        .toBeGreaterThan(0);
+    }
+
+    await page.goto("/am/dashboard/page-content");
+    const resetHeroContent = page.locator(".site-block-card").filter({ hasText: "የዋና ገጽ ርዕስ" });
+    page.once("dialog", (dialog) => dialog.accept());
+    await resetHeroContent.getByRole("button", { name: "ወደ ነባሪ ይመልሱ" }).click();
+    await expect(page.getByRole("status").filter({ hasText: "የገጽ ጽሑፉ ተቀምጧል" })).toBeVisible();
+    await expect(resetHeroContent.getByLabel("አማርኛ", { exact: true })).toHaveValue("");
+    await expect(page.getByText("ያልተቀመጡ ለውጦች አሉ።", { exact: false })).toHaveCount(0);
+    await expect
+      .poll(
+        async () => {
+          await page.goto("/en");
+          return page
+            .getByRole("heading", { name: "Small actions. Stronger neighborhoods.", exact: true })
+            .count();
+        },
+        { timeout: 90_000, intervals: [3000, 5000, 10000] },
+      )
+      .toBeGreaterThan(0);
+
     await page.goto("/en/dashboard/media");
     await uploadImage(page, logoTitle, titles.logo, englishAlt, amharicAlt, 640, 160, [49, 92, 74]);
     await uploadImage(
@@ -312,7 +365,7 @@ test("admin manages slider, About photos, and branding in both locales", async (
     }
   } finally {
     await page.evaluate(
-      async ({ slideCaptions, aboutCaptions, original }) => {
+      async ({ slideCaptions, aboutCaptions, original, heroTitle }) => {
         const slideResponse = await fetch("/api/admin/home-slides");
         if (slideResponse.ok) {
           const slides = (await slideResponse.json()) as {
@@ -364,6 +417,17 @@ test("admin manages slider, About photos, and branding in both locales", async (
           }),
         });
         if (!restored.ok) throw new Error("Could not restore the original site settings");
+        const restoredPageContent = await fetch("/api/admin/site-blocks/home/hero_title", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            translations: {
+              en: { text: heroTitle.en },
+              am: { text: heroTitle.am },
+            },
+          }),
+        });
+        if (!restoredPageContent.ok) throw new Error("Could not restore the original page text");
       },
       {
         slideCaptions: [
@@ -374,6 +438,7 @@ test("admin manages slider, About photos, and branding in both locales", async (
         ],
         aboutCaptions: [englishAboutCaption, amharicAboutCaption],
         original: originalSettings,
+        heroTitle: originalHeroTranslations,
       },
     );
   }

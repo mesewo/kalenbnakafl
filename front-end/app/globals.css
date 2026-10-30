@@ -1169,6 +1169,42 @@ html[lang="am"] .brand-copy {
 .site-content-card {
   min-width: 0;
 }
+
+.site-block-text {
+  white-space: pre-line;
+}
+
+.site-block-editor {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.site-block-editor-languages {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.site-block-field {
+  min-width: 0;
+}
+
+.site-block-field textarea {
+  min-height: 7rem;
+}
+
+.site-block-field small,
+.site-block-meta {
+  display: block;
+  margin-top: 0.35rem;
+  color: var(--muted);
+}
+
+@media (max-width: 680px) {
+  .site-block-editor-languages {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 .site-content-card-head,
 .site-content-image-row {
   display: flex;

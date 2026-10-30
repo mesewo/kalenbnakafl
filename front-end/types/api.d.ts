@@ -821,7 +821,10 @@ export interface paths {
       cookie?: never;
     };
     get?: never;
-    /** Create or replace a translated plain-text block */
+    /**
+     * Create or replace a translated plain-text block
+     * @description Text is plain text with line breaks only. Contact email and phone blocks are validated before saving.
+     */
     put: operations["adminUpsertSiteBlock"];
     post?: never;
     delete?: never;
@@ -1076,6 +1079,7 @@ export interface components {
       fallback: boolean;
       /** Format: date-time */
       updated_at: string;
+      updated_by_name?: string;
       translations?: components["schemas"]["SiteTextTranslations"];
     };
     SiteBlockInput: {
@@ -3215,12 +3219,18 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description Page blocks and translations */
+      /** @description Page blocks and both translations, including editor attribution */
       200: {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          "application/json": {
+            items: components["schemas"]["SiteBlock"][];
+            /** @enum {string} */
+            language: "en" | "am";
+          };
+        };
       };
       401: components["responses"]["Unauthorized"];
       403: components["responses"]["Forbidden"];

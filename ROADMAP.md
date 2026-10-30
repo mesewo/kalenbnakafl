@@ -2,11 +2,11 @@
 
 ### Current state / next step
 
-- Admin-only Home slider, About images, and Branding pages now use the shared MediaPicker, bilingual editing, keyboard-operable reordering, and image-dimension checks; no backend schema changes were needed.
-- Public home and About pages render localized, responsive image content; the accessible slider respects reduced motion and retains the static hero fallback, while Navbar/Footer, favicon, and locale-specific share metadata use configured branding with safe defaults.
-- Verification passed: frontend lint, TypeScript, i18n catalog validation (515 messages), production build, and backend build/vet/tests/sqlc diff. The production build logged expected API connection-refused warnings because no API was running.
-- Verification limits: authenticated Playwright could not run because no admin credentials or Compose services are available; the full frontend Prettier check and `gofmt -l .` report pre-existing formatting issues in untouched files, while changed frontend files were checked separately.
-- Next: run the site-customization Playwright flow against the CI/Compose stack, then obtain native Amharic review for [docs/i18n-review.md](./docs/i18n-review.md).
+- Admins can edit all static Home, About, and Contact copy in both languages, reset blocks to catalog wording, and see fallback and editor-attribution details; email and phone values are validated.
+- Public content uses localized site blocks with 60-second ISR and catalog defaults; unavailable API reads leave the public pages usable, and text renders as plain text with preserved line breaks.
+- Added the bilingual Admin guide, contact detail fields, backend validation/fallback/authorization tests, and an Amharic→English public-page Playwright scenario.
+- Verification passed: Go build/vet/tests/sqlc diff, frontend lint/TypeScript/i18n check (619 messages), focused Prettier checks, production build, and Playwright test discovery. PostgreSQL integration tests skipped because `DATABASE_URL_TEST` is unset; build logged expected API connection-refused warnings.
+- Next: run authenticated Playwright and PostgreSQL integration tests with CI/Compose credentials, obtain native Amharic review from [docs/i18n-review.md](./docs/i18n-review.md), and resolve the repository's existing full-format-check findings.
 **Goal:** a repo and a live demo that survive a 10-minute recruiter/hiring-manager review for a *senior full-stack* role: one-command startup, real security, real tests, CI, docs, and a polished, working UI.
 
 **Rhythm:** each phase = 1–3 focused sessions (≈2–4 h each) with Gemini. Finish a phase's *Exit criteria* before starting the next. Total ≈ 3–4 weeks part-time.

@@ -349,6 +349,7 @@ components:
         language: {type: string, enum: [en, am]}
         fallback: {type: boolean}
         updated_at: {type: string, format: date-time}
+        updated_by_name: {type: string}
         translations: {$ref: "#/components/schemas/SiteTextTranslations"}
       required: [page, key, text, language, fallback, updated_at]
 
@@ -2658,13 +2659,23 @@ paths:
           in: query
           schema: {type: string, pattern: "^[a-z0-9][a-z0-9_-]{0,63}$"}
       responses:
-        "200": {description: Page blocks and translations}
+        "200":
+          description: Page blocks and both translations, including editor attribution
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: {type: array, items: {$ref: "#/components/schemas/SiteBlock"}}
+                  language: {type: string, enum: [en, am]}
+                required: [items, language]
         "401": {$ref: "#/components/responses/Unauthorized"}
         "403": {$ref: "#/components/responses/Forbidden"}
   /api/admin/site-blocks/{page}/{key}:
     put:
       operationId: adminUpsertSiteBlock
       summary: Create or replace a translated plain-text block
+      description: Text is plain text with line breaks only. Contact email and phone blocks are validated before saving.
       x-roles: [admin]
       tags: [admin, site]
       security: [{cookieAuth: []}]
