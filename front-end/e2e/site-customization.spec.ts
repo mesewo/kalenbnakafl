@@ -175,8 +175,9 @@ test("admin manages slider, About photos, and branding in both locales", async (
     picker = page.getByRole("dialog", { name: "ፎቶ ይምረጡ" });
     await picker.getByRole("button", { name: new RegExp(titles.share) }).click();
     await picker.getByRole("button", { name: "ይህን ፎቶ ይጠቀሙ" }).click();
-    await page.getByLabel("የእንግሊዝኛ መግለጫ").fill(secondEnglishSlideCaption);
-    await page.getByLabel("የአማርኛ መግለጫ").fill(secondAmharicSlideCaption);
+    const newSlideCard = page.locator(".site-content-card").last();
+    await newSlideCard.getByLabel("የእንግሊዝኛ መግለጫ").fill(secondEnglishSlideCaption);
+    await newSlideCard.getByLabel("የአማርኛ መግለጫ").fill(secondAmharicSlideCaption);
     await page.getByRole("button", { name: "ስላይድ ያክሉ" }).last().click();
     await expect(page.getByRole("status").filter({ hasText: "ለውጦቹ ተቀምጠዋል" })).toBeVisible();
     await page
