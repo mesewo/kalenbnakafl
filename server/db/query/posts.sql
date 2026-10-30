@@ -58,7 +58,11 @@ SELECT id FROM posts WHERE id = sqlc.arg(id) FOR UPDATE;
 -- name: UpdatePostFields :execrows
 UPDATE posts
 SET slug = COALESCE(sqlc.narg(slug), slug),
-    cover_media_id = COALESCE(sqlc.narg(cover_media_id), cover_media_id),
+    cover_media_id = CASE
+        WHEN sqlc.arg(clear_cover_media)::boolean THEN NULL
+        WHEN sqlc.narg(cover_media_id)::integer IS NOT NULL THEN sqlc.narg(cover_media_id)
+        ELSE cover_media_id
+    END,
     updated_at = CURRENT_TIMESTAMP
 WHERE id = sqlc.arg(id);
 

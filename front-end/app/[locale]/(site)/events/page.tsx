@@ -4,6 +4,7 @@ import EventSignup from "@/components/EventSignup";
 import { fetchPublic } from "@/lib/server-api";
 import { formatDate, type EventItem, type PageResponse } from "@/lib/api";
 import { localizedMetadata } from "@/lib/metadata";
+import PublicMediaImage from "@/components/PublicMediaImage";
 
 export const revalidate = 60;
 type Props = { params: Promise<{ locale: "en" | "am" }>; searchParams: Promise<{ page?: string }> };
@@ -47,11 +48,21 @@ export default async function EventsPage({ params, searchParams }: Props) {
             <div className="grid-2">
               {result.items.map((event) => (
                 <article className="card" key={event.id}>
+                  <PublicMediaImage
+                    mediaID={event.cover_media_id}
+                    locale={locale}
+                    className="public-media-card"
+                  />
                   <span className="eyebrow">{formatDate(event.event_date, true, locale)}</span>
-                  <h2>{event.title}</h2>
+                  <h2>
+                    <Link href={`/events/${event.id}`}>{event.title}</Link>
+                  </h2>
                   {event.fallback && <small>{common("fallback")}</small>}
                   <p>{event.description}</p>
                   {event.location && <p className="meta">{event.location}</p>}
+                  <Link className="meta" href={`/events/${event.id}`}>
+                    {t("details")}
+                  </Link>
                   <EventSignup event={event} />
                 </article>
               ))}

@@ -19,9 +19,10 @@ type Post struct {
 	Fallback     bool                       `json:"fallback"`
 }
 type PostInput struct {
-	Translations map[string]*PostTranslation `json:"translations"`
-	Slug         string                      `json:"slug"`
-	CoverMediaID *int                        `json:"cover_media_id"`
+	Translations    map[string]*PostTranslation `json:"translations"`
+	Slug            string                      `json:"slug"`
+	CoverMediaID    *int                        `json:"cover_media_id"`
+	ClearCoverMedia bool                        `json:"clear_cover_media"`
 }
 type PostTranslation struct {
 	Title   string `json:"title"`

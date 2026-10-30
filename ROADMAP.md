@@ -2,11 +2,11 @@
 
 ### Current state / next step
 
-- Admin-managed image uploads and bilingual site-content APIs now use migration 0008, protected usage tracking, localized public reads, and same-origin `/api/media/...` variant URLs; ADR-011 records the re-encoding policy.
-- Post covers and safe `{{media:<id>}}` body tokens resolve through public media metadata; the dashboard surfaces usage and deletion conflicts, and all new routes are represented in OpenAPI/types and the role matrix.
-- Backend build, vet, tests, SQLC diff, Goose validation, and CGO-disabled image tests passed; the targeted `errcheck` lint passes after logging site-content row-close errors. Full local `golangci-lint` still reports three pre-existing gofmt findings outside this change. Frontend lint, TypeScript, i18n validation, and production build passed. A CI failure in the media locale-fallback fixture was fixed by associating its image with a public event cover.
-- Remaining verification: PostgreSQL-backed matrix/usage integration tests and Compose smoke could not run because `DATABASE_URL_TEST` is unset and Docker Engine is unavailable; repository-wide gofmt and Prettier checks also report pre-existing unrelated formatting issues.
-- Next: run the database-backed tests and deployment smoke when PostgreSQL/Docker are available, and obtain native Amharic review for [docs/i18n-review.md](./docs/i18n-review.md).
+- The bilingual admin media library now provides all-library search, thumbnails, upload progress/errors, localized alt text, decorative uploads, usage details, and conflict-aware deletion; the reusable picker supports search, paged selection, uploads, previews, keyboard focus handling, and responsive layouts.
+- Post/event covers and safe `{{media:<id>}}` body tokens render through localized public media metadata on listing/detail pages; the events detail route and explicit post-cover removal API are implemented and documented.
+- Backend build, vet, tests, SQLC diff, Goose validation, and CGO-disabled image tests passed; frontend lint, TypeScript, i18n validation (455 messages), targeted formatting, and production build passed. Build-time static generation logs expected API connection-refused warnings because the API is offline.
+- Remaining verification: PostgreSQL-backed matrix/usage integration tests, Compose smoke, and Playwright browser flows could not run because `DATABASE_URL_TEST` is unset and Docker Engine is unavailable. Full local golangci-lint and repository-wide formatting still report unrelated pre-existing findings.
+- Next: run PostgreSQL integration tests, Compose smoke, and `npx playwright test e2e/media-experience.spec.ts` when services are available, then obtain native Amharic review for [docs/i18n-review.md](./docs/i18n-review.md).
 **Goal:** a repo and a live demo that survive a 10-minute recruiter/hiring-manager review for a *senior full-stack* role: one-command startup, real security, real tests, CI, docs, and a polished, working UI.
 
 **Rhythm:** each phase = 1–3 focused sessions (≈2–4 h each) with Gemini. Finish a phase's *Exit criteria* before starting the next. Total ≈ 3–4 weeks part-time.

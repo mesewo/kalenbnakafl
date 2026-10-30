@@ -28,6 +28,37 @@ Every Amharic string below was drafted for this change and **needs native review
 | `dashboard.mediaLanguage` | የምስል ትርጉም ቋንቋ |
 | `dashboard.mediaAltHelp` | ምስሉ ጌጣጌጥ ካልሆነ በእንግሊዝኛና በአማርኛ አማራጭ ጽሑፍ ያቅርቡ። |
 | `dashboard.mediaAltRequired` | ምስል ይምረጡና በሁለቱም ቋንቋዎች አማራጭ ጽሑፍ ያቅርቡ፣ ወይም ምስሉን ጌጣጌጥ ብለው ይምረጡ። |
+| `dashboard.mediaLibraryHelp` | ፎቶዎችን ያክሉ፣ መግለጫቸውን ያዘምኑ፣ እና እያንዳንዱ የት እንደተጠቀመ ይመልከቱ። |
+| `dashboard.mediaAddImages` | ፎቶዎችን ያክሉ |
+| `dashboard.mediaImageName` | የምስሉ ስም |
+| `dashboard.mediaChooseFile` | ፎቶ ይምረጡ |
+| `dashboard.mediaDropFiles` | ፎቶን እዚህ ይጎትቱ ወይም ከመሣሪያዎ ይምረጡ። |
+| `dashboard.mediaInvalidType` | ይህ የፋይል አይነት አይፈቀድም። JPG፣ PNG ወይም WebP ይጠቀሙ። |
+| `dashboard.mediaFileTooLarge` | ይህ ፎቶ በጣም ትልቅ ነው። አነስ ያለ ፋይል ይምረጡ። |
+| `dashboard.mediaUploadProgress` | የፎቶ መስቀል ሂደት |
+| `dashboard.mediaSearch` | ምስሎችን ይፈልጉ |
+| `dashboard.mediaSearchPlaceholder` | በስም ወይም በመግለጫ ይፈልጉ |
+| `dashboard.mediaImageCount` | {count, plural, one {# ምስል} other {# ምስሎች}} |
+| `dashboard.mediaDimensions` | {width} × {height} |
+| `dashboard.mediaNoSearchResults` | ከፍለጋዎ ጋር የሚዛመድ ምስል የለም። |
+| `dashboard.mediaUntitled` | ስም ያልተሰጠው ምስል |
+| `dashboard.mediaPickerTitle` | ፎቶ ይምረጡ |
+| `dashboard.mediaExistingImages` | ያሉ ፎቶዎች |
+| `dashboard.mediaUploadNew` | አዲስ ፎቶ ይስቀሉ |
+| `dashboard.mediaUseImage` | ይህን ፎቶ ይጠቀሙ |
+| `dashboard.mediaPages` | የምስል ገጾች |
+| `dashboard.postCover` | የጽሑፍ ሽፋን ፎቶ |
+| `dashboard.postCoverHint` | ሰፊ ፎቶ፣ ቢያንስ 1600×900። |
+| `dashboard.eventCover` | የዝግጅት ሽፋን ፎቶ |
+| `dashboard.eventCoverHint` | ሰፊ ፎቶ፣ ቢያንስ 1600×900። |
+| `dashboard.selectCover` | የሽፋን ፎቶ ይምረጡ |
+| `dashboard.changeCover` | የሽፋን ፎቶውን ይቀይሩ |
+| `dashboard.removeCover` | ሽፋኑን ያስወግዱ |
+| `dashboard.insertImage` | ምስል ያስገቡ |
+| `dashboard.deleting` | በመሰረዝ ላይ… |
+| `events.details` | የዝግጅቱን ዝርዝር ይመልከቱ |
+| `events.back` | ← ወደ ሁሉም ዝግጅቶች |
+| `events.notFound` | ዝግጅቱ አልተገኘም |
 | `dashboard.decorativeImage` | ጌጣጌጥ ምስል (አማራጭ ጽሑፍ አያስፈልግም) |
 | `dashboard.mediaUsageHeading` | የት እንደተጠቀመ |
 | `dashboard.mediaUnused` | በአሁኑ ጊዜ አልተጠቀመም። |

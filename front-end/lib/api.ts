@@ -196,6 +196,74 @@ export async function apiFetch<T = unknown>(
     if (retrying) notifyApiWakeup(false);
   }
 }
+
+export async function apiUpload<T = unknown>(
+  endpoint: string,
+  body: FormData,
+  onProgress: (progress: number) => void,
+): Promise<T> {
+  const locale =
+    typeof document !== "undefined" && document.documentElement.lang === "am" ? "am" : "en";
+  const commonMessages = locale === "am" ? amMessages.common : enMessages.common;
+  const requested = new URL(
+    getUrl(endpoint),
+    typeof window === "undefined" ? "http://localhost" : window.location.origin,
+  );
+  requested.searchParams.set("lang", locale);
+
+  return new Promise<T>((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    request.open("POST", requested.toString());
+    request.withCredentials = true;
+    request.timeout = UPLOAD_TIMEOUT_MS;
+    request.setRequestHeader("Accept-Language", locale);
+    request.upload.addEventListener("progress", (event) => {
+      if (event.lengthComputable) onProgress(Math.round((event.loaded / event.total) * 100));
+    });
+    request.addEventListener("load", () => {
+      let payload: unknown = null;
+      if (request.responseText) {
+        try {
+          payload = JSON.parse(request.responseText);
+        } catch {
+          payload = null;
+        }
+      }
+      if (request.status >= 200 && request.status < 300) {
+        resolve(payload as T);
+        return;
+      }
+      const errorBody = isApiErrorBody(payload) ? payload.error : null;
+      const message =
+        typeof errorBody?.message === "string" ? errorBody.message : commonMessages.error;
+      const code =
+        typeof errorBody?.code === "string"
+          ? errorBody.code
+          : request.status === 401
+            ? "unauthorized"
+            : "upload_failed";
+      if (
+        request.status === 401 &&
+        typeof window !== "undefined" &&
+        !/(^|\/)(login|register|refresh)$/.test(endpoint.split("?")[0])
+      )
+        window.dispatchEvent(new Event("auth:session-expired"));
+      const details =
+        typeof errorBody?.details === "object" && errorBody.details !== null
+          ? (errorBody.details as Record<string, unknown>)
+          : {};
+      reject(new ApiError(message, code, request.status, details));
+    });
+    request.addEventListener("error", () =>
+      reject(new ApiError(commonMessages.serviceUnavailable, "service_unavailable", 0)),
+    );
+    request.addEventListener("timeout", () =>
+      reject(new ApiError(commonMessages.requestTimedOut, "timeout", 0)),
+    );
+    request.send(body);
+  });
+}
+
 export function formatDate(value?: string, withTime = false, locale = "en") {
   if (!value) return "Date to be announced";
   const date = new Date(value);

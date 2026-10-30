@@ -700,6 +700,8 @@ components:
         cover_media_id:
           type: integer
           format: int64
+        clear_cover_media:
+          type: boolean
       required: [translations]
 
     PublishPostRequest:

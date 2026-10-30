@@ -86,6 +86,50 @@ func TestPostCreateUsesAuthenticatedAuthor(t *testing.T) {
 	}
 }
 
+func TestPostCoverCanBePreservedAndCleared(t *testing.T) {
+	db, q, r := authTestApp(t)
+	adminID := createAuthUser(t, q, "Cover Staff", "post-cover@example.org", "a-long-test-password", "admin")
+	cookie := adminCookie(t, int(adminID), "admin")
+	postID := insertTestPost(t, db, adminID, false)
+	mediaID := insertMatrixMedia(t, db, adminID)
+	path := fmt.Sprintf("/api/staff/posts/%d", postID)
+	translation := `{"translations":{"en":{"title":"Cover story","content":"Body"}}`
+
+	set := authRequest(r, http.MethodPatch, path, translation+fmt.Sprintf(`,"cover_media_id":%d}`, mediaID), cookie)
+	if set.Code != http.StatusOK {
+		t.Fatalf("set cover status=%d body=%s", set.Code, set.Body)
+	}
+	var actual sql.NullInt32
+	if err := db.QueryRow(`SELECT cover_media_id FROM posts WHERE id=$1`, postID).Scan(&actual); err != nil {
+		t.Fatalf("read set cover: %v", err)
+	}
+	if !actual.Valid || actual.Int32 != mediaID {
+		t.Fatalf("cover after set = %v; want %d", actual, mediaID)
+	}
+
+	preserve := authRequest(r, http.MethodPatch, path, translation+"}", cookie)
+	if preserve.Code != http.StatusOK {
+		t.Fatalf("preserve cover status=%d body=%s", preserve.Code, preserve.Body)
+	}
+	if err := db.QueryRow(`SELECT cover_media_id FROM posts WHERE id=$1`, postID).Scan(&actual); err != nil {
+		t.Fatalf("read preserved cover: %v", err)
+	}
+	if !actual.Valid || actual.Int32 != mediaID {
+		t.Fatalf("cover after update = %v; want preserved id %d", actual, mediaID)
+	}
+
+	clear := authRequest(r, http.MethodPatch, path, translation+`,"clear_cover_media":true}`, cookie)
+	if clear.Code != http.StatusOK {
+		t.Fatalf("clear cover status=%d body=%s", clear.Code, clear.Body)
+	}
+	if err := db.QueryRow(`SELECT cover_media_id FROM posts WHERE id=$1`, postID).Scan(&actual); err != nil {
+		t.Fatalf("read cleared cover: %v", err)
+	}
+	if actual.Valid {
+		t.Fatalf("cover after clear = %v; want NULL", actual)
+	}
+}
+
 func TestPostLocaleFallbackAndLaterAmharicTranslation(t *testing.T) {
 	db, q, r := authTestApp(t)
 	adminID := createAuthUser(t, q, "Bilingual Staff", "bilingual-staff@example.org", "a-long-test-password", "admin")

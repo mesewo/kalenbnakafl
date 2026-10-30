@@ -1255,6 +1255,7 @@ export interface components {
       slug?: string;
       /** Format: int64 */
       cover_media_id?: number;
+      clear_cover_media?: boolean;
     };
     PublishPostRequest: {
       published: boolean;

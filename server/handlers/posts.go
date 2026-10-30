@@ -339,6 +339,10 @@ func (a *API) UpdatePost(c *gin.Context) {
 		httpx.Fail(c, http.StatusUnprocessableEntity, "posts.inline_media_reference_is_invalid")
 		return
 	}
+	if input.ClearCoverMedia && input.CoverMediaID != nil {
+		httpx.Fail(c, http.StatusBadRequest, "posts.cover_image_is_invalid")
+		return
+	}
 	if input.CoverMediaID != nil {
 		isImage, err := validateImageMediaID(c.Request.Context(), a.db, *input.CoverMediaID)
 		if err != nil {
@@ -407,7 +411,9 @@ func (a *API) UpdatePost(c *gin.Context) {
 			}
 		}
 	}
-	if _, err := queries.UpdatePostFields(c.Request.Context(), dbgen.UpdatePostFieldsParams{Slug: slug, CoverMediaID: coverID, ID: int32(id)}); err != nil {
+	if _, err := queries.UpdatePostFields(c.Request.Context(), dbgen.UpdatePostFieldsParams{
+		Slug: slug, CoverMediaID: coverID, ClearCoverMedia: input.ClearCoverMedia, ID: int32(id),
+	}); err != nil {
 		if status, constraint := postEventConstraintStatus(err); constraint {
 			httpx.Fail(c, status, "posts.failed_to_update_post")
 			return
