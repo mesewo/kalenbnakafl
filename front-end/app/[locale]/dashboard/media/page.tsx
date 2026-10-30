@@ -61,7 +61,8 @@ export default function MediaPage() {
       }
       const allMedia = [...firstPage.items, ...otherPages.flatMap((page) => page.items)];
       setMedia(allMedia);
-      const currentUsages: (readonly [number, MediaUsage[]])[] = [];
+      setUsages({});
+      setLoading(false);
       for (let offset = 0; offset < allMedia.length; offset += 10) {
         const usageBatch = await Promise.all(
           allMedia.slice(offset, offset + 10).map(async (item) => {
@@ -72,9 +73,8 @@ export default function MediaPage() {
             return [item.id, response.usages] as const;
           }),
         );
-        currentUsages.push(...usageBatch);
+        setUsages((current) => ({ ...current, ...Object.fromEntries(usageBatch) }));
       }
-      setUsages(Object.fromEntries(currentUsages));
     } catch {
       setError(t("loadMediaFailed"));
     } finally {
@@ -202,16 +202,20 @@ export default function MediaPage() {
                 </div>
                 <section className="media-usage-panel" aria-label={t("mediaUsageHeading")}>
                   <h3>{t("mediaUsageHeading")}</h3>
-                  {usages[item.id]?.length ? (
-                    <ul>
-                      {usages[item.id].map((usage, index) => (
-                        <li key={`${usage.usage_type}-${usage.reference_id}-${index}`}>
-                          {usageLabel(usage)}
-                        </li>
-                      ))}
-                    </ul>
+                  {usages[item.id] ? (
+                    usages[item.id].length ? (
+                      <ul>
+                        {usages[item.id].map((usage, index) => (
+                          <li key={`${usage.usage_type}-${usage.reference_id}-${index}`}>
+                            {usageLabel(usage)}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="meta">{t("mediaUnused")}</p>
+                    )
                   ) : (
-                    <p className="meta">{t("mediaUnused")}</p>
+                    <p className="meta">{t("loadingMedia")}</p>
                   )}
                   {blockedMediaID === item.id && (
                     <p className="media-delete-blocked" role="status">

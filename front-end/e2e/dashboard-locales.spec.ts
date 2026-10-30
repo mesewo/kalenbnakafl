@@ -48,10 +48,12 @@ test("dashboard shell follows the selected locale and fits mobile and desktop", 
   for (const width of [360, 1280]) {
     await page.setViewportSize({ width, height: 900 });
     await expect
-      .poll(() =>
-        page.evaluate(
-          () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
-        ),
+      .poll(
+        () =>
+          page.evaluate(
+            () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+          ),
+        { message: `No horizontal overflow on English dashboard (${width}px)` },
       )
       .toBe(true);
   }
@@ -85,10 +87,12 @@ test("every dashboard screen has no page overflow at mobile and desktop widths i
       for (const width of [360, 1280]) {
         await page.setViewportSize({ width, height: 900 });
         await expect
-          .poll(() =>
-            page.evaluate(
-              () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
-            ),
+          .poll(
+            () =>
+              page.evaluate(
+                () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+              ),
+            { message: `No horizontal overflow at ${locale}/dashboard${route} (${width}px)` },
           )
           .toBe(true);
       }

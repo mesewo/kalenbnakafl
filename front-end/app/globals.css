@@ -556,6 +556,8 @@ button {
   padding: 2rem 0 4rem;
 }
 .dashboard-side {
+  min-width: 0;
+  max-width: 100%;
   display: grid;
   align-content: start;
   gap: 0.45rem;
@@ -721,7 +723,7 @@ html[lang="am"] .dashboard-shell h3 {
     grid-template-columns: 1fr 1fr;
   }
   .dashboard-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .dashboard-side {
     display: flex;
