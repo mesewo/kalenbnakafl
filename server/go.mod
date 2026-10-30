@@ -11,7 +11,7 @@ require (
 	github.com/aws/smithy-go v1.28.7
 	github.com/gin-gonic/gin v1.11.0
 	github.com/golang-jwt/jwt/v5 v5.3.0
-	github.com/lib/pq v1.10.9
+	github.com/lib/pq v1.12.3
 	github.com/pressly/goose/v3 v3.24.3
 	golang.org/x/crypto v0.57.0
 	golang.org/x/image v0.47.0
