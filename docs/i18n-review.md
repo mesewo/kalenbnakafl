@@ -496,3 +496,60 @@ Every Amharic string below was drafted for this change and **needs native review
 | `dashboard.clearPostTranslationHelp` | ቋንቋን ለማስወገድ ሁለቱንም መስኮች ባዶ ያድርጉ። ቢያንስ አንድ ቋንቋ መቆየት አለበት። |
 | `dashboard.savePostFailed` | ጽሑፉን ማስቀመጥ አልተቻለም። |
 | `dashboard.saveEventFailed` | ዝግጅቱን ማስቀመጥ አልተቻለም። |
+| `site.homeSlider` | ተመራጭ ምስሎች |
+| `site.carousel` | ተንሸራታች ማሳያ |
+| `site.slidePosition` | ስላይድ {current} ከ {total} |
+| `site.previousSlide` | ያለፈው ምስል |
+| `site.nextSlide` | ቀጣዩ ምስል |
+| `site.pauseSlides` | የምስል ማሳያውን ያቁሙ |
+| `site.resumeSlides` | የምስል ማሳያውን ይቀጥሉ |
+| `site.motionPaused` | ራስ-ሰር እንቅስቃሴ ጠፍቷል |
+| `about.gallery` | ስለ ማኅበረሰባችን |
+| `dashboard.homeSliderTitle` | የመነሻ ገጽ ስላይዶች |
+| `dashboard.aboutImagesTitle` | የስለ እኛ ምስሎች |
+| `dashboard.brandingTitle` | የድረ ገጽ መለያ |
+| `dashboard.siteContentEyebrow` | የድረ ገጽ ይዘት |
+| `dashboard.homeSliderHelp` | በመነሻ ገጹ ላይ የሚታዩ ምስሎችን ይምረጡ፣ በሁለቱም ቋንቋዎች መግለጫ ይጻፉና ቅደም ተከተላቸውን ያዘጋጁ። |
+| `dashboard.addHomeSlide` | ስላይድ ያክሉ |
+| `dashboard.loadingSiteContent` | የድረ ገጽ ይዘት በመጫን ላይ… |
+| `dashboard.siteContentLoadFailed` | የድረ ገጽ ይዘትን መጫን አልተቻለም። |
+| `dashboard.siteContentSaved` | ለውጦቹ ተቀምጠዋል። የሕዝብ ገጹ በአንድ ደቂቃ ውስጥ ይዘምናል። |
+| `dashboard.siteContentDeleted` | ንጥሉ ተወግዷል። |
+| `dashboard.siteContentSaveFailed` | ለውጦቹን ማስቀመጥ አልተቻለም። |
+| `dashboard.homeSlideChooseImage` | ስላይዱን ከማስቀመጥዎ በፊት ምስል ይምረጡ። |
+| `dashboard.confirmDeleteSlide` | ይህ ስላይድ ከመነሻ ገጹ ይወገድ? |
+| `dashboard.homeSlideNumber` | ስላይድ {number} |
+| `dashboard.moveSlideUp` | ስላይዱን ወደ ላይ ያንቀሳቅሱ |
+| `dashboard.moveSlideDown` | ስላይዱን ወደ ታች ያንቀሳቅሱ |
+| `dashboard.englishCaption` | የእንግሊዝኛ መግለጫ |
+| `dashboard.amharicCaption` | የአማርኛ መግለጫ |
+| `dashboard.optionalSlideLink` | አማራጭ የውስጥ አገናኝ |
+| `dashboard.slideActive` | ይህን ስላይድ በሕዝብ መነሻ ገጽ ላይ አሳይ |
+| `dashboard.homeSlideSizeHint` | ሰፊ አግድም ምስል ይምረጡ፤ ቢያንስ 1600 × 700 ፒክስል መሆኑ ይመከራል። |
+| `dashboard.noHomeSlides` | ገና ስላይድ የለም። የሕዝብ መነሻ ገጹ መደበኛውን የመግቢያ ክፍል ያሳያል። |
+| `dashboard.aboutImagesHelp` | በስለ እኛ ገጽ ላይ የሚታዩ ፎቶዎችን በሁለቱም ቋንቋዎች መግለጫ ጨምረው ያዘጋጁ። |
+| `dashboard.addAboutImage` | የስለ እኛ ምስል ያክሉ |
+| `dashboard.aboutImageChooseImage` | ከማስቀመጥዎ በፊት ምስል ይምረጡ። |
+| `dashboard.confirmDeleteAboutImage` | ይህ ምስል ከስለ እኛ ገጽ ይወገድ? |
+| `dashboard.aboutImageNumber` | የስለ እኛ ምስል {number} |
+| `dashboard.moveAboutImageUp` | የስለ እኛ ምስሉን ወደ ላይ ያንቀሳቅሱ |
+| `dashboard.moveAboutImageDown` | የስለ እኛ ምስሉን ወደ ታች ያንቀሳቅሱ |
+| `dashboard.aboutImageSizeHint` | ግልጽ አግድም ወይም ካሬ ምስል ይምረጡ፤ ቢያንስ 960 ፒክስል ስፋት መሆኑ ይመከራል። |
+| `dashboard.noAboutImages` | ለስለ እኛ ገጽ ፎቶ አልተጨመረም። የገጹ ጽሑፍና ምሳሌዎች እንደተለመደው ይታያሉ። |
+| `dashboard.brandingHelp` | የድረ ገጹን ስምና ምስላዊ መለያ በእንግሊዝኛና በአማርኛ ያዘጋጁ። |
+| `dashboard.brandingLogo` | የድረ ገጽ አርማ |
+| `dashboard.brandingLogoHint` | የሚመከረው፦ ቢያንስ 320 × 80 ፒክስል፣ ሰፊ ቅርጽ (2:1 እስከ 5:1)። |
+| `dashboard.brandingFavicon` | የትር አዶ |
+| `dashboard.brandingFaviconHint` | የሚመከረው፦ ካሬ ምስል፣ ቢያንስ 512 × 512 ፒክስል። |
+| `dashboard.brandingSocialImage` | ለማኅበራዊ ማጋራት ምስል |
+| `dashboard.brandingSocialImageHint` | የሚመከረው፦ ቢያንስ 1200 × 630 ፒክስል (በግምት 1.91:1)። |
+| `dashboard.brandingStaticFallback` | ምስል እስኪመርጡ ድረስ አሁን ያለው የብራንድ ምስል ይጠቀማል። |
+| `dashboard.brandingImageDetailsMissing` | የምስሉን መጠን ማረጋገጥ አልተቻለም። ከማዕከሉ እንደገና ይምረጡት። |
+| `dashboard.brandingLogoDimensionsInvalid` | አርማው ቢያንስ 320 × 80 ፒክስል እና ሰፊ (2:1 እስከ 5:1) መሆን አለበት። |
+| `dashboard.brandingFaviconDimensionsInvalid` | የትር አዶው ካሬና ቢያንስ 512 × 512 ፒክስል መሆን አለበት። |
+| `dashboard.brandingSocialDimensionsInvalid` | የማኅበራዊ ምስሉ ቢያንስ 1200 × 630 ፒክስል እና ሰፊ ቅርጽ መሆን አለበት። |
+| `dashboard.changeBrandImage` | ምስሉን ይቀይሩ |
+| `dashboard.removeBrandImage` | ምስሉን ያስወግዱ |
+| `dashboard.brandingTextTitle` | ስምና መለያ ሐረግ |
+| `dashboard.siteName` | የድረ ገጽ ስም |
+| `dashboard.siteTagline` | መለያ ሐረግ |

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-const origin = process.env.NEXT_PUBLIC_SITE_URL || "https://kalenbnakafl.org";
+export const siteOrigin = process.env.NEXT_PUBLIC_SITE_URL || "https://kalenbnakafl.org";
 export function localizedMetadata(
   locale: "en" | "am",
   path: string,
@@ -8,7 +8,7 @@ export function localizedMetadata(
   description: string,
 ): Metadata {
   const suffix = path === "/" ? "" : path;
-  const localized = (lang: string) => `${origin}/${lang}${suffix}`;
+  const localized = (lang: string) => `${siteOrigin}/${lang}${suffix}`;
   return {
     title,
     description,

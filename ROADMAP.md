@@ -2,12 +2,11 @@
 
 ### Current state / next step
 
-- The bilingual admin media library provides all-library search, thumbnails, upload progress/errors, localized alt text, decorative uploads, usage details, and conflict-aware deletion; its file input has the missing visually-hidden style, cards render as soon as the list loads, and the media E2E selects an explicit Amharic image title in the Amharic picker.
-- Post/event covers and safe `{{media:<id>}}` body tokens render through localized public media metadata on listing/detail pages; the events detail route and explicit post-cover removal API are implemented and documented.
-- Backend build, vet, tests, SQLC diff, Goose validation, and CGO-disabled image tests passed; frontend lint, TypeScript, i18n validation (455 messages), targeted formatting, and production build passed. Build-time static generation logs expected API connection-refused warnings because the API is offline.
-- The media E2E's in-use deletion assertion scopes to the visible `.status-error[role=alert]` message and expects the post slug shown by the usage API rather than its display title.
-- Remaining verification: recent CI failures have been fixed in the tests/UI but require a new authenticated Playwright run for final confirmation.
-- Next: rerun the frontend Playwright suite in CI/Compose; local Compose build previously failed in Docker's `npm ci` layer, and browser E2E requires admin credentials. Then run PostgreSQL integration tests and obtain native Amharic review for [docs/i18n-review.md](./docs/i18n-review.md).
+- Admin-only Home slider, About images, and Branding pages now use the shared MediaPicker, bilingual editing, keyboard-operable reordering, and image-dimension checks; no backend schema changes were needed.
+- Public home and About pages render localized, responsive image content; the accessible slider respects reduced motion and retains the static hero fallback, while Navbar/Footer, favicon, and locale-specific share metadata use configured branding with safe defaults.
+- Verification passed: frontend lint, TypeScript, i18n catalog validation (515 messages), production build, and backend build/vet/tests/sqlc diff. The production build logged expected API connection-refused warnings because no API was running.
+- Verification limits: authenticated Playwright could not run because no admin credentials or Compose services are available; the full frontend Prettier check and `gofmt -l .` report pre-existing formatting issues in untouched files, while changed frontend files were checked separately.
+- Next: run the site-customization Playwright flow against the CI/Compose stack, then obtain native Amharic review for [docs/i18n-review.md](./docs/i18n-review.md).
 **Goal:** a repo and a live demo that survive a 10-minute recruiter/hiring-manager review for a *senior full-stack* role: one-command startup, real security, real tests, CI, docs, and a polished, working UI.
 
 **Rhythm:** each phase = 1–3 focused sessions (≈2–4 h each) with Gemini. Finish a phase's *Exit criteria* before starting the next. Total ≈ 3–4 weeks part-time.

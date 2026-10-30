@@ -19,7 +19,7 @@ export default function MediaPicker({
   selectedMediaID?: number | null;
   slotHint: string;
   onClose: () => void;
-  onSelect: (mediaID: number) => void;
+  onSelect: (mediaID: number, item?: MediaItem) => void;
 }) {
   const locale = useLocale();
   const t = useTranslations("dashboard");
@@ -259,7 +259,7 @@ export default function MediaPicker({
                 className="btn btn-primary"
                 type="button"
                 disabled={!selected}
-                onClick={() => selected && onSelect(selected.id)}
+                onClick={() => selected && onSelect(selected.id, selected)}
               >
                 {t("mediaUseImage")}
               </button>

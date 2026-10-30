@@ -71,6 +71,9 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           )}
           {admin && (
             <>
+              {item("/dashboard/home-slider", t("homeSliderTitle"))}
+              {item("/dashboard/about-images", t("aboutImagesTitle"))}
+              {item("/dashboard/branding", t("brandingTitle"))}
               {item("/dashboard/users", t("users"))}
               {item("/dashboard/volunteers", t("volunteers"))}
               {item("/dashboard/volunteer-applications", t("applications"))}

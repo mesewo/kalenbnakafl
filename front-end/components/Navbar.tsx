@@ -15,13 +15,23 @@ const links = [
   ["/contact", "contact"],
 ] as const;
 
-export default function Navbar() {
+export default function Navbar({
+  logoUrl,
+  siteName,
+  tagline,
+}: {
+  logoUrl: string | null;
+  siteName: string;
+  tagline: string;
+}) {
   const t = useTranslations("common");
   const nav = useTranslations("nav");
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout, isLoading } = useAuth();
   const [open, setOpen] = useState(false);
+  const [logoFailed, setLogoFailed] = useState(false);
+  const effectiveLogoUrl = logoUrl && !logoFailed ? logoUrl : "/kalenbnakafl-logo.jpg";
   function handleLogout() {
     logout();
     setOpen(false);
@@ -36,10 +46,23 @@ export default function Navbar() {
       <header className="site-header">
         <div className="nav-wrap">
           <Link href="/" className="brand" onClick={() => setOpen(false)}>
-            <Image src="/kalenbnakafl-logo.jpg" alt={t("brand")} width={42} height={42} priority />
+            <Image
+              className={
+                effectiveLogoUrl !== "/kalenbnakafl-logo.jpg"
+                  ? "brand-logo brand-logo-custom"
+                  : "brand-logo"
+              }
+              src={effectiveLogoUrl}
+              alt=""
+              width={logoUrl ? 180 : 42}
+              height={42}
+              priority
+              unoptimized
+              onError={() => setLogoFailed(true)}
+            />
             <span className="brand-copy">
-              <strong>{t("brand")}</strong>
-              <span>{t("community")}</span>
+              <strong>{siteName || t("brand")}</strong>
+              <span>{tagline || t("community")}</span>
             </span>
           </Link>
           <nav className="nav-links" aria-label={nav("primary")}>

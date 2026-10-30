@@ -1,8 +1,18 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { fetchPublic } from "@/lib/server-api";
-import { formatDate, excerpt, type EventItem, type PageResponse, type Post } from "@/lib/api";
+import {
+  formatDate,
+  excerpt,
+  type EventItem,
+  type HomeSlide,
+  type MediaItem,
+  type PageResponse,
+  type Post,
+} from "@/lib/api";
 import { localizedMetadata } from "@/lib/metadata";
+import { fetchOptionalSiteContent } from "@/lib/site-content";
+import HomeSlider, { type HomeSliderItem } from "@/components/HomeSlider";
 
 export const revalidate = 60;
 type Props = { params: Promise<{ locale: "en" | "am" }> };
@@ -17,40 +27,52 @@ export default async function HomePage({ params }: Props) {
   setRequestLocale(locale);
   const t = await getTranslations("home");
   const common = await getTranslations("common");
-  const [posts, events] = await Promise.all([
+  const [posts, events, homeSlides] = await Promise.all([
     fetchPublic<PageResponse<Post>>("/posts?limit=2", locale),
     fetchPublic<PageResponse<EventItem>>("/events?upcoming=true&limit=2", locale),
+    fetchOptionalSiteContent<{ items: HomeSlide[] }>("/site/home-slides", locale),
   ]);
+  const slides: HomeSliderItem[] = (
+    await Promise.all(
+      (homeSlides?.items ?? []).map(async (slide) => {
+        const media = await fetchOptionalSiteContent<MediaItem>(`/media/${slide.media_id}`, locale);
+        return media ? { id: slide.id, media, caption: slide.caption, link: slide.link } : null;
+      }),
+    )
+  ).filter((slide): slide is HomeSliderItem => slide !== null);
   return (
     <>
       <main id="main-content">
-        <section className="hero">
-          <div className="container hero-grid">
-            <div>
-              <span className="eyebrow">{t("eyebrow")}</span>
-              <h1 className="display">{t("title")}</h1>
-              <p className="lede">{t("intro")}</p>
-              <div className="hero-actions">
-                <Link className="btn btn-primary" href="/volunteer">
-                  {t("help")}
-                </Link>
-                <Link className="btn btn-outline" href="/events">
-                  {t("upcoming")}
-                </Link>
+        {slides.length > 0 && <HomeSlider slides={slides} />}
+        {slides.length === 0 && (
+          <section className="hero">
+            <div className="container hero-grid">
+              <div>
+                <span className="eyebrow">{t("eyebrow")}</span>
+                <h1 className="display">{t("title")}</h1>
+                <p className="lede">{t("intro")}</p>
+                <div className="hero-actions">
+                  <Link className="btn btn-primary" href="/volunteer">
+                    {t("help")}
+                  </Link>
+                  <Link className="btn btn-outline" href="/events">
+                    {t("upcoming")}
+                  </Link>
+                </div>
+              </div>
+              <div className="hero-card">
+                <span className="eyebrow" style={{ color: "var(--sun)" }}>
+                  {t("shared")}
+                </span>
+                <h2>{t("thrive")}</h2>
+                <div className="hero-note">
+                  <strong>{t("one")}</strong>
+                  <span>{t("oneText")}</span>
+                </div>
               </div>
             </div>
-            <div className="hero-card">
-              <span className="eyebrow" style={{ color: "var(--sun)" }}>
-                {t("shared")}
-              </span>
-              <h2>{t("thrive")}</h2>
-              <div className="hero-note">
-                <strong>{t("one")}</strong>
-                <span>{t("oneText")}</span>
-              </div>
-            </div>
-          </div>
-        </section>
+          </section>
+        )}
         <section className="section">
           <div className="container">
             <div className="section-head">

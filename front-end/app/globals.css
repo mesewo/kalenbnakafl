@@ -97,6 +97,14 @@ button {
   object-fit: cover;
   border: 2px solid var(--sun);
 }
+.brand img.brand-logo-custom {
+  width: auto;
+  max-width: min(180px, 30vw);
+  height: 42px;
+  border: 0;
+  border-radius: 0;
+  object-fit: contain;
+}
 .brand-copy {
   display: grid;
   line-height: 1.05;
@@ -1085,6 +1093,14 @@ html[lang="am"] .brand-copy {
   width: 100%;
   height: 100%;
 }
+.public-media-fallback {
+  width: 100%;
+  height: 100%;
+  min-height: 8rem;
+  background:
+    radial-gradient(ellipse at 30% 110%, rgba(245, 196, 74, 0.4), transparent 55%),
+    linear-gradient(135deg, #e9edf0, #dce4ec);
+}
 .public-media-figure img {
   object-fit: cover;
 }
@@ -1100,6 +1116,130 @@ html[lang="am"] .brand-copy {
 .public-media-cover {
   margin-bottom: 1.5rem;
   border-radius: 18px;
+}
+.home-slider-section {
+  padding: clamp(1.25rem, 4vw, 3rem) 0;
+  background: linear-gradient(135deg, var(--cream), var(--paper));
+}
+.home-slider {
+  min-width: 0;
+}
+.home-slider-content {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: white;
+  box-shadow: 0 16px 42px rgba(21, 34, 56, 0.1);
+}
+.home-slider-link {
+  display: block;
+}
+.home-slider-image {
+  aspect-ratio: 16 / 7;
+  max-height: 38rem;
+  margin: 0;
+  background: #e8edf2;
+}
+.home-slider-image figcaption {
+  padding: 0.9rem 1rem;
+  font-size: 1rem;
+  color: var(--ink);
+}
+.home-slider-controls {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+.about-image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 1rem;
+}
+.about-public-image {
+  align-self: start;
+  border-radius: 16px;
+  background: white;
+}
+.site-content-list {
+  display: grid;
+  gap: 1rem;
+}
+.site-content-card {
+  min-width: 0;
+}
+.site-content-card-head,
+.site-content-image-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.site-content-card-head h2 {
+  margin: 0;
+}
+.site-content-image-row {
+  justify-content: flex-start;
+  margin: 1rem 0;
+}
+.site-content-thumb {
+  display: block;
+  width: min(100%, 18rem);
+  height: auto;
+  max-height: 12rem;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 12px;
+  background: #e8edf2;
+}
+.site-content-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0.25rem 0 1rem;
+}
+.site-content-toggle input {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+.branding-slot,
+.branding-translations {
+  min-width: 0;
+}
+.branding-preview {
+  display: block;
+  width: min(100%, 24rem);
+  max-height: 14rem;
+  margin: 1rem 0;
+  object-fit: contain;
+  object-position: left center;
+  background: #f3f5f7;
+  border-radius: 12px;
+}
+.branding-preview-favicon {
+  width: 8rem;
+  height: 8rem;
+}
+.branding-preview-social {
+  width: min(100%, 30rem);
+}
+.branding-fallback {
+  min-height: 5rem;
+  display: grid;
+  place-items: center start;
+  color: var(--muted);
+}
+.branding-language {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.branding-language legend {
+  padding: 0 0.4rem;
+  font-weight: 700;
 }
 .dashboard-cover-thumb {
   width: min(100%, 132px);

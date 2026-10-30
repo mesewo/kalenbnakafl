@@ -9,6 +9,12 @@ export type Post = components["schemas"]["Post"];
 export type EventItem = components["schemas"]["Event"];
 export type PageResponse<T> = Omit<components["schemas"]["Page"], "items"> & { items: T[] };
 export type MediaItem = components["schemas"]["Media"];
+export type HomeSlide = components["schemas"]["HomeSlide"];
+export type HomeSlideInput = components["schemas"]["HomeSlideInput"];
+export type SiteSettings = components["schemas"]["SiteSettings"];
+export type SiteSettingsInput = components["schemas"]["SiteSettingsInput"];
+export type AboutImage = components["schemas"]["AboutImage"];
+export type AboutImageInput = components["schemas"]["AboutImageInput"];
 
 export type ApiErrorBody = { code: string; message: string; details: Record<string, unknown> };
 export class ApiError extends Error {

@@ -1,18 +1,33 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { localizedMetadata } from "@/lib/metadata";
+import { fetchOptionalSiteContent } from "@/lib/site-content";
+import { PublicMediaFigure } from "@/components/PublicMediaImage";
+import type { AboutImage, MediaItem } from "@/lib/api";
 
 export const revalidate = 60;
 type Props = { params: Promise<{ locale: "en" | "am" }> };
 export async function generateMetadata({ params }: Props) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "metadata" });
-  return localizedMetadata(locale, "/about", `${t("about")} | Kalen Benakafil`, t("about"));
+  return localizedMetadata(locale, "/about", t("about"), t("about"));
 }
 export default async function AboutPage({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations("about");
+  const aboutImages = await fetchOptionalSiteContent<{ items: AboutImage[] }>(
+    "/site/about-images",
+    locale,
+  );
+  const images = (
+    await Promise.all(
+      (aboutImages?.items ?? []).map(async (item) => {
+        const media = await fetchOptionalSiteContent<MediaItem>(`/media/${item.media_id}`, locale);
+        return media ? { id: item.id, caption: item.caption, media } : null;
+      }),
+    )
+  ).filter((item): item is { id: number; caption: string; media: MediaItem } => item !== null);
   return (
     <main id="main-content">
       <section className="page-hero">
@@ -57,6 +72,22 @@ export default async function AboutPage({ params }: Props) {
           </div>
         </div>
       </section>
+      {images.length > 0 && (
+        <section className="section about-image-section" aria-label={t("gallery")}>
+          <div className="container">
+            <div className="about-image-grid">
+              {images.map((item) => (
+                <PublicMediaFigure
+                  key={item.id}
+                  media={item.media}
+                  caption={item.caption}
+                  className="about-public-image"
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
       <section className="cta-band section">
         <div className="container cta-row">
           <h2>{t("cta")}</h2>
