@@ -7,8 +7,11 @@ import (
 )
 
 func TestSiteBlocksFallbackSanitizationAndEditorAttribution(t *testing.T) {
-	_, q, router := authTestApp(t)
+	db, q, router := authTestApp(t)
 	adminID := createAuthUser(t, q, "Page Editor", "page-editor@example.org", "a-long-test-password", "admin")
+	if _, err := db.ExecContext(t.Context(), `UPDATE users SET name=$1 WHERE id=$2`, "Page Editor", adminID); err != nil {
+		t.Fatalf("set editor display name: %v", err)
+	}
 	cookie := adminCookie(t, int(adminID), "admin")
 
 	for _, invalid := range []struct {
