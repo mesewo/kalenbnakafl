@@ -298,6 +298,7 @@ func (a *API) CreatePost(c *gin.Context) {
 		}
 		if err == nil {
 			httpx.Success(c, http.StatusCreated, "posts.created")
+			a.revalidate("posts")
 			return
 		}
 		if status, constraint := postEventConstraintStatus(err); constraint {
@@ -430,6 +431,7 @@ func (a *API) UpdatePost(c *gin.Context) {
 		return
 	}
 	httpx.Success(c, http.StatusOK, "posts.updated")
+	a.revalidate("posts")
 }
 
 func (a *API) DeletePost(c *gin.Context) {
@@ -447,6 +449,7 @@ func (a *API) DeletePost(c *gin.Context) {
 		return
 	}
 	httpx.Success(c, http.StatusOK, "posts.deleted")
+	a.revalidate("posts")
 }
 
 func (a *API) PublishPost(c *gin.Context) {
@@ -469,4 +472,5 @@ func (a *API) PublishPost(c *gin.Context) {
 		return
 	}
 	httpx.Success(c, http.StatusOK, "posts.publication_status_updated")
+	a.revalidate("posts")
 }

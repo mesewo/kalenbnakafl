@@ -36,9 +36,20 @@ test("admin content and public bilingual flows", async ({ page }, testInfo) => {
 
   let postRow = page.getByRole("row").filter({ hasText: postTitle });
   await expect(postRow).toBeVisible();
+  const publishResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "PATCH" &&
+      new URL(response.url()).pathname.endsWith("/publish"),
+  );
   await postRow.getByRole("button", { name: "Publish" }).click();
+  expect((await publishResponse).status()).toBe(200);
   await expect(postRow).toContainText("Published");
-  await waitForPublicContent(page, "/en/blog", page.getByRole("heading", { name: postTitle }));
+  await waitForPublicContent(
+    page,
+    "/en/blog",
+    page.getByRole("heading", { name: postTitle }),
+    5000,
+  );
   const enPostCard = page.locator("article.card").filter({ hasText: postTitle });
   await enPostCard.getByRole("link", { name: "Read the full note →" }).click();
   await expect(page.getByText(`English body ${suffix}`)).toBeVisible();
@@ -77,8 +88,14 @@ test("admin content and public bilingual flows", async ({ page }, testInfo) => {
   await dialog.getByRole("button", { name: "Save changes" }).click();
   postRow = page.getByRole("row").filter({ hasText: editedPostTitle });
   await expect(postRow).toBeVisible();
-  page.once("dialog", (alert) => alert.accept());
   await postRow.getByRole("button", { name: "Delete" }).click();
+  const postDeleteResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "DELETE" &&
+      /\/staff\/posts\/\d+$/.test(new URL(response.url()).pathname),
+  );
+  await page.getByRole("alertdialog").getByRole("button", { name: "Delete", exact: true }).click();
+  expect((await postDeleteResponse).status()).toBe(200);
   await expect(page.getByRole("row").filter({ hasText: editedPostTitle })).toHaveCount(0);
 
   await page.goto("/en/dashboard/events");
@@ -129,8 +146,14 @@ test("admin content and public bilingual flows", async ({ page }, testInfo) => {
   await dialog.getByRole("button", { name: "Save changes" }).click();
   eventRow = page.getByRole("row").filter({ hasText: editedEventTitle });
   await expect(eventRow).toBeVisible();
-  page.once("dialog", (alert) => alert.accept());
   await eventRow.getByRole("button", { name: "Delete" }).click();
+  const eventDeleteResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "DELETE" &&
+      /\/staff\/events\/\d+$/.test(new URL(response.url()).pathname),
+  );
+  await page.getByRole("alertdialog").getByRole("button", { name: "Delete", exact: true }).click();
+  expect((await eventDeleteResponse).status()).toBe(200);
   await expect(page.getByRole("row").filter({ hasText: editedEventTitle })).toHaveCount(0);
 });
 

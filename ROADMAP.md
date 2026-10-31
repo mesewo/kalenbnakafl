@@ -2,12 +2,12 @@
 
 ### Current state / next step
 
-- Admins can edit all static Home, About, and Contact copy in both languages, reset blocks to catalog wording, and see fallback and editor-attribution details; email and phone values are validated.
-- Public content uses localized site blocks with 60-second ISR and catalog defaults; unavailable API reads leave the public pages usable, and text renders as plain text with preserved line breaks.
-- Added the bilingual Admin guide, contact detail fields, backend validation/fallback/authorization tests, and an Amharic→English public-page Playwright scenario.
-- Verification passed: Go build/vet/tests/sqlc diff, frontend lint/TypeScript/i18n check (619 messages), focused Prettier checks, production build, and Playwright test discovery. PostgreSQL integration tests skipped because `DATABASE_URL_TEST` is unset; build logged expected API connection-refused warnings.
-- Production deployment requires the `RENDER_DEPLOY_HOOK_URL` Actions secret in the `production` environment; the pinned MinIO install now retries transient module-download failures.
-- Next: configure the missing production secret, rerun CI, then run authenticated Playwright and PostgreSQL integration tests with CI/Compose credentials, obtain native Amharic review from [docs/i18n-review.md](./docs/i18n-review.md), and resolve the repository's existing full-format-check findings.
+- Replaced inferred user-form visibility with explicit state; user password checks match server limits and errors render beside the form. Users, posts, and events lists now use query caching, optimistic updates/rollback, focus refetch, and loading skeletons.
+- Replaced native deletion/reset prompts with an accessible localized confirmation dialog; added localized toasts and a current-locale live-site link after successful content writes.
+- Added protected Vercel `/_revalidate` invalidation, asynchronous Go retries/logging, cache tags, bilingual user CRUD coverage, and a five-second published-post freshness assertion.
+- Go build/vet/tests/sqlc diff, frontend lint/type/unit/build, changed-file formatting, and protected-route Playwright tests passed; PostgreSQL integration tests skipped (`DATABASE_URL_TEST` unset), and full Prettier reports 40 pre-existing unrelated files.
+- The full authenticated dashboard and five-second publish Playwright flows plus Compose smoke are still unrun because Docker Engine is unavailable; their assertions are present in the test suite.
+- Next: run those flows on CI/Compose and finish Query migration for remaining dashboard resources before marking freshness work complete.
 **Goal:** a repo and a live demo that survive a 10-minute recruiter/hiring-manager review for a *senior full-stack* role: one-command startup, real security, real tests, CI, docs, and a polished, working UI.
 
 **Rhythm:** each phase = 1–3 focused sessions (≈2–4 h each) with Gemini. Finish a phase's *Exit criteria* before starting the next. Total ≈ 3–4 weeks part-time.

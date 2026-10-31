@@ -25,6 +25,10 @@ func TestLoadValidation(t *testing.T) {
 		{"retry invalid", "DB_CONNECT_RETRIES", "0", "DB_CONNECT_RETRIES must be a positive integer"},
 		{"upload size invalid", "MEDIA_MAX_MB", "0", "MEDIA_MAX_MB must be a positive integer"},
 		{"migration bool invalid", "MIGRATE_ON_START", "sometimes", "MIGRATE_ON_START must be true or false"},
+		{"revalidation secret without URL", "REVALIDATE_SECRET", "test-secret", "must be set together"},
+		{"revalidation URL without secret", "FRONTEND_REVALIDATE_URL", "https://site.example/_revalidate", "must be set together"},
+		{"revalidation URL invalid scheme", "FRONTEND_REVALIDATE_URL", "ftp://site.example/_revalidate", "must be an HTTP(S) URL"},
+		{"revalidation URL with query", "FRONTEND_REVALIDATE_URL", "https://site.example/_revalidate?secret=unsafe", "must be an HTTP(S) URL"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -39,6 +43,21 @@ func TestLoadValidation(t *testing.T) {
 				t.Fatalf("error = %v, want containing %q", err, tt.want)
 			}
 		})
+	}
+}
+
+func TestLoadRevalidationSettings(t *testing.T) {
+	env := validEnv()
+	env["FRONTEND_REVALIDATE_URL"] = "https://site.example/_revalidate"
+	env["REVALIDATE_SECRET"] = strings.Repeat("secret", 8)
+
+	cfg, err := loadEnv(env)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.FrontendRevalidateURL != env["FRONTEND_REVALIDATE_URL"] ||
+		cfg.RevalidateSecret != env["REVALIDATE_SECRET"] {
+		t.Fatalf("revalidation settings were not loaded")
 	}
 }
 

@@ -12,10 +12,11 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test:e2e": "playwright test",
-    "test:unit": "node --test lib/server-api.test.mjs",
+    "test:unit": "node --test lib/server-api.test.mjs lib/revalidation-auth.test.mjs",
     "gen:api": "openapi-typescript ../docs/openapi.yaml -o types/api.d.ts && prettier --write types/api.d.ts"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.105.0",
     "next": "16.4.3",
     "next-intl": "^4.14.9",
     "react": "19.2.1",

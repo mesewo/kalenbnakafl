@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -14,9 +14,18 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const isWaking = useApiWakeup();
   const pathname = usePathname();
   const router = useRouter();
+  const [siteContentSaved, setSiteContentSaved] = useState(false);
   useEffect(() => {
     if (!isLoading && !user) router.replace("/auth/login");
   }, [isLoading, user, router]);
+  useEffect(() => {
+    const showLiveStatus = () => {
+      setSiteContentSaved(true);
+      window.setTimeout(() => setSiteContentSaved(false), 10_000);
+    };
+    window.addEventListener("site-content-saved", showLiveStatus);
+    return () => window.removeEventListener("site-content-saved", showLiveStatus);
+  }, []);
   if (isLoading || !user) {
     return (
       <div className="auth-wrap">
@@ -84,6 +93,14 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           {item("/dashboard/profile", t("profile"))}
         </aside>
         <main className="dashboard-main" id="main-content">
+          {siteContentSaved && (
+            <div className="status" role="status" style={{ marginBottom: "1rem" }}>
+              {t("liveOnSite")}{" "}
+              <Link href="/" className="text-link">
+                {t("viewOnSite")}
+              </Link>
+            </div>
+          )}
           {isWaking && (
             <div
               className="status"

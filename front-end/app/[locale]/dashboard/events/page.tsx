@@ -1,19 +1,25 @@
 "use client";
 import Image from "next/image";
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Fragment, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { useConfirm, useToast } from "@/components/DashboardProviders";
 import { apiFetch, formatDate, type EventItem, type MediaItem, type PageResponse } from "@/lib/api";
+import { queryKeys } from "@/lib/query-keys";
 type Attendee = { name: string; email: string; created_at: string };
 import EventModal from "@/components/EventModal";
+
+type EventsQueryData = { events: EventItem[]; mediaByID: Record<number, MediaItem> };
+
 export default function EventsAdminPage() {
   const locale = useLocale();
   const t = useTranslations("dashboard");
+  const confirm = useConfirm();
+  const showToast = useToast();
+  const queryClient = useQueryClient();
   const { user } = useAuth();
-  const [events, setEvents] = useState<EventItem[]>([]);
-  const [mediaByID, setMediaByID] = useState<Record<number, MediaItem>>({});
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [attendeeEvent, setAttendeeEvent] = useState<number | null>(null);
   const [attendees, setAttendees] = useState<PageResponse<Attendee>>({
@@ -28,26 +34,46 @@ export default function EventsAdminPage() {
     open: false,
     event: null,
   });
-  const prefix = "/staff";
-  const load = useCallback(async () => {
-    if (!user) return;
-    setLoading(true);
-    try {
+  const eventsQuery = useQuery({
+    queryKey: queryKeys.events,
+    enabled: Boolean(user),
+    queryFn: async (): Promise<EventsQueryData> => {
       const [eventPage, mediaPage] = await Promise.all([
-        apiFetch<PageResponse<EventItem>>(`${prefix}/events?limit=50`, {}),
+        apiFetch<PageResponse<EventItem>>("/staff/events?limit=50", {}),
         apiFetch<PageResponse<MediaItem>>("/staff/media?kind=image&limit=100", {}),
       ]);
-      setEvents(eventPage.items || []);
-      setMediaByID(Object.fromEntries(mediaPage.items.map((item) => [item.id, item])));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("loadEventsFailed"));
-    } finally {
-      setLoading(false);
-    }
-  }, [t, user]);
-  useEffect(() => {
-    void load();
-  }, [load]);
+      return {
+        events: eventPage.items ?? [],
+        mediaByID: Object.fromEntries(mediaPage.items.map((item) => [item.id, item])),
+      };
+    },
+  });
+  const events = eventsQuery.data?.events ?? [];
+  const mediaByID = eventsQuery.data?.mediaByID ?? {};
+  const deleteMutation = useMutation({
+    mutationFn: (event: EventItem) => apiFetch(`/staff/events/${event.id}`, { method: "DELETE" }),
+    onMutate: async (event) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.events });
+      const previous = queryClient.getQueryData<EventsQueryData>(queryKeys.events);
+      queryClient.setQueryData<EventsQueryData>(queryKeys.events, (current) =>
+        current
+          ? { ...current, events: current.events.filter((item) => item.id !== event.id) }
+          : current,
+      );
+      return { previous };
+    },
+    onError: (cause, _event, context) => {
+      if (context?.previous) queryClient.setQueryData(queryKeys.events, context.previous);
+      const message = cause instanceof Error ? cause.message : t("deleteEventFailed");
+      setError(message);
+      showToast(message, "error");
+    },
+    onSuccess: () => {
+      setError("");
+      showToast(t("eventDeleted"));
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.events }),
+  });
 
   async function loadAttendees(eventID: number, requestedPage = 1) {
     setAttendeeLoading(true);
@@ -91,13 +117,9 @@ export default function EventsAdminPage() {
     );
   }
   async function remove(event: EventItem) {
-    if (!window.confirm(t("confirmDeleteEvent", { title: event.title }))) return;
-    try {
-      await apiFetch(`${prefix}/events/${event.id}`, { method: "DELETE" });
-      load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("deleteEventFailed"));
-    }
+    if (!(await confirm(t("confirmDeleteEvent", { title: event.title }), t("delete")))) return;
+    setError("");
+    await deleteMutation.mutateAsync(event).catch(() => undefined);
   }
   return (
     <div>
@@ -115,8 +137,22 @@ export default function EventsAdminPage() {
           {error}
         </div>
       )}
-      {loading ? (
-        <div className="empty-state">{t("loadingEvents")}</div>
+      {eventsQuery.isPending ? (
+        <div className="table-wrap" aria-label={t("loadingEvents")} role="status">
+          <table className="data-table">
+            <tbody>
+              {Array.from({ length: 5 }, (_, index) => (
+                <tr className="skeleton-row" key={index}>
+                  <td aria-hidden="true" colSpan={3} />
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : eventsQuery.isError ? (
+        <div className="status status-error" role="alert">
+          {eventsQuery.error instanceof Error ? eventsQuery.error.message : t("loadEventsFailed")}
+        </div>
       ) : events.length === 0 ? (
         <div className="empty-state">{t("noEvents")}</div>
       ) : (
@@ -242,7 +278,10 @@ export default function EventsAdminPage() {
         isOpen={modal.open}
         event={modal.event}
         onClose={() => setModal({ open: false, event: null })}
-        onSuccess={load}
+        onSuccess={() => {
+          void queryClient.invalidateQueries({ queryKey: queryKeys.events });
+          showToast(t("contentSaved"));
+        }}
         userRole={user?.role}
       />
     </div>

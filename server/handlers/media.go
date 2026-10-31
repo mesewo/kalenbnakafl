@@ -229,6 +229,7 @@ func (a *API) UploadMedia(c *gin.Context) {
 		"id": mediaID, "file_path": fmt.Sprintf("/api/media/%d/file", mediaID),
 		"width": processed.Width, "height": processed.Height,
 	})
+	a.revalidate("media")
 }
 
 func removeStoredObjects(c *gin.Context, store storage.Storage, objects map[int]string) {
@@ -329,6 +330,7 @@ func (a *API) DeleteMedia(c *gin.Context) {
 		}
 	}
 	httpx.Success(c, http.StatusOK, "media.deleted")
+	a.revalidate("media")
 }
 
 func (a *API) GetMediaFile(c *gin.Context) {

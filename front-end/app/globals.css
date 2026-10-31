@@ -722,6 +722,49 @@ html[lang="am"] .dashboard-shell h3 {
 .close-btn::before {
   content: "×";
 }
+.toast-region {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 80;
+  display: grid;
+  gap: 0.6rem;
+  width: min(28rem, calc(100vw - 2rem));
+}
+.toast {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: white;
+  padding: 0.9rem 1rem;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.16);
+}
+.toast-success {
+  border-inline-start: 4px solid #22824a;
+}
+.toast-error {
+  border-inline-start: 4px solid #b42318;
+}
+.toast button {
+  border: 0;
+  background: transparent;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+.skeleton-row td {
+  height: 3.5rem;
+  background: linear-gradient(90deg, #f3f4f6 25%, #fafafa 50%, #f3f4f6 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes skeleton-shimmer {
+  to {
+    background-position-x: -200%;
+  }
+}
 /* Responsive layouts */
 @media (max-width: 900px) {
   .hero-grid {

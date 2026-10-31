@@ -52,7 +52,8 @@ Use the corresponding B2 endpoint, region, private backup bucket, and backup-onl
 3. Set the required secret values in Render’s dashboard. For a live Vercel deployment, set `CORS_ORIGINS` to the exact production site origin, for example `https://project.vercel.app` (scheme and host only, no path or trailing slash).
 4. Set `DATABASE_URL` to Neon’s direct TLS URL; `JWT_SECRET` to at least 32 random bytes; `ADMIN_EMAIL` and `ADMIN_PASSWORD` together for the real owner account; and the B2 media settings above.
 5. Generate a separate high-entropy `FORWARDED_HEADERS_SECRET`. Set it in both Render and Vercel, and leave `TRUST_FORWARDED_HEADERS=true`. The Next.js proxy strips caller-provided forwarding headers and forwards Vercel’s platform client-IP value with this shared secret. Do not expose the secret to browser code or use it for any other purpose.
-6. Keep `MIGRATE_ON_START=true` only when `DATABASE_URL` is the Neon direct endpoint. Migrations run before the service starts. For schema changes, retain the repository rule to add a new numbered Goose migration rather than editing an applied migration.
+6. Set `FRONTEND_REVALIDATE_URL` to the production Vercel origin plus `/_revalidate`, and set a long random `REVALIDATE_SECRET`. Configure the exact same secret as a server-only Vercel environment variable; do not use a `NEXT_PUBLIC_` name. The API sends cache invalidation requests asynchronously after successful content writes, and failed notifications are logged without failing the write.
+7. Keep `MIGRATE_ON_START=true` only when `DATABASE_URL` is the Neon direct endpoint. Migrations run before the service starts. For schema changes, retain the repository rule to add a new numbered Goose migration rather than editing an applied migration.
 
 #### Service exits at startup
 
@@ -72,8 +73,11 @@ Create a Vercel project connected to this repository with:
 | `NEXT_PUBLIC_API_URL` | `/api` |
 | `TRUST_FORWARDED_HEADERS` | `true` |
 | `FORWARDED_HEADERS_SECRET` | The same secret configured on Render |
+| `REVALIDATE_SECRET` | The same server-only secret configured on Render |
 
 Set the API URL for both build and runtime environments. The server-side API proxy reads `API_INTERNAL_URL` at request time; public ISR fetches also use the configured origin. HTTPS Render origins are supported. `NEXT_PUBLIC_API_URL` is intentionally same-origin and is compiled into the browser bundle.
+
+The API's `FRONTEND_REVALIDATE_URL` must be `https://<project>.vercel.app/_revalidate`; the protected endpoint is intentionally outside `/api` and does not use browser authentication. Keep `REVALIDATE_SECRET` out of client-visible variables and logs.
 
 The browser calls `https://<site>/api/...`; Next.js proxies the request and response to Render. Cookies and the browser `Origin` remain on the Vercel site origin, and `Set-Cookie` returns to that same origin. Thus cookies do not need cross-site `SameSite=None` settings. The API’s write-origin check must include the exact Vercel production origin in `CORS_ORIGINS`, and `APP_ENV=production` sets the `Secure` cookie flag. Configure preview origins separately if protected write flows must work on previews; do not allow every origin.
 

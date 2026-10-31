@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
+import { useConfirm } from "@/components/DashboardProviders";
 import MediaUploadForm from "@/components/MediaUploadForm";
 import { ApiError, apiFetch, formatDate, type MediaItem, type PageResponse } from "@/lib/api";
 
@@ -28,6 +29,7 @@ function mediaUsages(value: unknown): MediaUsage[] {
 export default function MediaPage() {
   const displayLocale = useLocale();
   const t = useTranslations("dashboard");
+  const confirm = useConfirm();
   const { user } = useAuth();
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [usages, setUsages] = useState<Record<number, MediaUsage[]>>({});
@@ -96,9 +98,10 @@ export default function MediaPage() {
 
   async function remove(item: MediaItem) {
     if (
-      !window.confirm(
+      !(await confirm(
         t("confirmDeleteMedia", { title: item.title || item.original_name || t("mediaUntitled") }),
-      )
+        t("delete"),
+      ))
     ) {
       return;
     }

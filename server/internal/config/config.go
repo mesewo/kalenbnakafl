@@ -21,6 +21,8 @@ type Config struct {
 	CORSOrigins            []string
 	UploadDir              string
 	MediaMaxMB             int64
+	FrontendRevalidateURL  string
+	RevalidateSecret       string
 	DBConnectRetries       int
 	MigrateOnStart         bool
 	AdminEmail             string
@@ -56,6 +58,8 @@ func LoadFrom(getenv func(string) string) (Config, error) {
 		CORSOrigins:            splitList(getenv("CORS_ORIGINS")),
 		UploadDir:              valueOr(getenv("UPLOAD_DIR"), "/data/uploads"),
 		MediaMaxMB:             defaultMediaMaxMB,
+		FrontendRevalidateURL:  strings.TrimSpace(getenv("FRONTEND_REVALIDATE_URL")),
+		RevalidateSecret:       getenv("REVALIDATE_SECRET"),
 		DBConnectRetries:       8,
 		AdminEmail:             strings.TrimSpace(getenv("ADMIN_EMAIL")),
 		AdminPassword:          getenv("ADMIN_PASSWORD"),
@@ -158,6 +162,16 @@ func (c Config) validationProblems() []string {
 	}
 	if strings.TrimSpace(c.UploadDir) == "" {
 		problems = append(problems, "UPLOAD_DIR must not be empty")
+	}
+	if (c.FrontendRevalidateURL == "") != (c.RevalidateSecret == "") {
+		problems = append(problems, "FRONTEND_REVALIDATE_URL and REVALIDATE_SECRET must be set together")
+	}
+	if c.FrontendRevalidateURL != "" {
+		endpoint, err := url.ParseRequestURI(c.FrontendRevalidateURL)
+		if err != nil || (endpoint.Scheme != "http" && endpoint.Scheme != "https") || endpoint.Host == "" ||
+			endpoint.User != nil || endpoint.RawQuery != "" || endpoint.Fragment != "" {
+			problems = append(problems, "FRONTEND_REVALIDATE_URL must be an HTTP(S) URL without credentials, query, or fragment")
+		}
 	}
 	if c.StorageDriver != "local" && c.StorageDriver != "s3" {
 		problems = append(problems, "STORAGE_DRIVER must be local or s3")

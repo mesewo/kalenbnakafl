@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
+import { useConfirm } from "@/components/DashboardProviders";
 import MediaPicker from "@/components/MediaPicker";
 import { apiFetch, type HomeSlide, type HomeSlideInput } from "@/lib/api";
 
@@ -42,6 +43,7 @@ function inputFor(slide: SlideDraft, order = slide.sort_order): HomeSlideInput {
 
 export default function HomeSliderAdminPage() {
   const t = useTranslations("dashboard");
+  const confirm = useConfirm();
   const { user } = useAuth();
   const [slides, setSlides] = useState<SlideDraft[]>([]);
   const [newSlide, setNewSlide] = useState<SlideDraft | null>(null);
@@ -99,7 +101,7 @@ export default function HomeSliderAdminPage() {
   }
 
   async function removeSlide(slide: SlideDraft) {
-    if (!slide.id || !window.confirm(t("confirmDeleteSlide"))) return;
+    if (!slide.id || !(await confirm(t("confirmDeleteSlide"), t("delete")))) return;
     setError("");
     setNotice("");
     try {

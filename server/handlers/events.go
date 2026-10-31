@@ -155,6 +155,7 @@ func (a *API) CreateEvent(c *gin.Context) {
 		return
 	}
 	httpx.Success(c, http.StatusCreated, "events.created")
+	a.revalidate("events")
 }
 
 func (a *API) UpdateEvent(c *gin.Context) {
@@ -256,6 +257,7 @@ func (a *API) UpdateEvent(c *gin.Context) {
 		return
 	}
 	httpx.Success(c, http.StatusOK, "events.updated")
+	a.revalidate("events")
 }
 
 func (a *API) DeleteEvent(c *gin.Context) {
@@ -277,4 +279,5 @@ func (a *API) DeleteEvent(c *gin.Context) {
 		return
 	}
 	httpx.Success(c, http.StatusOK, "events.deleted")
+	a.revalidate("events")
 }

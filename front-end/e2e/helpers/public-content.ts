@@ -1,6 +1,12 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 
-export async function waitForPublicContent(page: Page, path: string, content: Locator) {
+export async function waitForPublicContent(
+  page: Page,
+  path: string,
+  content: Locator,
+  timeout = 75_000,
+) {
+  const deadline = Date.now() + timeout;
   await page.goto(path);
   await expect
     .poll(
@@ -9,7 +15,7 @@ export async function waitForPublicContent(page: Page, path: string, content: Lo
         await page.reload();
         return (await content.count()) > 0;
       },
-      { timeout: 75_000, intervals: [500, 1000, 2000] },
+      { timeout: Math.max(0, deadline - Date.now()), intervals: [100, 250, 500] },
     )
     .toBe(true);
 }

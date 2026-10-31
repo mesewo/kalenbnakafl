@@ -70,6 +70,13 @@ Every Amharic string below was drafted for this change and **needs native review
 | `dashboard.usageHomeSlide` | የመነሻ ገጽ ስላይድ፦ {label} |
 | `dashboard.usageAboutImage` | የስለ እኛ ገጽ ምስል፦ {label} |
 | `dashboard.usageSiteSetting` | የድረ ገጽ ብራንዲንግ፦ {label} |
+| `dashboard.managedPasswordHint` | ቢያንስ 12 ቁምፊ እና ከ72 ባይት ያልበለጠ ይጠቀሙ። በአርትዖት ጊዜ የአሁኑን የይለፍ ቃል ለማስቀጠል ባዶ ይተዉት። |
+| `dashboard.userCreated` | ተጠቃሚው ተፈጥሯል። |
+| `dashboard.userUpdated` | ተጠቃሚው ተዘምኗል። |
+| `dashboard.userDeleted` | ተጠቃሚው ተሰርዟል። |
+| `dashboard.postDeleted` | ጽሑፉ ተሰርዟል። |
+| `dashboard.postStatusUpdated` | የጽሑፉ ሁኔታ ታድሷል። |
+| `dashboard.eventDeleted` | ዝግጅቱ ተሰርዟል። |
 | `auth.password_too_short` | የይለፍ ቃሉ ቢያንስ 12 ቁምፊዎች ሊኖሩት ይገባል። |
 | `auth.password_too_long` | የይለፍ ቃሉ ከ72 ባይት መብለጥ የለበትም። |
 | `auth.password_too_common` | ይህ የይለፍ ቃል በጣም በብዛት የሚጠቀሙት ስለሆነ ሌላ ይምረጡ። |
@@ -407,6 +414,11 @@ Every Amharic string below was drafted for this change and **needs native review
 | `dashboard.password` | የይለፍ ቃል |
 | `dashboard.saveChanges` | ለውጦቹን ያስቀምጡ |
 | `dashboard.cancel` | ይቅር |
+| `dashboard.confirmActionTitle` | እባክዎ ያረጋግጡ |
+| `dashboard.confirmAction` | ያረጋግጡ |
+| `dashboard.dismissNotification` | ማሳወቂያውን ዝጋ |
+| `dashboard.liveOnSite` | ለውጦቹ በድረ ገጹ ላይ ይታያሉ። |
+| `dashboard.viewOnSite` | በድረ ገጹ ላይ ይመልከቱ |
 | `dashboard.loadingUsers` | ተጠቃሚዎች በመጫን ላይ… |
 | `dashboard.confirmDeleteUser` | {name} ይሰረዝ? |
 | `dashboard.cannotDeleteSelf` | ከዚህ ገጽ የራስዎን መለያ መሰረዝ አይችሉም። |

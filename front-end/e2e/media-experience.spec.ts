@@ -48,6 +48,7 @@ test("admin uploads, uses, and protects a bilingual cover image", async ({ page 
   );
   await page.getByRole("button", { name: "Upload media" }).click();
   expect((await uploadResponse).status()).toBe(201);
+  await expect(page.getByText("Live on the site")).toBeVisible();
   const mediaCard = page.locator(".media-library-card").filter({ hasText: imageTitle });
   await expect(mediaCard).toBeVisible({ timeout: 15_000 });
 
@@ -169,8 +170,14 @@ test("admin uploads, uses, and protects a bilingual cover image", async ({ page 
 
   await page.goto("/en/dashboard/media");
   const usedMediaCard = page.locator(".media-library-card").filter({ hasText: imageTitle });
-  page.once("dialog", (confirm) => confirm.accept());
   await usedMediaCard.getByRole("button", { name: "Delete" }).click();
+  const deleteResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "DELETE" &&
+      /\/staff\/media\/\d+$/.test(new URL(response.url()).pathname),
+  );
+  await page.getByRole("alertdialog").getByRole("button", { name: "Delete", exact: true }).click();
+  expect((await deleteResponse).status()).toBe(409);
   await expect(page.locator(".status-error[role='alert']")).toContainText("in use");
   await expect(usedMediaCard).toContainText(postSlug);
   await expect(usedMediaCard).toContainText(eventTitle);

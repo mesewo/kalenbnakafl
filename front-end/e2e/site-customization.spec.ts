@@ -168,8 +168,11 @@ test("admin manages slider, About photos, and branding in both locales", async (
 
     await page.goto("/am/dashboard/page-content");
     const resetHeroContent = page.locator(".site-block-card").filter({ hasText: "የዋና ገጽ ርዕስ" });
-    page.once("dialog", (dialog) => dialog.accept());
     await resetHeroContent.getByRole("button", { name: "ወደ ነባሪ ይመልሱ" }).click();
+    await page
+      .getByRole("alertdialog")
+      .getByRole("button", { name: "ወደ ነባሪ ይመልሱ", exact: true })
+      .click();
     await expect(page.getByRole("status").filter({ hasText: "የገጽ ጽሑፉ ተቀምጧል" })).toBeVisible();
     await expect(resetHeroContent.getByLabel("አማርኛ", { exact: true })).toHaveValue("");
     await expect(page.getByText("ያልተቀመጡ ለውጦች አሉ።", { exact: false })).toHaveCount(0);

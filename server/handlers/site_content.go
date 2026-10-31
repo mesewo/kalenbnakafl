@@ -232,6 +232,7 @@ func (a *API) CreateHomeSlide(c *gin.Context) {
 		return
 	}
 	httpx.Success(c, http.StatusCreated, "site.home_slide_created", gin.H{"id": id})
+	a.revalidate("home-slides")
 }
 
 func (a *API) UpdateHomeSlide(c *gin.Context) {
@@ -284,10 +285,13 @@ func (a *API) UpdateHomeSlide(c *gin.Context) {
 		return
 	}
 	httpx.Success(c, http.StatusOK, "site.home_slide_updated")
+	a.revalidate("home-slides")
 }
 
 func (a *API) DeleteHomeSlide(c *gin.Context) {
-	deleteSiteRow(c, a.db, `DELETE FROM home_slides WHERE id=$1`, "site.home_slide_not_found", "site.home_slide_deleted")
+	if deleteSiteRow(c, a.db, `DELETE FROM home_slides WHERE id=$1`, "site.home_slide_not_found", "site.home_slide_deleted") {
+		a.revalidate("home-slides")
+	}
 }
 
 func validSlideInput(input *slideInput) bool {
@@ -425,6 +429,7 @@ func (a *API) UpdateSiteSettings(c *gin.Context) {
 		return
 	}
 	httpx.Success(c, http.StatusOK, "site.settings_updated")
+	a.revalidate("site-settings")
 }
 
 func (a *API) GetSiteBlocks(c *gin.Context) {
@@ -548,6 +553,7 @@ RETURNING id`, page, key, authorID).Scan(&id)
 		return
 	}
 	httpx.Success(c, http.StatusOK, "site.block_saved")
+	a.revalidate("site-blocks")
 }
 
 func validContactBlock(page, key, text string) bool {
@@ -657,6 +663,7 @@ func (a *API) CreateAboutImage(c *gin.Context) {
 		return
 	}
 	httpx.Success(c, http.StatusCreated, "site.about_image_created", gin.H{"id": id})
+	a.revalidate("about-images")
 }
 
 func (a *API) UpdateAboutImage(c *gin.Context) {
@@ -707,10 +714,13 @@ func (a *API) UpdateAboutImage(c *gin.Context) {
 		return
 	}
 	httpx.Success(c, http.StatusOK, "site.about_image_updated")
+	a.revalidate("about-images")
 }
 
 func (a *API) DeleteAboutImage(c *gin.Context) {
-	deleteSiteRow(c, a.db, `DELETE FROM about_images WHERE id=$1`, "site.about_image_not_found", "site.about_image_deleted")
+	if deleteSiteRow(c, a.db, `DELETE FROM about_images WHERE id=$1`, "site.about_image_not_found", "site.about_image_deleted") {
+		a.revalidate("about-images")
+	}
 }
 
 func validAboutImageInput(input *aboutImageInput) bool {
@@ -735,24 +745,25 @@ func writeAboutImageTranslations(c *gin.Context, tx *sql.Tx, id int, translation
 	return nil
 }
 
-func deleteSiteRow(c *gin.Context, db *sql.DB, query, notFoundCode, successCode string) {
+func deleteSiteRow(c *gin.Context, db *sql.DB, query, notFoundCode, successCode string) bool {
 	id, ok := parseID(c)
 	if !ok {
-		return
+		return false
 	}
 	result, err := db.ExecContext(c.Request.Context(), query, id)
 	if err != nil {
 		httpx.Internal(c, "Could not delete site content")
-		return
+		return false
 	}
 	affected, err := result.RowsAffected()
 	if err != nil {
 		httpx.Internal(c, "Could not delete site content")
-		return
+		return false
 	}
 	if affected == 0 {
 		httpx.Fail(c, http.StatusNotFound, notFoundCode)
-		return
+		return false
 	}
 	httpx.Success(c, http.StatusOK, successCode)
+	return true
 }

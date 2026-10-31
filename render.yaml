@@ -26,6 +26,10 @@ services:
         value: "true"
       - key: FORWARDED_HEADERS_SECRET
         sync: false
+      - key: FRONTEND_REVALIDATE_URL
+        sync: false
+      - key: REVALIDATE_SECRET
+        sync: false
       - key: STORAGE_DRIVER
         value: s3
       - key: S3_ENDPOINT

@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
+import { useConfirm } from "@/components/DashboardProviders";
 import MediaPicker from "@/components/MediaPicker";
 import { apiFetch, type AboutImage, type AboutImageInput } from "@/lib/api";
 
@@ -36,6 +37,7 @@ function inputFor(item: AboutImageDraft, order = item.sort_order): AboutImageInp
 
 export default function AboutImagesAdminPage() {
   const t = useTranslations("dashboard");
+  const confirm = useConfirm();
   const { user } = useAuth();
   const [images, setImages] = useState<AboutImageDraft[]>([]);
   const [newImage, setNewImage] = useState<AboutImageDraft | null>(null);
@@ -93,7 +95,7 @@ export default function AboutImagesAdminPage() {
   }
 
   async function removeImage(image: AboutImageDraft) {
-    if (!image.id || !window.confirm(t("confirmDeleteAboutImage"))) return;
+    if (!image.id || !(await confirm(t("confirmDeleteAboutImage"), t("delete")))) return;
     setError("");
     setNotice("");
     try {
