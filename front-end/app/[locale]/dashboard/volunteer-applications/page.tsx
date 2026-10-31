@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch, type PageResponse } from "@/lib/api";
 import { formatDate } from "@/lib/api";
+import PageHeader from "@/components/ui/PageHeader";
 
 type Application = {
   id: number;
@@ -83,12 +84,7 @@ export default function VolunteerApplicationsPage() {
   const pages = Math.max(1, Math.ceil(result.total / result.limit));
   return (
     <div>
-      <div className="dashboard-title">
-        <div>
-          <span className="eyebrow">{t("volunteersEyebrow")}</span>
-          <h1>{t("applicationsTitle")}</h1>
-        </div>
-      </div>
+      <PageHeader eyebrow={t("volunteersEyebrow")} title={t("applicationsTitle")} />
       <div className="field">
         <label htmlFor="application-status">{t("filterApplications")}</label>
         <select
@@ -161,11 +157,7 @@ export default function VolunteerApplicationsPage() {
           ))}
         </div>
       )}
-      <nav
-        className="form-actions"
-        aria-label={t("applicationPages")}
-        style={{ justifyContent: "space-between", marginTop: "1.5rem" }}
-      >
+      <nav className="form-actions dashboard-pagination" aria-label={t("applicationPages")}>
         <button
           className="btn btn-outline"
           disabled={page <= 1 || loading}

@@ -58,7 +58,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         <Link className="dashboard-brand" href="/dashboard">
           {t("brand")}
         </Link>
-        <div style={{ display: "flex", alignItems: "center", gap: ".8rem" }}>
+        <div className="dashboard-topbar-actions">
           <span className="badge">{t(`roles.${user.role}`)}</span>
           <LanguageSwitcher />
           <button type="button" className="btn btn-outline btn-small" onClick={out}>
@@ -94,7 +94,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         </aside>
         <main className="dashboard-main" id="main-content">
           {siteContentSaved && (
-            <div className="status" role="status" style={{ marginBottom: "1rem" }}>
+            <div className="status dashboard-status" role="status">
               {t("liveOnSite")}{" "}
               <Link href="/" className="text-link">
                 {t("viewOnSite")}
@@ -102,12 +102,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             </div>
           )}
           {isWaking && (
-            <div
-              className="status"
-              role="status"
-              aria-live="polite"
-              style={{ marginBottom: "1rem" }}
-            >
+            <div className="status dashboard-status" role="status" aria-live="polite">
               {common("serverWaking")}
             </div>
           )}

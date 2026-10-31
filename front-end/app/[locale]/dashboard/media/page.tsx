@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useConfirm } from "@/components/DashboardProviders";
 import MediaUploadForm from "@/components/MediaUploadForm";
 import { ApiError, apiFetch, formatDate, type MediaItem, type PageResponse } from "@/lib/api";
+import PageHeader from "@/components/ui/PageHeader";
 
 type MediaUsage = { usage_type: string; reference_id: number; label: string };
 
@@ -146,19 +147,17 @@ export default function MediaPage() {
 
   return (
     <div>
-      <div className="dashboard-title">
-        <div>
-          <span className="eyebrow">{t("mediaEyebrow")}</span>
-          <h1>{t("mediaTitle")}</h1>
-          <p className="meta">{t("mediaLibraryHelp")}</p>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow={t("mediaEyebrow")}
+        title={t("mediaTitle")}
+        description={t("mediaLibraryHelp")}
+      />
       <section className="form-card media-upload-card" aria-labelledby="media-upload-heading">
         <h2 id="media-upload-heading">{t("mediaAddImages")}</h2>
         <MediaUploadForm onUploaded={load} />
       </section>
       {error && (
-        <div className="status status-error" role="alert" style={{ margin: "1rem 0" }}>
+        <div className="status status-error dashboard-status" role="alert">
           {error}
         </div>
       )}

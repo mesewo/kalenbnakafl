@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useConfirm } from "@/components/DashboardProviders";
 import { apiFetch } from "@/lib/api";
 import { siteBlockCatalog, type SiteBlockDefinition } from "@/lib/site-block-catalog";
+import PageHeader from "@/components/ui/PageHeader";
 
 type Locale = "en" | "am";
 type TranslationDraft = Record<Locale, string>;
@@ -156,12 +157,7 @@ export default function PageContentAdminPage() {
 
   return (
     <div className="site-block-editor">
-      <header className="dashboard-title">
-        <div>
-          <h1>{t("pageContentTitle")}</h1>
-          <p>{t("pageContentIntro")}</p>
-        </div>
-      </header>
+      <PageHeader title={t("pageContentTitle")} description={t("pageContentIntro")} />
       {dirty && (
         <p className="status" role="status" aria-live="polite">
           {t("contentUnsaved")}

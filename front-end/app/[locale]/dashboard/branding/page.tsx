@@ -12,6 +12,8 @@ import {
   type SiteSettings,
   type SiteSettingsInput,
 } from "@/lib/api";
+import PageHeader from "@/components/ui/PageHeader";
+import BilingualField from "@/components/ui/BilingualField";
 
 type BrandingSlot = "logo" | "favicon" | "social";
 type BrandingDraft = {
@@ -184,13 +186,11 @@ export default function BrandingAdminPage() {
 
   return (
     <section>
-      <div className="dashboard-title">
-        <div>
-          <span className="eyebrow">{t("siteContentEyebrow")}</span>
-          <h1>{t("brandingTitle")}</h1>
-          <p>{t("brandingHelp")}</p>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow={t("siteContentEyebrow")}
+        title={t("brandingTitle")}
+        description={t("brandingHelp")}
+      />
       {error && (
         <p className="status status-error" role="alert">
           {error}
@@ -257,13 +257,26 @@ export default function BrandingAdminPage() {
           </div>
           <div className="card branding-translations">
             <h2>{t("brandingTextTitle")}</h2>
-            <div className="grid-2">
-              {(["en", "am"] as const).map((locale) => (
-                <fieldset className="branding-language" key={locale}>
-                  <legend>{t(locale === "en" ? "english" : "amharic")}</legend>
+            <BilingualField
+              englishLabel={t("english")}
+              amharicLabel={t("amharic")}
+              missingEnglish={
+                !settings.translations.en.site_name.trim() ||
+                !settings.translations.en.tagline.trim()
+              }
+              missingAmharic={
+                !settings.translations.am.site_name.trim() ||
+                !settings.translations.am.tagline.trim()
+              }
+              missingEnglishLabel={t("missingEnglish")}
+              missingAmharicLabel={t("missingAmharic")}
+            >
+              {(locale) => (
+                <div className="branding-language">
                   <label className="field">
                     <span>{t("siteName")}</span>
                     <input
+                      id={`bilingual-field-${locale}-site-name`}
                       required
                       maxLength={180}
                       value={settings.translations[locale].site_name}
@@ -284,6 +297,7 @@ export default function BrandingAdminPage() {
                   <label className="field">
                     <span>{t("siteTagline")}</span>
                     <textarea
+                      id={`bilingual-field-${locale}-tagline`}
                       required
                       rows={3}
                       maxLength={1000}
@@ -302,9 +316,9 @@ export default function BrandingAdminPage() {
                       }
                     />
                   </label>
-                </fieldset>
-              ))}
-            </div>
+                </div>
+              )}
+            </BilingualField>
           </div>
           <div className="form-actions">
             <button

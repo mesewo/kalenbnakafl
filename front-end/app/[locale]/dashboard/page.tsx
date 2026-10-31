@@ -12,6 +12,7 @@ import {
   type Post,
   type User,
 } from "@/lib/api";
+import PageHeader from "@/components/ui/PageHeader";
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -74,13 +75,11 @@ export default function DashboardPage() {
       : t("memberDescription");
   return (
     <div>
-      <div className="dashboard-title">
-        <div>
-          <span className="eyebrow">{t("homeEyebrow")}</span>
-          <h1>{t("greeting", { name: user?.name?.split(" ")[0] || "" })}</h1>
-        </div>
-      </div>
-      <div className="card card-accent" style={{ marginBottom: "1.5rem" }}>
+      <PageHeader
+        eyebrow={t("homeEyebrow")}
+        title={t("greeting", { name: user?.name?.split(" ")[0] || "" })}
+      />
+      <div className="card card-accent dashboard-intro-card">
         <h2>{headline}</h2>
         <p>{description}</p>
       </div>
@@ -91,16 +90,7 @@ export default function DashboardPage() {
           cards.map((card) => (
             <Link className="card" href={card.href} key={card.label}>
               <span className="meta">{card.label}</span>
-              <strong
-                style={{
-                  display: "block",
-                  fontFamily: "var(--font-fraunces), Georgia, serif",
-                  fontSize: "3rem",
-                  marginTop: ".6rem",
-                }}
-              >
-                {card.value}
-              </strong>
+              <strong className="dashboard-stat-value">{card.value}</strong>
               <span className="meta">{t("open", { label: card.label.toLowerCase() })}</span>
             </Link>
           ))

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch, type Post } from "@/lib/api";
 import MediaPicker from "@/components/MediaPicker";
+import FormDialog from "@/components/ui/FormDialog";
 import type { components } from "@/types/api.d.ts";
 
 type Locale = "en" | "am";
@@ -37,7 +38,7 @@ export default function PostModal({
   const [coverMediaID, setCoverMediaID] = useState<number | null>(null);
   const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
   const [pickerPurpose, setPickerPurpose] = useState<"cover" | "inline">("cover");
-  const closeRef = useRef<HTMLButtonElement>(null);
+  const [dirty, setDirty] = useState(false);
   const contentRef = useRef<HTMLTextAreaElement>(null);
   const selectionRef = useRef<{ start: number; end: number }>({ start: 0, end: 0 });
   useEffect(() => {
@@ -50,13 +51,12 @@ export default function PostModal({
     setCoverMediaID(post?.cover_media_id ?? null);
     setMediaPickerOpen(false);
     setError("");
+    setDirty(false);
   }, [post, isOpen]);
-  useEffect(() => {
-    if (isOpen) closeRef.current?.focus();
-  }, [isOpen]);
   if (!isOpen) return null;
 
   function change(field: keyof Translation, value: string) {
+    setDirty(true);
     setDraft((current) => ({ ...current, [locale]: { ...current[locale], [field]: value } }));
   }
 
@@ -133,6 +133,7 @@ export default function PostModal({
           });
         }
       }
+      setDirty(false);
       onSuccess();
       onClose();
     } catch (err) {
@@ -161,163 +162,173 @@ export default function PostModal({
   }
 
   return (
-    <div className="modal-backdrop" role="presentation">
-      <div className="modal" role="dialog" aria-modal="true" aria-labelledby="post-modal-title">
-        <div className="modal-head">
-          <h2 id="post-modal-title">{post ? t("editPost") : t("createPost")}</h2>
-          <button
-            className="close-btn"
-            ref={closeRef}
-            type="button"
-            aria-label={t("closeDialog")}
-            onClick={onClose}
+    <FormDialog
+      open={isOpen}
+      title={post ? t("editPost") : t("createPost")}
+      onClose={onClose}
+      dirty={dirty}
+      discardTitle={t("confirmActionTitle")}
+      discardMessage={t("discardFormChanges")}
+      discardLabel={t("discardChanges")}
+      cancelLabel={t("cancel")}
+      closeLabel={t("closeDialog")}
+      wide
+    >
+      {(requestClose) => (
+        <>
+          {error && (
+            <div className="status status-error dashboard-status" role="alert">
+              {error}
+            </div>
+          )}
+          <form onSubmit={submit}>
+            <div role="tablist" aria-label={t("postLanguage")}>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={locale === "en"}
+                onClick={() => setLocale("en")}
+              >
+                {t("english")}
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={locale === "am"}
+                onClick={() => setLocale("am")}
+              >
+                {t("amharic")}
+              </button>
+            </div>
+            <div className="field">
+              <label htmlFor="post-title">
+                {t("title")} {"("}
+                {locale === "en" ? t("english") : t("amharic")}
+                {")"}
+              </label>
+              <input
+                id="post-title"
+                value={draft[locale].title}
+                maxLength={180}
+                onChange={(e) => change("title", e.target.value)}
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="post-slug">{t("slug")}</label>
+              <input
+                id="post-slug"
+                value={slug}
+                onChange={(e) => {
+                  setSlug(e.target.value);
+                  setDirty(true);
+                }}
+                placeholder={t("slugPlaceholder")}
+                pattern="[a-z0-9-]{3,100}"
+                title={t("slugValidation")}
+              />
+            </div>
+            <div className="field">
+              <p className="field-label">{t("postCover")}</p>
+              {coverMediaID !== null ? (
+                <div className="cover-preview">
+                  <Image
+                    src={`/api/staff/media/${coverMediaID}/file?w=960`}
+                    alt=""
+                    width={960}
+                    height={540}
+                    sizes="(max-width: 560px) 100vw, 520px"
+                    unoptimized
+                  />
+                  <button
+                    className="btn btn-outline btn-small"
+                    type="button"
+                    onClick={() => {
+                      setCoverMediaID(null);
+                      setDirty(true);
+                    }}
+                  >
+                    {t("removeCover")}
+                  </button>
+                </div>
+              ) : (
+                <div className="cover-placeholder" aria-hidden="true" />
+              )}
+              <p className="meta">{t("postCoverHint")}</p>
+              <button
+                className="btn btn-outline"
+                type="button"
+                onClick={() => {
+                  setPickerPurpose("cover");
+                  setMediaPickerOpen(true);
+                }}
+              >
+                {coverMediaID === null ? t("selectCover") : t("changeCover")}
+              </button>
+            </div>
+            <div className="field">
+              <label htmlFor="post-content">
+                {t("postContent")} {"("}
+                {locale === "en" ? t("english") : t("amharic")}
+                {")"}
+              </label>
+              <textarea
+                ref={contentRef}
+                id="post-content"
+                value={draft[locale].content}
+                maxLength={20000}
+                onSelect={(event) => {
+                  selectionRef.current = {
+                    start: event.currentTarget.selectionStart,
+                    end: event.currentTarget.selectionEnd,
+                  };
+                }}
+                onChange={(e) => change("content", e.target.value)}
+              />
+              <button
+                className="btn btn-outline btn-small"
+                type="button"
+                onClick={() => {
+                  const content = draft[locale].content;
+                  selectionRef.current = contentRef.current
+                    ? {
+                        start: contentRef.current.selectionStart,
+                        end: contentRef.current.selectionEnd,
+                      }
+                    : { start: content.length, end: content.length };
+                  setPickerPurpose("inline");
+                  setMediaPickerOpen(true);
+                }}
+              >
+                {t("insertImage")}
+              </button>
+            </div>
+            <p className="meta">{t("clearPostTranslationHelp")}</p>
+            <div className="form-actions">
+              <button className="btn btn-primary" disabled={loading}>
+                {loading ? t("saving") : post ? t("saveChanges") : t("createPost")}
+              </button>
+              <button className="btn btn-outline" type="button" onClick={requestClose}>
+                {t("cancel")}
+              </button>
+            </div>
+          </form>
+          <MediaPicker
+            isOpen={mediaPickerOpen}
+            selectedMediaID={pickerPurpose === "cover" ? coverMediaID : null}
+            slotHint={t("postCoverHint")}
+            onClose={() => setMediaPickerOpen(false)}
+            onSelect={(mediaID) => {
+              if (pickerPurpose === "inline") {
+                insertInlineImage(mediaID);
+              } else {
+                setCoverMediaID(mediaID);
+                setDirty(true);
+              }
+              setMediaPickerOpen(false);
+            }}
           />
-        </div>
-        {error && (
-          <div className="status status-error" role="alert" style={{ marginBottom: "1rem" }}>
-            {error}
-          </div>
-        )}
-        <form onSubmit={submit}>
-          <div role="tablist" aria-label={t("postLanguage")}>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={locale === "en"}
-              onClick={() => setLocale("en")}
-            >
-              {t("english")}
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={locale === "am"}
-              onClick={() => setLocale("am")}
-            >
-              {t("amharic")}
-            </button>
-          </div>
-          <div className="field">
-            <label htmlFor="post-title">
-              {t("title")} {"("}
-              {locale === "en" ? t("english") : t("amharic")}
-              {")"}
-            </label>
-            <input
-              id="post-title"
-              value={draft[locale].title}
-              maxLength={180}
-              onChange={(e) => change("title", e.target.value)}
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="post-slug">{t("slug")}</label>
-            <input
-              id="post-slug"
-              value={slug}
-              onChange={(e) => setSlug(e.target.value)}
-              placeholder={t("slugPlaceholder")}
-              pattern="[a-z0-9-]{3,100}"
-              title={t("slugValidation")}
-            />
-          </div>
-          <div className="field">
-            <p className="field-label">{t("postCover")}</p>
-            {coverMediaID !== null ? (
-              <div className="cover-preview">
-                <Image
-                  src={`/api/staff/media/${coverMediaID}/file?w=960`}
-                  alt=""
-                  width={960}
-                  height={540}
-                  sizes="(max-width: 560px) 100vw, 520px"
-                  unoptimized
-                />
-                <button
-                  className="btn btn-outline btn-small"
-                  type="button"
-                  onClick={() => setCoverMediaID(null)}
-                >
-                  {t("removeCover")}
-                </button>
-              </div>
-            ) : (
-              <div className="cover-placeholder" aria-hidden="true" />
-            )}
-            <p className="meta">{t("postCoverHint")}</p>
-            <button
-              className="btn btn-outline"
-              type="button"
-              onClick={() => {
-                setPickerPurpose("cover");
-                setMediaPickerOpen(true);
-              }}
-            >
-              {coverMediaID === null ? t("selectCover") : t("changeCover")}
-            </button>
-          </div>
-          <div className="field">
-            <label htmlFor="post-content">
-              {t("postContent")} {"("}
-              {locale === "en" ? t("english") : t("amharic")}
-              {")"}
-            </label>
-            <textarea
-              ref={contentRef}
-              id="post-content"
-              value={draft[locale].content}
-              maxLength={20000}
-              onSelect={(event) => {
-                selectionRef.current = {
-                  start: event.currentTarget.selectionStart,
-                  end: event.currentTarget.selectionEnd,
-                };
-              }}
-              onChange={(e) => change("content", e.target.value)}
-            />
-            <button
-              className="btn btn-outline btn-small"
-              type="button"
-              onClick={() => {
-                const content = draft[locale].content;
-                selectionRef.current = contentRef.current
-                  ? {
-                      start: contentRef.current.selectionStart,
-                      end: contentRef.current.selectionEnd,
-                    }
-                  : { start: content.length, end: content.length };
-                setPickerPurpose("inline");
-                setMediaPickerOpen(true);
-              }}
-            >
-              {t("insertImage")}
-            </button>
-          </div>
-          <p className="meta">{t("clearPostTranslationHelp")}</p>
-          <div className="form-actions">
-            <button className="btn btn-primary" disabled={loading}>
-              {loading ? t("saving") : post ? t("saveChanges") : t("createPost")}
-            </button>
-            <button className="btn btn-outline" type="button" onClick={onClose}>
-              {t("cancel")}
-            </button>
-          </div>
-        </form>
-      </div>
-      <MediaPicker
-        isOpen={mediaPickerOpen}
-        selectedMediaID={pickerPurpose === "cover" ? coverMediaID : null}
-        slotHint={t("postCoverHint")}
-        onClose={() => setMediaPickerOpen(false)}
-        onSelect={(mediaID) => {
-          if (pickerPurpose === "inline") {
-            insertInlineImage(mediaID);
-          } else {
-            setCoverMediaID(mediaID);
-          }
-          setMediaPickerOpen(false);
-        }}
-      />
-    </div>
+        </>
+      )}
+    </FormDialog>
   );
 }

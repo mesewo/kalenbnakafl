@@ -1,7 +1,7 @@
 "use client";
 import Image from "next/image";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Fragment, useState } from "react";
+import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -10,6 +10,8 @@ import { apiFetch, formatDate, type EventItem, type MediaItem, type PageResponse
 import { queryKeys } from "@/lib/query-keys";
 type Attendee = { name: string; email: string; created_at: string };
 import EventModal from "@/components/EventModal";
+import PageHeader from "@/components/ui/PageHeader";
+import DataTable from "@/components/ui/DataTable";
 
 type EventsQueryData = { events: EventItem[]; mediaByID: Record<number, MediaItem> };
 
@@ -123,157 +125,148 @@ export default function EventsAdminPage() {
   }
   return (
     <div>
-      <div className="dashboard-title">
-        <div>
-          <span className="eyebrow">{t("eventsEyebrow")}</span>
-          <h1>{t("events")}</h1>
-        </div>
-        <button className="btn btn-primary" onClick={() => setModal({ open: true, event: null })}>
-          {t("newEvent")}
-        </button>
-      </div>
-      {error && (
-        <div className="status status-error" role="alert" style={{ marginBottom: "1rem" }}>
-          {error}
-        </div>
-      )}
-      {eventsQuery.isPending ? (
-        <div className="table-wrap" aria-label={t("loadingEvents")} role="status">
-          <table className="data-table">
-            <tbody>
-              {Array.from({ length: 5 }, (_, index) => (
-                <tr className="skeleton-row" key={index}>
-                  <td aria-hidden="true" colSpan={3} />
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : eventsQuery.isError ? (
-        <div className="status status-error" role="alert">
-          {eventsQuery.error instanceof Error ? eventsQuery.error.message : t("loadEventsFailed")}
-        </div>
-      ) : events.length === 0 ? (
-        <div className="empty-state">{t("noEvents")}</div>
-      ) : (
-        <div className="table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>{t("event")}</th>
-                <th>{t("date")}</th>
-                <th>{t("actions")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {events.map((event) => (
-                <Fragment key={event.id}>
-                  <tr>
-                    <td>
-                      {renderCover(event.cover_media_id)}
-                      <strong>{event.title}</strong>
-                      {(!event.translations?.am?.title || !event.translations?.am?.description) && (
-                        <span className="badge status-pending">{t("missingAmharic")}</span>
-                      )}
-                      {(!event.translations?.en?.title || !event.translations?.en?.description) && (
-                        <span className="badge status-pending">{t("missingEnglish")}</span>
-                      )}
-                      <div>
-                        <Link
-                          href="/events"
-                          locale={locale === "en" ? "am" : "en"}
-                          className="meta"
-                        >
-                          {t("previewOtherLanguage")}
-                        </Link>
-                      </div>
-                      <div className="meta">
-                        {event.description.slice(0, 120)}
-                        {event.description.length > 120 ? "..." : ""}
-                      </div>
-                    </td>
-                    <td>{formatDate(event.event_date, true, locale)}</td>
-                    <td>
-                      <div className="form-actions">
-                        <button
-                          className="btn btn-outline btn-small"
-                          onClick={() => setModal({ open: true, event })}
-                        >
-                          {t("edit")}
-                        </button>
-                        <button className="btn btn-danger btn-small" onClick={() => remove(event)}>
-                          {t("delete")}
-                        </button>
-                        {user?.role === "admin" && (
-                          <button
-                            className="btn btn-outline btn-small"
-                            onClick={() => toggleAttendees(event.id)}
-                          >
-                            {t("attendees")}
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                  {attendeeEvent === event.id && user?.role === "admin" && (
-                    <tr>
-                      <td colSpan={3}>
-                        <h3>{t("attendeesFor", { title: event.title })}</h3>
-                        {attendeeError && (
-                          <div className="status status-error" role="alert">
-                            {attendeeError}
-                          </div>
-                        )}
-                        {attendeeLoading ? (
-                          <div className="empty-state" role="status">
-                            {t("loadingAttendees")}
-                          </div>
-                        ) : attendees.items.length === 0 ? (
-                          <div className="empty-state">{t("noAttendees")}</div>
-                        ) : (
-                          <ul>
-                            {attendees.items.map((attendee) => (
-                              <li key={attendee.email}>
-                                {attendee.name}
-                                {" — "}
-                                {attendee.email}
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                        <nav className="form-actions" aria-label={t("attendeePages")}>
-                          <button
-                            className="btn btn-outline btn-small"
-                            disabled={attendees.page <= 1 || attendeeLoading}
-                            onClick={() => void loadAttendees(event.id, attendees.page - 1)}
-                          >
-                            {t("previous")}
-                          </button>
-                          <span className="meta">
-                            {t("pageOf", {
-                              page: attendees.page,
-                              total: Math.max(1, Math.ceil(attendees.total / attendees.limit)),
-                            })}
-                          </span>
-                          <button
-                            className="btn btn-outline btn-small"
-                            disabled={
-                              attendees.page * attendees.limit >= attendees.total || attendeeLoading
-                            }
-                            onClick={() => void loadAttendees(event.id, attendees.page + 1)}
-                          >
-                            {t("next")}
-                          </button>
-                        </nav>
-                      </td>
-                    </tr>
+      <PageHeader
+        eyebrow={t("eventsEyebrow")}
+        title={t("events")}
+        action={
+          <button className="btn btn-primary" onClick={() => setModal({ open: true, event: null })}>
+            {t("newEvent")}
+          </button>
+        }
+      />
+      <DataTable
+        rows={events}
+        rowKey={(event) => event.id}
+        loading={eventsQuery.isPending}
+        loadingLabel={t("loadingEvents")}
+        error={
+          error ||
+          (eventsQuery.isError
+            ? eventsQuery.error instanceof Error
+              ? eventsQuery.error.message
+              : t("loadEventsFailed")
+            : undefined)
+        }
+        emptyState={t("noEvents")}
+        searchable
+        searchPlaceholder={t("searchEvents")}
+        columns={[
+          {
+            id: "event",
+            label: t("event"),
+            header: t("event"),
+            cell: (event) => (
+              <>
+                {renderCover(event.cover_media_id)}
+                <strong>{event.title}</strong>
+                {(!event.translations?.am?.title || !event.translations?.am?.description) && (
+                  <span className="badge status-pending">{t("missingAmharic")}</span>
+                )}
+                {(!event.translations?.en?.title || !event.translations?.en?.description) && (
+                  <span className="badge status-pending">{t("missingEnglish")}</span>
+                )}
+                <div>
+                  <Link href="/events" locale={locale === "en" ? "am" : "en"} className="meta">
+                    {t("previewOtherLanguage")}
+                  </Link>
+                </div>
+                <div className="meta">
+                  {event.description.slice(0, 120)}
+                  {event.description.length > 120 ? "..." : ""}
+                </div>
+              </>
+            ),
+            searchText: (event) => `${event.title} ${event.description}`,
+            sortValue: (event) => event.title,
+          },
+          {
+            id: "date",
+            label: t("date"),
+            header: t("date"),
+            cell: (event) => formatDate(event.event_date, true, locale),
+            sortValue: (event) => event.event_date,
+          },
+          {
+            id: "actions",
+            label: t("actions"),
+            header: t("actions"),
+            cell: (event) => (
+              <>
+                <div className="form-actions">
+                  <button
+                    className="btn btn-outline btn-small"
+                    onClick={() => setModal({ open: true, event })}
+                  >
+                    {t("edit")}
+                  </button>
+                  <button className="btn btn-danger btn-small" onClick={() => remove(event)}>
+                    {t("delete")}
+                  </button>
+                  {user?.role === "admin" && (
+                    <button
+                      className="btn btn-outline btn-small"
+                      onClick={() => toggleAttendees(event.id)}
+                    >
+                      {t("attendees")}
+                    </button>
                   )}
-                </Fragment>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+                </div>
+                {attendeeEvent === event.id && user?.role === "admin" && (
+                  <section className="card event-attendees">
+                    <h3>{t("attendeesFor", { title: event.title })}</h3>
+                    {attendeeError && (
+                      <div className="status status-error" role="alert">
+                        {attendeeError}
+                      </div>
+                    )}
+                    {attendeeLoading ? (
+                      <div className="empty-state" role="status">
+                        {t("loadingAttendees")}
+                      </div>
+                    ) : attendees.items.length === 0 ? (
+                      <div className="empty-state">{t("noAttendees")}</div>
+                    ) : (
+                      <ul>
+                        {attendees.items.map((attendee) => (
+                          <li key={attendee.email}>
+                            {attendee.name}
+                            <br />
+                            {attendee.email}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    <nav className="form-actions" aria-label={t("attendeePages")}>
+                      <button
+                        className="btn btn-outline btn-small"
+                        disabled={attendees.page <= 1 || attendeeLoading}
+                        onClick={() => void loadAttendees(event.id, attendees.page - 1)}
+                      >
+                        {t("previous")}
+                      </button>
+                      <span className="meta">
+                        {t("pageOf", {
+                          page: attendees.page,
+                          total: Math.max(1, Math.ceil(attendees.total / attendees.limit)),
+                        })}
+                      </span>
+                      <button
+                        className="btn btn-outline btn-small"
+                        disabled={
+                          attendees.page * attendees.limit >= attendees.total || attendeeLoading
+                        }
+                        onClick={() => void loadAttendees(event.id, attendees.page + 1)}
+                      >
+                        {t("next")}
+                      </button>
+                    </nav>
+                  </section>
+                )}
+              </>
+            ),
+          },
+        ]}
+      />
       <EventModal
         isOpen={modal.open}
         event={modal.event}

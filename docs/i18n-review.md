@@ -672,3 +672,8 @@ Every Amharic string below was drafted for this change and **needs native review
 | `dashboard.chooseHomeSlideImage` | ምስል ይምረጡ |
 | `dashboard.chooseAboutImage` | ምስል ይምረጡ |
 | `dashboard.chooseBrandImage` | ምስል ይምረጡ |
+| `dashboard.searchPosts` | ጽሑፎችን ይፈልጉ |
+| `dashboard.searchEvents` | ዝግጅቶችን ይፈልጉ |
+| `dashboard.discardFormChanges` | ይህን ቅጽ ዘግተው ያልተቀመጡ ለውጦችን ይተዉ? |
+| `dashboard.discardChanges` | ለውጦችን ይተዉ |
+| `dashboard.usersSearch` | ተጠቃሚዎችን ይፈልጉ |

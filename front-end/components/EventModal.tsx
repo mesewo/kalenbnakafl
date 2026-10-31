@@ -1,10 +1,11 @@
 "use client";
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { apiFetch, type EventItem } from "@/lib/api";
 import { formatDate } from "@/lib/api";
 import MediaPicker from "@/components/MediaPicker";
+import FormDialog from "@/components/ui/FormDialog";
 import type { components } from "@/types/api.d.ts";
 
 type Locale = "en" | "am";
@@ -39,7 +40,7 @@ export default function EventModal({
   const [loading, setLoading] = useState(false);
   const [coverMediaID, setCoverMediaID] = useState<number | null>(null);
   const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
-  const closeRef = useRef<HTMLButtonElement>(null);
+  const [dirty, setDirty] = useState(false);
   useEffect(() => {
     setDraft({
       en: event?.translations?.en ?? emptyDraft.en,
@@ -51,13 +52,12 @@ export default function EventModal({
     setMediaPickerOpen(false);
     setLocale("en");
     setError("");
+    setDirty(false);
   }, [event, isOpen]);
-  useEffect(() => {
-    if (isOpen) closeRef.current?.focus();
-  }, [isOpen]);
   if (!isOpen) return null;
 
   function change(field: keyof Translation, value: string) {
+    setDirty(true);
     setDraft((current) => ({ ...current, [locale]: { ...current[locale], [field]: value } }));
   }
 
@@ -141,6 +141,7 @@ export default function EventModal({
           });
         }
       }
+      setDirty(false);
       onSuccess();
       onClose();
     } catch (err) {
@@ -151,169 +152,182 @@ export default function EventModal({
   }
 
   return (
-    <div className="modal-backdrop" role="presentation">
-      <div className="modal" role="dialog" aria-modal="true" aria-labelledby="event-modal-title">
-        <div className="modal-head">
-          <h2 id="event-modal-title">
-            {event ? tDashboard("editEvent") : tDashboard("createEvent")}
-          </h2>
-          <button
-            className="close-btn"
-            ref={closeRef}
-            type="button"
-            aria-label={tDashboard("closeDialog")}
-            onClick={onClose}
+    <FormDialog
+      open={isOpen}
+      title={event ? tDashboard("editEvent") : tDashboard("createEvent")}
+      onClose={onClose}
+      dirty={dirty}
+      discardTitle={tDashboard("confirmActionTitle")}
+      discardMessage={tDashboard("discardFormChanges")}
+      discardLabel={tDashboard("discardChanges")}
+      cancelLabel={tDashboard("cancel")}
+      closeLabel={tDashboard("closeDialog")}
+      wide
+    >
+      {(requestClose) => (
+        <>
+          {error && (
+            <div className="status status-error dashboard-status" role="alert">
+              {error}
+            </div>
+          )}
+          <form onSubmit={submit}>
+            <div role="tablist" aria-label={tDashboard("eventLanguage")}>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={locale === "en"}
+                onClick={() => setLocale("en")}
+              >
+                {tDashboard("english")}
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={locale === "am"}
+                onClick={() => setLocale("am")}
+              >
+                {tDashboard("amharic")}
+              </button>
+            </div>
+            <div className="field">
+              <label htmlFor="event-title">
+                {tDashboard("title")} {"("}
+                {locale === "en" ? tDashboard("english") : tDashboard("amharic")}
+                {")"}
+              </label>
+              <input
+                id="event-title"
+                value={draft[locale].title}
+                maxLength={180}
+                onChange={(e) => change("title", e.target.value)}
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="event-description">
+                {tDashboard("description")} {"("}
+                {locale === "en" ? tDashboard("english") : tDashboard("amharic")}
+                {")"}
+              </label>
+              <textarea
+                id="event-description"
+                value={draft[locale].description}
+                maxLength={20000}
+                onChange={(e) => change("description", e.target.value)}
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="event-location">
+                {tDashboard("location")} {"("}
+                {locale === "en" ? tDashboard("english") : tDashboard("amharic")}
+                {")"}
+              </label>
+              <input
+                id="event-location"
+                value={draft[locale].location}
+                maxLength={500}
+                onChange={(e) => change("location", e.target.value)}
+              />
+            </div>
+            <div className="field">
+              <p className="field-label">{tDashboard("eventCover")}</p>
+              {coverMediaID !== null ? (
+                <div className="cover-preview">
+                  <Image
+                    src={`/api/staff/media/${coverMediaID}/file?w=960`}
+                    alt=""
+                    width={960}
+                    height={540}
+                    sizes="(max-width: 560px) 100vw, 520px"
+                    unoptimized
+                  />
+                  <button
+                    className="btn btn-outline btn-small"
+                    type="button"
+                    onClick={() => {
+                      setCoverMediaID(null);
+                      setDirty(true);
+                    }}
+                  >
+                    {tDashboard("removeCover")}
+                  </button>
+                </div>
+              ) : (
+                <div className="cover-placeholder" aria-hidden="true" />
+              )}
+              <p className="meta">{tDashboard("eventCoverHint")}</p>
+              <button
+                className="btn btn-outline"
+                type="button"
+                onClick={() => setMediaPickerOpen(true)}
+              >
+                {coverMediaID === null ? tDashboard("selectCover") : tDashboard("changeCover")}
+              </button>
+            </div>
+            <div className="field">
+              <label htmlFor="event-date">{tDashboard("dateAndTime")}</label>
+              <input
+                id="event-date"
+                type="datetime-local"
+                value={eventDate}
+                onChange={(e) => {
+                  setEventDate(e.target.value);
+                  setDirty(true);
+                }}
+                required
+              />
+              {displayLocale === "am" && eventDate && (
+                <small>
+                  {tDashboard("ethiopianDate", {
+                    date: formatDate(eventDate, true, displayLocale),
+                  })}
+                </small>
+              )}
+            </div>
+            <div className="field">
+              <label htmlFor="event-ends-at">{tDashboard("endDateOptional")}</label>
+              <input
+                id="event-ends-at"
+                type="datetime-local"
+                value={endsAt}
+                onChange={(e) => {
+                  setEndsAt(e.target.value);
+                  setDirty(true);
+                }}
+              />
+              {displayLocale === "am" && endsAt && (
+                <small>
+                  {tDashboard("ethiopianDate", { date: formatDate(endsAt, true, displayLocale) })}
+                </small>
+              )}
+            </div>
+            <p className="meta">{tDashboard("clearTranslationHelp")}</p>
+            <div className="form-actions">
+              <button className="btn btn-primary" disabled={loading}>
+                {loading
+                  ? tDashboard("saving")
+                  : event
+                    ? tDashboard("saveChanges")
+                    : tDashboard("createEvent")}
+              </button>
+              <button className="btn btn-outline" type="button" onClick={requestClose}>
+                {tDashboard("cancel")}
+              </button>
+            </div>
+          </form>
+          <MediaPicker
+            isOpen={mediaPickerOpen}
+            selectedMediaID={coverMediaID}
+            slotHint={tDashboard("eventCoverHint")}
+            onClose={() => setMediaPickerOpen(false)}
+            onSelect={(mediaID) => {
+              setCoverMediaID(mediaID);
+              setDirty(true);
+              setMediaPickerOpen(false);
+            }}
           />
-        </div>
-        {error && (
-          <div className="status status-error" role="alert" style={{ marginBottom: "1rem" }}>
-            {error}
-          </div>
-        )}
-        <form onSubmit={submit}>
-          <div role="tablist" aria-label={tDashboard("eventLanguage")}>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={locale === "en"}
-              onClick={() => setLocale("en")}
-            >
-              {tDashboard("english")}
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={locale === "am"}
-              onClick={() => setLocale("am")}
-            >
-              {tDashboard("amharic")}
-            </button>
-          </div>
-          <div className="field">
-            <label htmlFor="event-title">
-              {tDashboard("title")} {"("}
-              {locale === "en" ? tDashboard("english") : tDashboard("amharic")}
-              {")"}
-            </label>
-            <input
-              id="event-title"
-              value={draft[locale].title}
-              maxLength={180}
-              onChange={(e) => change("title", e.target.value)}
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="event-description">
-              {tDashboard("description")} {"("}
-              {locale === "en" ? tDashboard("english") : tDashboard("amharic")}
-              {")"}
-            </label>
-            <textarea
-              id="event-description"
-              value={draft[locale].description}
-              maxLength={20000}
-              onChange={(e) => change("description", e.target.value)}
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="event-location">
-              {tDashboard("location")} {"("}
-              {locale === "en" ? tDashboard("english") : tDashboard("amharic")}
-              {")"}
-            </label>
-            <input
-              id="event-location"
-              value={draft[locale].location}
-              maxLength={500}
-              onChange={(e) => change("location", e.target.value)}
-            />
-          </div>
-          <div className="field">
-            <p className="field-label">{tDashboard("eventCover")}</p>
-            {coverMediaID !== null ? (
-              <div className="cover-preview">
-                <Image
-                  src={`/api/staff/media/${coverMediaID}/file?w=960`}
-                  alt=""
-                  width={960}
-                  height={540}
-                  sizes="(max-width: 560px) 100vw, 520px"
-                  unoptimized
-                />
-                <button
-                  className="btn btn-outline btn-small"
-                  type="button"
-                  onClick={() => setCoverMediaID(null)}
-                >
-                  {tDashboard("removeCover")}
-                </button>
-              </div>
-            ) : (
-              <div className="cover-placeholder" aria-hidden="true" />
-            )}
-            <p className="meta">{tDashboard("eventCoverHint")}</p>
-            <button
-              className="btn btn-outline"
-              type="button"
-              onClick={() => setMediaPickerOpen(true)}
-            >
-              {coverMediaID === null ? tDashboard("selectCover") : tDashboard("changeCover")}
-            </button>
-          </div>
-          <div className="field">
-            <label htmlFor="event-date">{tDashboard("dateAndTime")}</label>
-            <input
-              id="event-date"
-              type="datetime-local"
-              value={eventDate}
-              onChange={(e) => setEventDate(e.target.value)}
-              required
-            />
-            {displayLocale === "am" && eventDate && (
-              <small>
-                {tDashboard("ethiopianDate", { date: formatDate(eventDate, true, displayLocale) })}
-              </small>
-            )}
-          </div>
-          <div className="field">
-            <label htmlFor="event-ends-at">{tDashboard("endDateOptional")}</label>
-            <input
-              id="event-ends-at"
-              type="datetime-local"
-              value={endsAt}
-              onChange={(e) => setEndsAt(e.target.value)}
-            />
-            {displayLocale === "am" && endsAt && (
-              <small>
-                {tDashboard("ethiopianDate", { date: formatDate(endsAt, true, displayLocale) })}
-              </small>
-            )}
-          </div>
-          <p className="meta">{tDashboard("clearTranslationHelp")}</p>
-          <div className="form-actions">
-            <button className="btn btn-primary" disabled={loading}>
-              {loading
-                ? tDashboard("saving")
-                : event
-                  ? tDashboard("saveChanges")
-                  : tDashboard("createEvent")}
-            </button>
-            <button className="btn btn-outline" type="button" onClick={onClose}>
-              {tDashboard("cancel")}
-            </button>
-          </div>
-        </form>
-      </div>
-      <MediaPicker
-        isOpen={mediaPickerOpen}
-        selectedMediaID={coverMediaID}
-        slotHint={tDashboard("eventCoverHint")}
-        onClose={() => setMediaPickerOpen(false)}
-        onSelect={(mediaID) => {
-          setCoverMediaID(mediaID);
-          setMediaPickerOpen(false);
-        }}
-      />
-    </div>
+        </>
+      )}
+    </FormDialog>
   );
 }

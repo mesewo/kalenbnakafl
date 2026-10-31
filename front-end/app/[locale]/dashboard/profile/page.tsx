@@ -4,6 +4,10 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch } from "@/lib/api";
+import PageHeader from "@/components/ui/PageHeader";
+import Field from "@/components/ui/Field";
+import SubmitButton from "@/components/ui/SubmitButton";
+import StatusBadge from "@/components/ui/StatusBadge";
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -40,26 +44,22 @@ export default function ProfilePage() {
   }
   return (
     <div>
-      <div className="dashboard-title">
-        <div>
-          <span className="eyebrow">{t("yourDetails")}</span>
-          <h1>{t("profile")}</h1>
-        </div>
-        <span className="badge">{user ? t(`roles.${user.role}`) : ""}</span>
-      </div>
-      <div className="form-shell" style={{ margin: 0 }}>
+      <PageHeader
+        eyebrow={t("yourDetails")}
+        title={t("profile")}
+        action={<StatusBadge>{user ? t(`roles.${user.role}`) : ""}</StatusBadge>}
+      />
+      <div className="profile-form-shell">
         <form className="form-card" onSubmit={submit}>
-          <div className="field">
-            <label htmlFor="profile-name">{t("name")}</label>
+          <Field id="profile-name" label={t("name")}>
             <input
               id="profile-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
             />
-          </div>
-          <div className="field">
-            <label htmlFor="profile-email">{t("email")}</label>
+          </Field>
+          <Field id="profile-email" label={t("email")}>
             <input
               id="profile-email"
               type="email"
@@ -67,10 +67,9 @@ export default function ProfilePage() {
               onChange={(e) => setEmail(e.target.value)}
               required
             />
-          </div>
-          <hr style={{ border: 0, borderTop: "1px solid var(--line)", margin: "1.5rem 0" }} />
-          <div className="field">
-            <label htmlFor="profile-password">{t("newPassword")}</label>
+          </Field>
+          <hr className="profile-divider" />
+          <Field id="profile-password" label={t("newPassword")} hint={t("passwordHint")}>
             <input
               id="profile-password"
               type="password"
@@ -78,10 +77,8 @@ export default function ProfilePage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
-            <small>{t("passwordHint")}</small>
-          </div>
-          <div className="field">
-            <label htmlFor="profile-confirm">{t("confirmPassword")}</label>
+          </Field>
+          <Field id="profile-confirm" label={t("confirmPassword")}>
             <input
               id="profile-confirm"
               type="password"
@@ -89,20 +86,20 @@ export default function ProfilePage() {
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
             />
-          </div>
+          </Field>
           {message && (
-            <div className="status status-success" role="status" style={{ marginBottom: "1rem" }}>
+            <div className="status status-success dashboard-status" role="status">
               {message}
             </div>
           )}
           {error && (
-            <div className="status status-error" role="alert" style={{ marginBottom: "1rem" }}>
+            <div className="status status-error dashboard-status" role="alert">
               {error}
             </div>
           )}
-          <button className="btn btn-primary" disabled={loading}>
-            {loading ? t("saving") : t("saveProfile")}
-          </button>
+          <SubmitButton pending={loading} pendingLabel={t("saving")}>
+            {t("saveProfile")}
+          </SubmitButton>
         </form>
       </div>
     </div>

@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import Toast from "@/components/ui/Toast";
 
 type Toast = { id: number; message: string; tone: "success" | "error" };
 type ToastContextValue = { showToast: (message: string, tone?: Toast["tone"]) => void };
@@ -67,22 +68,14 @@ export function DashboardProviders({ children }: { children: React.ReactNode }) 
           />
           <div className="toast-region" aria-live="polite" aria-relevant="additions">
             {toasts.map((toast) => (
-              <div
-                className={`toast toast-${toast.tone}`}
+              <Toast
                 key={toast.id}
-                role={toast.tone === "error" ? "alert" : "status"}
-              >
-                {toast.message}
-                <button
-                  type="button"
-                  aria-label={t("dismissNotification")}
-                  onClick={() =>
-                    setToasts((current) => current.filter((item) => item.id !== toast.id))
-                  }
-                >
-                  {t("dismissNotification")}
-                </button>
-              </div>
+                message={toast.message}
+                tone={toast.tone}
+                onDismiss={() =>
+                  setToasts((current) => current.filter((item) => item.id !== toast.id))
+                }
+              />
             ))}
           </div>
         </ConfirmationContext.Provider>

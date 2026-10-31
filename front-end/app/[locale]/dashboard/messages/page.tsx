@@ -5,6 +5,9 @@ import { useLocale } from "next-intl";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch, formatDate, type PageResponse } from "@/lib/api";
+import PageHeader from "@/components/ui/PageHeader";
+import DataTable from "@/components/ui/DataTable";
+import StatusBadge from "@/components/ui/StatusBadge";
 
 type ContactStatus = "new" | "read" | "replied";
 type ContactMessage = {
@@ -82,120 +85,118 @@ export default function MessagesPage() {
 
   return (
     <div>
-      <div className="dashboard-title">
-        <div>
-          <span className="eyebrow">{t("messagesEyebrow")}</span>
-          <h1>{t("inbox")}</h1>
-        </div>
-        <div className="field">
-          <label htmlFor="message-status">{t("filterStatus")}</label>
-          <select
-            id="message-status"
-            value={status}
-            onChange={(event) => {
-              setStatus(event.target.value as StatusFilter);
-              setPage(1);
-            }}
-          >
-            <option value="">{t("allMessages")}</option>
-            <option value="new">{t("statusNewLabel")}</option>
-            <option value="read">{t("statusReadLabel")}</option>
-            <option value="replied">{t("statusRepliedLabel")}</option>
-          </select>
-        </div>
-      </div>
-
-      {error && (
-        <div className="status status-error" role="alert" style={{ marginBottom: "1rem" }}>
-          {error}
-        </div>
-      )}
-
-      {loading ? (
-        <div className="empty-state" role="status">
-          {t("loadingMessages")}
-        </div>
-      ) : messages.items.length === 0 ? (
-        <div className="empty-state">{t("noMessages")}</div>
-      ) : (
-        <div className="table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>{t("from")}</th>
-                <th>{t("receivedLabel")}</th>
-                <th>{t("status")}</th>
-                <th>{t("actions")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {messages.items.map((message) => {
-                const isExpanded = expanded === message.id;
-                return (
-                  <tr key={message.id}>
-                    <td>
-                      <button
-                        type="button"
-                        className="btn btn-outline btn-small"
-                        aria-expanded={isExpanded}
-                        onClick={() => setExpanded(isExpanded ? null : message.id)}
-                      >
-                        {isExpanded ? t("hideMessage") : message.name}
-                      </button>
-                      <div className="meta">
-                        <a href={`mailto:${message.email}`}>{message.email}</a>
-                      </div>
-                      {isExpanded && (
-                        <div
-                          className="card"
-                          style={{ marginTop: ".75rem", whiteSpace: "pre-wrap" }}
-                        >
-                          {message.message}
-                          {message.handled_by_name && (
-                            <p className="meta">
-                              {t("handledBy", { name: message.handled_by_name })}
-                              {message.handled_at
-                                ? ` · ${formatDate(message.handled_at, true, locale)}`
-                                : ""}
-                            </p>
-                          )}
-                        </div>
+      <PageHeader
+        eyebrow={t("messagesEyebrow")}
+        title={t("inbox")}
+        action={
+          <label className="field">
+            <span>{t("filterStatus")}</span>
+            <select
+              id="message-status"
+              value={status}
+              onChange={(event) => {
+                setStatus(event.target.value as StatusFilter);
+                setPage(1);
+              }}
+            >
+              <option value="">{t("allMessages")}</option>
+              <option value="new">{t("statusNewLabel")}</option>
+              <option value="read">{t("statusReadLabel")}</option>
+              <option value="replied">{t("statusRepliedLabel")}</option>
+            </select>
+          </label>
+        }
+      />
+      <DataTable
+        rows={messages.items}
+        rowKey={(message) => message.id}
+        loading={loading}
+        loadingLabel={t("loadingMessages")}
+        error={error || undefined}
+        emptyState={t("noMessages")}
+        columns={[
+          {
+            id: "from",
+            label: t("from"),
+            header: t("from"),
+            cell: (message) => {
+              const isExpanded = expanded === message.id;
+              return (
+                <>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-small"
+                    aria-expanded={isExpanded}
+                    onClick={() => setExpanded(isExpanded ? null : message.id)}
+                  >
+                    {isExpanded ? t("hideMessage") : message.name}
+                  </button>
+                  <div className="meta">
+                    <a href={`mailto:${message.email}`}>{message.email}</a>
+                  </div>
+                  {isExpanded && (
+                    <div className="card dashboard-message-body">
+                      {message.message}
+                      {message.handled_by_name && (
+                        <p className="meta">
+                          {t("handledBy", { name: message.handled_by_name })}
+                          {message.handled_at
+                            ? ` · ${formatDate(message.handled_at, true, locale)}`
+                            : ""}
+                        </p>
                       )}
-                    </td>
-                    <td>{formatDate(message.created_at, true, locale)}</td>
-                    <td>
-                      <span className="badge">{statusLabels[message.status]}</span>
-                    </td>
-                    <td>
-                      <div className="form-actions">
-                        <button
-                          type="button"
-                          className="btn btn-outline btn-small"
-                          disabled={updating === message.id || message.status === "read"}
-                          onClick={() => void updateMessage(message, "read")}
-                        >
-                          {t("markRead")}
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-primary btn-small"
-                          disabled={updating === message.id || message.status === "replied"}
-                          onClick={() => void updateMessage(message, "replied")}
-                        >
-                          {t("markReplied")}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+                    </div>
+                  )}
+                </>
+              );
+            },
+            searchText: (message) => `${message.name} ${message.email} ${message.message}`,
+            sortValue: (message) => message.name,
+          },
+          {
+            id: "received",
+            label: t("receivedLabel"),
+            header: t("receivedLabel"),
+            cell: (message) => formatDate(message.created_at, true, locale),
+            sortValue: (message) => message.created_at,
+          },
+          {
+            id: "status",
+            label: t("status"),
+            header: t("status"),
+            cell: (message) => <StatusBadge>{statusLabels[message.status]}</StatusBadge>,
+            sortValue: (message) => message.status,
+          },
+          {
+            id: "actions",
+            label: t("actions"),
+            header: t("actions"),
+            cell: (message) => (
+              <div className="form-actions">
+                <button
+                  type="button"
+                  className="btn btn-outline btn-small"
+                  disabled={updating === message.id || message.status === "read"}
+                  onClick={() => void updateMessage(message, "read")}
+                >
+                  {t("markRead")}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-small"
+                  disabled={updating === message.id || message.status === "replied"}
+                  onClick={() => void updateMessage(message, "replied")}
+                >
+                  {t("markReplied")}
+                </button>
+              </div>
+            ),
+          },
+        ]}
+      />
 
       {!loading && messages.total > 0 && (
-        <div className="form-actions" aria-label={t("messagePages")} style={{ marginTop: "1rem" }}>
+        <div className="form-actions dashboard-pagination" aria-label={t("messagePages")}>
           <button
             type="button"
             className="btn btn-outline btn-small"

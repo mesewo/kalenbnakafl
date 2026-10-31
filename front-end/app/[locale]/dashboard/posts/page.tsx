@@ -9,6 +9,8 @@ import { useConfirm, useToast } from "@/components/DashboardProviders";
 import { apiFetch, formatDate, type MediaItem, type PageResponse, type Post } from "@/lib/api";
 import { queryKeys } from "@/lib/query-keys";
 import PostModal from "@/components/PostModal";
+import PageHeader from "@/components/ui/PageHeader";
+import DataTable from "@/components/ui/DataTable";
 
 type PostsQueryData = { posts: Post[]; mediaByID: Record<number, MediaItem> };
 
@@ -127,103 +129,105 @@ export default function PostsPage() {
   }
   return (
     <div>
-      <div className="dashboard-title">
-        <div>
-          <span className="eyebrow">{t("postsEyebrow")}</span>
-          <h1>{t("posts")}</h1>
-        </div>
-        <button className="btn btn-primary" onClick={() => setModal({ open: true, post: null })}>
-          {t("newPost")}
-        </button>
-      </div>
-      {error && (
-        <div className="status status-error" role="alert" style={{ marginBottom: "1rem" }}>
-          {error}
-        </div>
-      )}
-      {postsQuery.isPending ? (
-        <div className="table-wrap" aria-label={t("loadingPosts")} role="status">
-          <table className="data-table">
-            <tbody>
-              {Array.from({ length: 5 }, (_, index) => (
-                <tr className="skeleton-row" key={index}>
-                  <td aria-hidden="true" colSpan={4} />
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : postsQuery.isError ? (
-        <div className="status status-error" role="alert">
-          {postsQuery.error instanceof Error ? postsQuery.error.message : t("loadPostsFailed")}
-        </div>
-      ) : posts.length === 0 ? (
-        <div className="empty-state">{t("noPosts")}</div>
-      ) : (
-        <div className="table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>{t("title")}</th>
-                <th>{t("status")}</th>
-                <th>{t("updated")}</th>
-                <th>{t("actions")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {posts.map((post) => (
-                <tr key={post.id}>
-                  <td>
-                    {renderCover(post.cover_media_id)}
-                    <strong>{post.title}</strong>
-                    {(!post.translations?.am?.title || !post.translations?.am?.content) && (
-                      <span className="badge status-pending">{t("missingAmharic")}</span>
-                    )}
-                    {(!post.translations?.en?.title || !post.translations?.en?.content) && (
-                      <span className="badge status-pending">{t("missingEnglish")}</span>
-                    )}
-                    <div>
-                      <Link
-                        href={`/blog/${post.slug}`}
-                        locale={locale === "en" ? "am" : "en"}
-                        className="meta"
-                      >
-                        {t("previewOtherLanguage")}
-                      </Link>
-                    </div>
-                    <div className="meta">
-                      {post.content.slice(0, 100)}
-                      {post.content.length > 100 ? "…" : ""}
-                    </div>
-                  </td>
-                  <td>
-                    <span className="badge">
-                      {post.published ? t("statusPublishedLabel") : t("statusDraftLabel")}
-                    </span>
-                  </td>
-                  <td>{formatDate(post.updated_at || post.created_at, false, locale)}</td>
-                  <td>
-                    <div className="form-actions">
-                      <button
-                        className="btn btn-outline btn-small"
-                        onClick={() => setModal({ open: true, post })}
-                      >
-                        {t("edit")}
-                      </button>
-                      <button className="btn btn-outline btn-small" onClick={() => toggle(post)}>
-                        {post.published ? t("unpublish") : t("publish")}
-                      </button>
-                      <button className="btn btn-danger btn-small" onClick={() => remove(post)}>
-                        {t("delete")}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <PageHeader
+        eyebrow={t("postsEyebrow")}
+        title={t("posts")}
+        action={
+          <button className="btn btn-primary" onClick={() => setModal({ open: true, post: null })}>
+            {t("newPost")}
+          </button>
+        }
+      />
+      <DataTable
+        rows={posts}
+        rowKey={(post) => post.id}
+        loading={postsQuery.isPending}
+        loadingLabel={t("loadingPosts")}
+        error={
+          error ||
+          (postsQuery.isError
+            ? postsQuery.error instanceof Error
+              ? postsQuery.error.message
+              : t("loadPostsFailed")
+            : undefined)
+        }
+        emptyState={t("noPosts")}
+        searchable
+        searchPlaceholder={t("searchPosts")}
+        columns={[
+          {
+            id: "title",
+            label: t("title"),
+            header: t("title"),
+            cell: (post) => (
+              <>
+                {renderCover(post.cover_media_id)}
+                <strong>{post.title}</strong>
+                {(!post.translations?.am?.title || !post.translations?.am?.content) && (
+                  <span className="badge status-pending">{t("missingAmharic")}</span>
+                )}
+                {(!post.translations?.en?.title || !post.translations?.en?.content) && (
+                  <span className="badge status-pending">{t("missingEnglish")}</span>
+                )}
+                <div>
+                  <Link
+                    href={`/blog/${post.slug}`}
+                    locale={locale === "en" ? "am" : "en"}
+                    className="meta"
+                  >
+                    {t("previewOtherLanguage")}
+                  </Link>
+                </div>
+                <div className="meta">
+                  {post.content.slice(0, 100)}
+                  {post.content.length > 100 ? "…" : ""}
+                </div>
+              </>
+            ),
+            searchText: (post) => `${post.title} ${post.content}`,
+            sortValue: (post) => post.title,
+          },
+          {
+            id: "status",
+            label: t("status"),
+            header: t("status"),
+            cell: (post) => (
+              <span className="badge">
+                {post.published ? t("statusPublishedLabel") : t("statusDraftLabel")}
+              </span>
+            ),
+            sortValue: (post) => Number(post.published),
+          },
+          {
+            id: "updated",
+            label: t("updated"),
+            header: t("updated"),
+            cell: (post) => formatDate(post.updated_at || post.created_at, false, locale),
+            sortValue: (post) => post.updated_at || post.created_at || "",
+          },
+          {
+            id: "actions",
+            label: t("actions"),
+            header: t("actions"),
+            cell: (post) => (
+              <div className="form-actions">
+                <button
+                  className="btn btn-outline btn-small"
+                  onClick={() => setModal({ open: true, post })}
+                >
+                  {t("edit")}
+                </button>
+                <button className="btn btn-outline btn-small" onClick={() => toggle(post)}>
+                  {post.published ? t("unpublish") : t("publish")}
+                </button>
+                <button className="btn btn-danger btn-small" onClick={() => remove(post)}>
+                  {t("delete")}
+                </button>
+              </div>
+            ),
+          },
+        ]}
+      />
       <PostModal
         isOpen={modal.open}
         post={modal.post}
