@@ -25,7 +25,7 @@ jobs:
           RENDER_API_URL: ${{ vars.RENDER_API_URL }}
           VERCEL_BASE_URL: ${{ vars.VERCEL_BASE_URL }}
         run: |
-          test -n "$RENDER_DEPLOY_HOOK_URL" || { echo "Missing RENDER_DEPLOY_HOOK_URL secret"; exit 1; }
+          test -n "$RENDER_DEPLOY_HOOK_URL" || { echo "Missing RENDER_DEPLOY_HOOK_URL secret; add it to GitHub Settings > Environments > production, or configure it as a repository secret."; exit 1; }
           test -n "$RENDER_API_URL" || { echo "Missing RENDER_API_URL repository variable"; exit 1; }
           test -n "$VERCEL_BASE_URL" || { echo "Missing VERCEL_BASE_URL repository variable"; exit 1; }
       - name: Trigger Render deployment
