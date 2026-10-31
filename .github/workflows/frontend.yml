@@ -28,7 +28,7 @@ jobs:
       run:
         working-directory: front-end
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v6
         with:
           node-version: 20
@@ -87,7 +87,7 @@ jobs:
       run:
         working-directory: front-end
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v6
         with:
           node-version: 20
