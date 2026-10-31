@@ -87,7 +87,18 @@ jobs:
         run: |
           mkdir -p "$GOBIN" "$RUNNER_TEMP/minio-data"
           MINIO_VERSION="$(cat ../infra/minio/version)"
-          go install -ldflags="-s -w" "github.com/minio/minio@${MINIO_VERSION}"
+          for attempt in 1 2 3; do
+            if go install -ldflags="-s -w" "github.com/minio/minio@${MINIO_VERSION}"; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "MinIO install failed after three attempts." >&2
+              exit 1
+            fi
+            delay="$((attempt * 10))"
+            echo "MinIO install attempt $attempt failed; retrying in ${delay}s." >&2
+            sleep "$delay"
+          done
           MINIO_ROOT_USER="$MINIO_ROOT_USER" MINIO_ROOT_PASSWORD="$MINIO_ROOT_PASSWORD" \
             "$GOBIN/minio" server "$RUNNER_TEMP/minio-data" \
             --address 0.0.0.0:9000 --console-address 0.0.0.0:9001 \

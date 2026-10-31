@@ -100,7 +100,7 @@ Configure these GitHub Actions secrets:
 
 | Secret | Purpose |
 |---|---|
-| `RENDER_DEPLOY_HOOK_URL` | Render deploy hook URL |
+| `RENDER_DEPLOY_HOOK_URL` | Render deploy hook URL; add as an Actions secret in the `production` environment (Settings → Environments → production → Environment secrets), since the deploy job targets that environment. A repository-level Actions secret is also accepted. |
 | `NEON_DIRECT_DATABASE_URL` | Neon direct TLS connection URL |
 | `B2_MEDIA_ACCESS_KEY_ID`, `B2_MEDIA_SECRET_ACCESS_KEY` | Media-bucket application key |
 | `B2_BACKUP_ACCESS_KEY_ID`, `B2_BACKUP_SECRET_ACCESS_KEY` | Backup-bucket application key |
