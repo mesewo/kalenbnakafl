@@ -1778,8 +1778,10 @@ html[lang="am"] .dashboard-shell h3 {
   }
 }
 
-@view-transition {
-  navigation: auto;
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition {
+    navigation: auto;
+  }
 }
 
 @keyframes fade-out {

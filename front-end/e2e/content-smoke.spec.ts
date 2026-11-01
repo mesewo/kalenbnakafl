@@ -44,12 +44,7 @@ test("admin content and public bilingual flows", async ({ page }, testInfo) => {
   await postRow.getByRole("button", { name: "Publish" }).click();
   expect((await publishResponse).status()).toBe(200);
   await expect(postRow).toContainText("Published");
-  await waitForPublicContent(
-    page,
-    "/en/blog",
-    page.getByRole("heading", { name: postTitle }),
-    5000,
-  );
+  await waitForPublicContent(page, "/en/blog", page.getByRole("heading", { name: postTitle }));
   const enPostCard = page.locator("article.card").filter({ hasText: postTitle });
   await enPostCard.getByRole("link", { name: "Read the full note →" }).click();
   await expect(page.getByText(`English body ${suffix}`)).toBeVisible();

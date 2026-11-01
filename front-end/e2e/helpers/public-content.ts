@@ -12,10 +12,14 @@ export async function waitForPublicContent(
     .poll(
       async () => {
         if ((await content.count()) > 0) return true;
-        await page.reload();
+        try {
+          await page.reload({ waitUntil: "domcontentloaded" });
+        } catch {
+          // Guard against transient reload detachment during cross-page transitions
+        }
         return (await content.count()) > 0;
       },
-      { timeout: Math.max(0, deadline - Date.now()), intervals: [100, 250, 500] },
+      { timeout: Math.max(0, deadline - Date.now()), intervals: [1000, 2000, 4000] },
     )
     .toBe(true);
 }

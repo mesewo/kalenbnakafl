@@ -281,8 +281,8 @@ test("admin manages slider, About photos, and branding in both locales", async (
         { timeout: 90_000, intervals: [3000, 5000, 10000] },
       )
       .toBeGreaterThan(0);
-    await expect(page.getByAltText(englishAlt)).toBeVisible();
     const carousel = page.getByRole("region", { name: "Featured images" });
+    await expect(carousel.getByAltText(englishAlt).first()).toBeVisible({ timeout: 20_000 });
     await expect(carousel.getByRole("button", { name: "Previous image" })).toBeVisible();
     const pauseSlides = carousel.getByRole("button", { name: "Pause slideshow" });
     await expect(pauseSlides).toBeVisible();

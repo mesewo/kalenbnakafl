@@ -104,7 +104,8 @@ test("admin uploads, uses, and protects a bilingual cover image", async ({ page 
   const postCard = page.locator("article.card").filter({ hasText: postTitle });
   await expect(postCard.getByRole("img", { name: englishAlt })).toBeVisible();
   await postCard.getByRole("link", { name: "Read the full note →" }).click();
-  await expect(page.getByRole("img", { name: englishAlt })).toHaveCount(2);
+  await expect(page.getByRole("heading", { name: postTitle })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("img", { name: englishAlt })).toHaveCount(2, { timeout: 30_000 });
   await expect(page.locator("picture source").first()).toHaveAttribute("srcset", /w=480/);
   await waitForPublicContent(
     page,

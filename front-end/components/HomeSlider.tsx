@@ -71,7 +71,19 @@ export default function HomeSlider({
       aria-label={t("homeSlider")}
       aria-roledescription={t("carousel")}
     >
-      <div className="container home-slider">
+      <div
+        className="container home-slider"
+        tabIndex={0}
+        onKeyDown={(event) => {
+          if (event.key === "ArrowLeft") {
+            event.preventDefault();
+            move(-1);
+          } else if (event.key === "ArrowRight") {
+            event.preventDefault();
+            move(1);
+          }
+        }}
+      >
         <div className="home-slider-copy">
           <span className="eyebrow">{eyebrow}</span>
           <h1 className="display">{headline}</h1>
@@ -86,19 +98,7 @@ export default function HomeSlider({
           </div>
         </div>
         <div className="home-slider-stage">
-          <div
-            className="home-slider-content"
-            tabIndex={0}
-            onKeyDown={(event) => {
-              if (event.key === "ArrowLeft") {
-                event.preventDefault();
-                move(-1);
-              } else if (event.key === "ArrowRight") {
-                event.preventDefault();
-                move(1);
-              }
-            }}
-          >
+          <div className="home-slider-content">
             <div aria-live="polite" aria-atomic="true">
               {current.link ? (
                 <Link href={current.link} className="home-slider-link">
