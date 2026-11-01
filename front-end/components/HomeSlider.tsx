@@ -13,8 +13,19 @@ export type HomeSliderItem = {
   link: string;
 };
 
-export default function HomeSlider({ slides }: { slides: HomeSliderItem[] }) {
+export default function HomeSlider({
+  slides,
+  eyebrow,
+  headline,
+  intro,
+}: {
+  slides: HomeSliderItem[];
+  eyebrow: string;
+  headline: string;
+  intro: string;
+}) {
   const t = useTranslations("site");
+  const home = useTranslations("home");
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
@@ -60,57 +71,74 @@ export default function HomeSlider({ slides }: { slides: HomeSliderItem[] }) {
       aria-label={t("homeSlider")}
       aria-roledescription={t("carousel")}
     >
-      <div
-        className="container home-slider"
-        tabIndex={0}
-        onKeyDown={(event) => {
-          if (event.key === "ArrowLeft") {
-            event.preventDefault();
-            move(-1);
-          } else if (event.key === "ArrowRight") {
-            event.preventDefault();
-            move(1);
-          }
-        }}
-      >
-        <div className="home-slider-content" aria-live="polite" aria-atomic="true">
-          {current.link ? (
-            <Link href={current.link} className="home-slider-link">
-              {displayedImage}
+      <div className="container home-slider">
+        <div className="home-slider-copy">
+          <span className="eyebrow">{eyebrow}</span>
+          <h1 className="display">{headline}</h1>
+          <p className="lede">{intro}</p>
+          <div className="hero-actions">
+            <Link className="btn btn-primary" href="/volunteer">
+              {home("help")}
             </Link>
-          ) : (
-            displayedImage
-          )}
-          <p className="visually-hidden">
-            {t("slidePosition", { current: index + 1, total: slides.length })}
-          </p>
+            <Link className="btn btn-outline" href="/events">
+              {home("upcoming")}
+            </Link>
+          </div>
         </div>
-        <div className="home-slider-controls">
-          <button
-            type="button"
-            className="btn btn-outline btn-small"
-            onClick={() => move(-1)}
-            disabled={slides.length < 2}
+        <div className="home-slider-stage">
+          <div
+            className="home-slider-content"
+            tabIndex={0}
+            onKeyDown={(event) => {
+              if (event.key === "ArrowLeft") {
+                event.preventDefault();
+                move(-1);
+              } else if (event.key === "ArrowRight") {
+                event.preventDefault();
+                move(1);
+              }
+            }}
           >
-            {t("previousSlide")}
-          </button>
-          <button
-            type="button"
-            className="btn btn-outline btn-small"
-            onClick={() => setPaused((value) => !value)}
-            aria-pressed={paused || reducedMotion}
-            disabled={slides.length < 2}
-          >
-            {reducedMotion ? t("motionPaused") : paused ? t("resumeSlides") : t("pauseSlides")}
-          </button>
-          <button
-            type="button"
-            className="btn btn-outline btn-small"
-            onClick={() => move(1)}
-            disabled={slides.length < 2}
-          >
-            {t("nextSlide")}
-          </button>
+            <div aria-live="polite" aria-atomic="true">
+              {current.link ? (
+                <Link href={current.link} className="home-slider-link">
+                  {displayedImage}
+                </Link>
+              ) : (
+                displayedImage
+              )}
+              <p className="visually-hidden">
+                {t("slidePosition", { current: index + 1, total: slides.length })}
+              </p>
+            </div>
+          </div>
+          <div className="home-slider-controls">
+            <button
+              type="button"
+              className="btn btn-outline btn-small"
+              onClick={() => move(-1)}
+              disabled={slides.length < 2}
+            >
+              {t("previousSlide")}
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline btn-small"
+              onClick={() => setPaused((value) => !value)}
+              aria-pressed={paused || reducedMotion}
+              disabled={slides.length < 2}
+            >
+              {reducedMotion ? t("motionPaused") : paused ? t("resumeSlides") : t("pauseSlides")}
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline btn-small"
+              onClick={() => move(1)}
+              disabled={slides.length < 2}
+            >
+              {t("nextSlide")}
+            </button>
+          </div>
         </div>
       </div>
     </section>

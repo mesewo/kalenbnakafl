@@ -47,7 +47,14 @@ export default async function HomePage({ params }: Props) {
   return (
     <>
       <main id="main-content">
-        {slides.length > 0 && <HomeSlider slides={slides} />}
+        {slides.length > 0 && (
+          <HomeSlider
+            slides={slides}
+            eyebrow={block("hero_eyebrow", "eyebrow")}
+            headline={block("hero_title", "title")}
+            intro={block("hero_intro", "intro")}
+          />
+        )}
         {slides.length === 0 && (
           <section className="hero">
             <div className="container hero-grid">
@@ -65,7 +72,7 @@ export default async function HomePage({ params }: Props) {
                 </div>
               </div>
               <div className="hero-card">
-                <span className="eyebrow site-block-text" style={{ color: "var(--sun)" }}>
+                <span className="eyebrow hero-card-eyebrow site-block-text">
                   {block("hero_shared", "shared")}
                 </span>
                 <h2 className="site-block-text">{block("hero_thrive", "thrive")}</h2>
@@ -88,7 +95,7 @@ export default async function HomePage({ params }: Props) {
             </div>
             <div className="grid-3">
               {(["connect", "learn", "act"] as const).map((key, index) => (
-                <article className="card card-accent" key={key}>
+                <article className="card card-accent scroll-reveal" key={key}>
                   <div className="icon-box">{String(index + 1).padStart(2, "0")}</div>
                   <h3 className="site-block-text">{block(`${key}_title`, key)}</h3>
                   <p className="site-block-text">{block(`${key}_text`, `${key}Text`)}</p>
@@ -125,7 +132,7 @@ export default async function HomePage({ params }: Props) {
             </div>
             <div className="grid-2">
               {(events?.items ?? []).map((event) => (
-                <article className="card" key={event.id}>
+                <article className="card scroll-reveal" key={event.id}>
                   <span className="meta">{formatDate(event.event_date, true, locale)}</span>
                   <h3>{event.title}</h3>
                   {event.fallback && <small>{common("fallback")}</small>}
@@ -144,7 +151,7 @@ export default async function HomePage({ params }: Props) {
             </div>
           </div>
         </section>
-        <section className="section" style={{ paddingTop: 0 }}>
+        <section className="section section-compact-top">
           <div className="container">
             <div className="section-head">
               <div>
@@ -159,7 +166,7 @@ export default async function HomePage({ params }: Props) {
             </div>
             <div className="grid-2">
               {(posts?.items ?? []).map((post) => (
-                <article className="card" key={post.id}>
+                <article className="card scroll-reveal" key={post.id}>
                   <span className="meta">{t("communityNote")}</span>
                   <h3>{post.title}</h3>
                   {post.fallback && <small>{common("fallback")}</small>}

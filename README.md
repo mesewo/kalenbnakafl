@@ -1,6 +1,22 @@
 # kalenbnakafl
 
-A community NGO website and content workspace for news, events, volunteering, and community resources.
+**Kalen Benakafil** — a community NGO website and content workspace for news, events, volunteering, and community resources. Built as a senior full-stack portfolio piece with Go/Gin API, Next.js 16 App Router, PostgreSQL, Docker, and a bilingual (English + Amharic) UI.
+
+## Screenshots
+
+Before and after the visual redesign (light/dark, 360 px and 1280 px, English and Amharic):
+
+|                       | en · 1280 · light                                       | en · 1280 · dark                                       |
+| --------------------- | ------------------------------------------------------- | ------------------------------------------------------ |
+| **Home (after)**      | ![](docs/screenshots/after-home-en-1280-light.png)      | ![](docs/screenshots/after-home-en-1280-dark.png)      |
+| **Dashboard (after)** | ![](docs/screenshots/after-dashboard-en-1280-light.png) | ![](docs/screenshots/after-dashboard-en-1280-dark.png) |
+
+|                       | am · 360 · light                                       | am · 360 · dark                                       |
+| --------------------- | ------------------------------------------------------ | ----------------------------------------------------- |
+| **Home (after)**      | ![](docs/screenshots/after-home-am-360-light.png)      | ![](docs/screenshots/after-home-am-360-dark.png)      |
+| **Dashboard (after)** | ![](docs/screenshots/after-dashboard-am-360-light.png) | ![](docs/screenshots/after-dashboard-am-360-dark.png) |
+
+Full set of before/after captures (all 32 images) is in [`docs/screenshots/`](docs/screenshots/).
 
 ## Quick start
 

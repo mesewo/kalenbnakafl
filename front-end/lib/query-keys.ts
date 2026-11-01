@@ -10,4 +10,5 @@ export const queryKeys = {
   contactMessages: ["contact-messages"] as const,
   volunteers: ["volunteers"] as const,
   volunteerApplications: ["volunteer-applications"] as const,
+  dashboardOverview: (role: string) => ["dashboard-overview", role] as const,
 };

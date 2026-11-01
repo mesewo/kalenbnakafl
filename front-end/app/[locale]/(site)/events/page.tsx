@@ -47,7 +47,7 @@ export default async function EventsPage({ params, searchParams }: Props) {
           ) : (
             <div className="grid-2">
               {result.items.map((event) => (
-                <article className="card" key={event.id}>
+                <article className="card scroll-reveal" key={event.id}>
                   <PublicMediaImage
                     mediaID={event.cover_media_id}
                     locale={locale}
@@ -68,11 +68,7 @@ export default async function EventsPage({ params, searchParams }: Props) {
               ))}
             </div>
           )}
-          <nav
-            className="form-actions"
-            aria-label={t("pages")}
-            style={{ justifyContent: "space-between", marginTop: "1.5rem" }}
-          >
+          <nav className="form-actions pagination-nav" aria-label={t("pages")}>
             <Link
               className="btn btn-outline"
               aria-disabled={page <= 1}

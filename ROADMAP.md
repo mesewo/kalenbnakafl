@@ -1,11 +1,10 @@
 ### Current state / next step
 
-- Added shared dashboard primitives for page headers, responsive/sortable/searchable tables, fields, bilingual editors, dialogs, confirmations, buttons, badges, empty states, and toasts.
-- Consolidated the About-image and home-slide editors into a shared manager; moved user, post, event, volunteer-contribution, and media-caption create/edit flows into accessible dialogs where existing interactions permit.
-- Added a reusable optimistic CRUD hook and adopted it for user management; removed dashboard inline styles and converted tables into mobile card rows below 640px.
-- Frontend lint, TypeScript, i18n checks, production build, and changed-file Prettier checks pass. The full Prettier command still reports 35 pre-existing unrelated files; production generation also logged expected API connection-refused fallback warnings.
-- Playwright was not run because neither frontend nor backend was listening on localhost. Dashboard route TSX decreased by about 18%, below the requested 40%; follow up with the suite on Compose and further extraction without changing UX.
-  **Goal:** a repo and a live demo that survive a 10-minute recruiter/hiring-manager review for a *senior full-stack* role: one-command startup, real security, real tests, CI, docs, and a polished, working UI.
+- Completed Phase 4 visual redesign: design tokens (`@theme`), dark mode with `prefers-color-scheme` + toggle, Ethiopian-inspired palette (deep green/gold/terracotta), public site hero/slider/sections/cards, dashboard sidebar with icons/active-state, mobile bottom-nav + drawer, stat cards, quick actions, recent activity, role badges (per-role colors), 404/loading/error screens, scroll-reveal, and view-page transitions — all with `prefers-reduced-motion` guards and Amharic Noto font/line-height preservation.
+- **Bug fixed:** `DashboardShell.tsx` used `className="dashboard-nav-link"` but CSS targeted only `.dashboard-side a`; added CSS alias `.dashboard-nav-link` and its hover/active/mobile variants so sidebar links are correctly styled.
+- **Added:** `.text-link` utility class; per-role badge variants (`.role-admin`, `.role-editor`, `.role-user`, `.role-volunteer`) with distinct accessible colors; README screenshot table referencing `docs/screenshots/` before/after captures.
+- Before/after screenshots (en+am, 360px+1280px, light+dark) were already captured by the previous session and are referenced in README.md.
+- **Next step:** Lighthouse audit on built app (Home, Blog, Events mobile) to verify ≥ 90 performance score; then continue Phase 4 remaining items (JSON-LD, full accessibility pass) and Phase 5 testing setup.
 
 **Rhythm:** each phase = 1–3 focused sessions (≈2–4 h each) with Gemini. Finish a phase's *Exit criteria* before starting the next. Total ≈ 3–4 weeks part-time.
 **Minimum credible version** if time is short: Phases 0 → 1 → 2 (CRUD only) → 4 (public pages + fix styling) → 5 (CI + core tests) → 6 → 8. Phases 3 and 7 are what push it from "good" to "senior".

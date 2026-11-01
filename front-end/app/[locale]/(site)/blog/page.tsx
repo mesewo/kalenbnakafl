@@ -41,7 +41,7 @@ export default async function BlogPage({ params, searchParams }: Props) {
           ) : (
             <div className="grid-2">
               {result.items.map((post) => (
-                <article className="card card-accent" key={post.id}>
+                <article className="card card-accent scroll-reveal" key={post.id}>
                   <PublicMediaImage
                     mediaID={post.cover_media_id}
                     locale={locale}
@@ -60,11 +60,7 @@ export default async function BlogPage({ params, searchParams }: Props) {
               ))}
             </div>
           )}
-          <nav
-            className="form-actions"
-            aria-label={t("pages")}
-            style={{ justifyContent: "space-between", marginTop: "1.5rem" }}
-          >
+          <nav className="form-actions pagination-nav" aria-label={t("pages")}>
             <Link
               aria-disabled={page <= 1}
               className="btn btn-outline"
