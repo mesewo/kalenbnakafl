@@ -1,9 +1,9 @@
 ### Current state / next step
 
 - Phase 4 visual redesign and bilingual public/admin flows are implemented; previously recorded screenshots and dashboard styling fixes remain in place.
-- Three frontend CI E2E failures traced to the Compose smoke job omitting the API-to-frontend cache-revalidation URL and shared secret.
-- Updated CI to provision an ephemeral revalidation secret and point the API at the frontend's `/_revalidate` endpoint instead of relying on the 60-second ISR expiry.
-- **Next step:** rerun the Compose Playwright suite in CI and confirm the post, media, and site-customization flows pass.
+- Latest CI run had API-to-frontend cache revalidation configured, but post and event detail pages still returned `ERROR DYNAMIC_SERVER_USAGE`.
+- Added request-time rendering boundaries for blog-post and event-detail routes; their server API fetches retain their explicit 60-second cache.
+- **Next step:** rerun the Compose Playwright suite in CI and confirm the bilingual post, media, event, and site-customization flows pass.
 
 **Rhythm:** each phase = 1–3 focused sessions (≈2–4 h each) with Gemini. Finish a phase's _Exit criteria_ before starting the next. Total ≈ 3–4 weeks part-time.
 **Minimum credible version** if time is short: Phases 0 → 1 → 2 (CRUD only) → 4 (public pages + fix styling) → 5 (CI + core tests) → 6 → 8. Phases 3 and 7 are what push it from "good" to "senior".
