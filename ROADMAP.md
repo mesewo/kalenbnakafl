@@ -1,11 +1,9 @@
 ### Current state / next step
 
-- Completed Phase 4 visual redesign: design tokens (`@theme`), dark mode with `prefers-color-scheme` + toggle, Ethiopian-inspired palette (deep green/gold/terracotta), public site hero/slider/sections/cards, dashboard sidebar with icons/active-state, mobile bottom-nav + drawer, stat cards, quick actions, recent activity, role badges (per-role colors), 404/loading/error screens, scroll-reveal, and view-page transitions — all with `prefers-reduced-motion` guards and Amharic Noto font/line-height preservation.
-- **Bug fixed:** `DashboardShell.tsx` used `className="dashboard-nav-link"` but CSS targeted only `.dashboard-side a`; added CSS alias `.dashboard-nav-link` and its hover/active/mobile variants so sidebar links are correctly styled.
-- **E2E CI fixes:** Fixed 3 Playwright content smoke failures: (1) made `waitForPublicContent` safe against transient CDP detachment and removed a 5s timeout override; (2) added heading wait and 30s timeout on dynamic blog post image counts; (3) restored `tabIndex`/keyboard navigation on `.home-slider` and scoped slide image assertion to the carousel using `.first()`; wrapped `@view-transition` in `@media (prefers-reduced-motion: no-preference)`.
-- **Added:** `.text-link` utility class; per-role badge variants (`.role-admin`, `.role-editor`, `.role-user`, `.role-volunteer`) with distinct accessible colors; README screenshot table referencing `docs/screenshots/` before/after captures.
-- Before/after screenshots (en+am, 360px+1280px, light+dark) were already captured by the previous session and are referenced in README.md.
-- **Next step:** Lighthouse audit on built app (Home, Blog, Events mobile) to verify ≥ 90 performance score; then continue Phase 4 remaining items (JSON-LD, full accessibility pass) and Phase 5 testing setup.
+- Phase 4 visual redesign and bilingual public/admin flows are implemented; previously recorded screenshots and dashboard styling fixes remain in place.
+- Three frontend CI E2E failures traced to the Compose smoke job omitting the API-to-frontend cache-revalidation URL and shared secret.
+- Updated CI to provision an ephemeral revalidation secret and point the API at the frontend's `/_revalidate` endpoint instead of relying on the 60-second ISR expiry.
+- **Next step:** rerun the Compose Playwright suite in CI and confirm the post, media, and site-customization flows pass.
 
 **Rhythm:** each phase = 1–3 focused sessions (≈2–4 h each) with Gemini. Finish a phase's _Exit criteria_ before starting the next. Total ≈ 3–4 weeks part-time.
 **Minimum credible version** if time is short: Phases 0 → 1 → 2 (CRUD only) → 4 (public pages + fix styling) → 5 (CI + core tests) → 6 → 8. Phases 3 and 7 are what push it from "good" to "senior".
