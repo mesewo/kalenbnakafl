@@ -1,9 +1,10 @@
 ### Current state / next step
 
 - Phase 4 visual redesign and bilingual public/admin flows are implemented; previously recorded screenshots and dashboard styling fixes remain in place.
-- Latest CI run had API-to-frontend cache revalidation configured, but post and event detail pages still returned `ERROR DYNAMIC_SERVER_USAGE`.
-- Added request-time rendering boundaries for blog-post and event-detail routes; their server API fetches retain their explicit 60-second cache.
-- **Next step:** rerun the Compose Playwright suite in CI and confirm the bilingual post, media, event, and site-customization flows pass.
+- Latest CI trace confirmed post-detail requests still returned `ERROR DYNAMIC_SERVER_USAGE` after adding request-time rendering boundaries.
+- Blog and event detail pages now pass their known route locale explicitly to next-intl server translation calls, avoiding header-based locale inference; cached API fetches are unchanged.
+- Frontend lint, type-check, unit tests, production build, and standalone mock-API requests for ungenerated post/event slugs pass locally.
+- **Next step:** rerun the Compose Playwright suite in CI; Docker is unavailable locally, so the real bilingual content and media flow remains to be confirmed there.
 
 **Rhythm:** each phase = 1–3 focused sessions (≈2–4 h each) with Gemini. Finish a phase's _Exit criteria_ before starting the next. Total ≈ 3–4 weeks part-time.
 **Minimum credible version** if time is short: Phases 0 → 1 → 2 (CRUD only) → 4 (public pages + fix styling) → 5 (CI + core tests) → 6 → 8. Phases 3 and 7 are what push it from "good" to "senior".

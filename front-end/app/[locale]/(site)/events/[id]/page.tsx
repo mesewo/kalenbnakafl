@@ -39,8 +39,8 @@ export default async function EventDetailPage({ params }: Props) {
   setRequestLocale(locale);
   const event = await getEvent(id, locale);
   if (!event) notFound();
-  const t = await getTranslations("events");
-  const common = await getTranslations("common");
+  const t = await getTranslations({ locale, namespace: "events" });
+  const common = await getTranslations({ locale, namespace: "common" });
 
   return (
     <main id="main-content">

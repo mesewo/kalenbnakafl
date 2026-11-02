@@ -46,8 +46,8 @@ export default async function BlogPostPage({ params }: Props) {
   setRequestLocale(locale);
   const post = await getPost(slug, locale);
   if (!post) notFound();
-  const t = await getTranslations("blog");
-  const common = await getTranslations("common");
+  const t = await getTranslations({ locale, namespace: "blog" });
+  const common = await getTranslations({ locale, namespace: "common" });
   return (
     <main id="main-content">
       <section className="page-hero">
