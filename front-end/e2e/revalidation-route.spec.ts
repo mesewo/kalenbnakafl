@@ -13,8 +13,8 @@ test("the public cache revalidation route accepts a valid secret", async ({ requ
   test.skip(!process.env.REVALIDATE_SECRET, "REVALIDATE_SECRET is not configured in this test run");
   const response = await request.post("/_revalidate", {
     headers: { "x-revalidate-secret": process.env.REVALIDATE_SECRET! },
-    data: { tags: ["posts"] },
+    data: { tags: ["posts", "media"] },
   });
   expect(response.status()).toBe(200);
-  expect(await response.json()).toEqual({ revalidated: ["posts"] });
+  expect(await response.json()).toEqual({ revalidated: ["posts", "media"] });
 });

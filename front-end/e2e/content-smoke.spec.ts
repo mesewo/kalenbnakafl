@@ -42,9 +42,15 @@ test("admin content and public bilingual flows", async ({ page }, testInfo) => {
       new URL(response.url()).pathname.endsWith("/publish"),
   );
   await postRow.getByRole("button", { name: "Publish" }).click();
-  expect((await publishResponse).status()).toBe(200);
-  await expect(postRow).toContainText("Published");
-  await waitForPublicContent(page, "/en/blog", page.getByRole("heading", { name: postTitle }));
+  const publishedResponse = await publishResponse;
+  expect(publishedResponse.status()).toBe(200);
+  const publicFreshnessDeadline = Date.now() + 5000;
+  await waitForPublicContent(
+    page,
+    "/en/blog",
+    page.getByRole("heading", { name: postTitle }),
+    publicFreshnessDeadline - Date.now(),
+  );
   const enPostCard = page.locator("article.card").filter({ hasText: postTitle });
   await enPostCard.getByRole("link", { name: "Read the full note →" }).click();
   await expect(page.getByText(`English body ${suffix}`)).toBeVisible();
@@ -77,6 +83,7 @@ test("admin content and public bilingual flows", async ({ page }, testInfo) => {
 
   await page.goto("/en/dashboard/posts");
   postRow = page.getByRole("row").filter({ hasText: postTitle });
+  await expect(postRow).toContainText("Published");
   await postRow.getByRole("button", { name: "Edit" }).click();
   dialog = page.getByRole("dialog", { name: "Edit post" });
   await dialog.getByLabel("Title (English)").fill(editedPostTitle);

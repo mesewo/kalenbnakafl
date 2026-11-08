@@ -1,11 +1,15 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { useLocale } from "next-intl";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch, type PageResponse } from "@/lib/api";
 import { formatDate } from "@/lib/api";
+import { useToast } from "@/components/DashboardProviders";
+import { queryKeys } from "@/lib/query-keys";
 import PageHeader from "@/components/ui/PageHeader";
+import SkeletonCards from "@/components/ui/SkeletonCards";
 
 type Application = {
   id: number;
@@ -29,51 +33,76 @@ export default function VolunteerApplicationsPage() {
     declined: t("statusDeclinedLabel"),
   };
   const { user } = useAuth();
-  const [result, setResult] = useState<PageResponse<Application>>({
-    items: [],
-    page: 1,
-    limit: 10,
-    total: 0,
-  });
+  const queryClient = useQueryClient();
+  const showToast = useToast();
   const [status, setStatus] = useState("pending");
   const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState<number | null>(null);
   const [error, setError] = useState("");
-  const load = useCallback(async () => {
-    if (user?.role !== "admin") return;
-    setLoading(true);
-    setError("");
-    try {
+  const applicationsQuery = useQuery({
+    queryKey: queryKeys.volunteerApplications(page, status),
+    enabled: user?.role === "admin",
+    queryFn: async () => {
       const filter = status ? `&status=${encodeURIComponent(status)}` : "";
-      setResult(
-        await apiFetch<PageResponse<Application>>(
-          `/admin/volunteer-applications?page=${page}&limit=10${filter}`,
-        ),
+      return apiFetch<PageResponse<Application>>(
+        `/admin/volunteer-applications?page=${page}&limit=10${filter}`,
       );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("loadApplicationsFailed"));
-    } finally {
-      setLoading(false);
-    }
-  }, [user, status, page, t]);
-  useEffect(() => {
-    void load();
-  }, [load]);
-  async function review(application: Application, nextStatus: "approved" | "declined") {
-    setBusy(application.id);
-    setError("");
-    try {
-      await apiFetch(`/admin/volunteer-applications/${application.id}`, {
+    },
+  });
+  const result = applicationsQuery.data ?? { items: [], page, limit: 10, total: 0 };
+  const reviewMutation = useMutation({
+    mutationFn: ({
+      application,
+      nextStatus,
+    }: {
+      application: Application;
+      nextStatus: "approved" | "declined";
+    }) =>
+      apiFetch(`/admin/volunteer-applications/${application.id}`, {
         method: "PATCH",
         body: JSON.stringify({ status: nextStatus }),
+      }),
+    onMutate: async ({ application, nextStatus }) => {
+      const prefix = ["volunteer-applications"] as const;
+      const queryKey = queryKeys.volunteerApplications(page, status);
+      await queryClient.cancelQueries({ queryKey: prefix });
+      const previous = queryClient.getQueryData<PageResponse<Application>>(queryKey);
+      queryClient.setQueryData<PageResponse<Application>>(queryKey, (current) => {
+        if (!current) return current;
+        const removeFromFilter = Boolean(status && status !== nextStatus);
+        return {
+          ...current,
+          items: removeFromFilter
+            ? current.items.filter((item) => item.id !== application.id)
+            : current.items.map((item) =>
+                item.id === application.id ? { ...item, status: nextStatus } : item,
+              ),
+          total: current.total - Number(removeFromFilter),
+        };
       });
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("reviewApplicationFailed"));
-    } finally {
-      setBusy(null);
-    }
+      return { previous, prefix };
+    },
+    onError: (cause, _variables, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKeys.volunteerApplications(page, status), context.previous);
+      }
+      const message = cause instanceof Error ? cause.message : t("reviewApplicationFailed");
+      setError(message);
+      showToast(message, "error");
+    },
+    onSuccess: (_data, variables) => {
+      setError("");
+      showToast(
+        variables.nextStatus === "approved" ? t("applicationApproved") : t("applicationDeclined"),
+      );
+    },
+    onSettled: (_data, _error, _variables, context) =>
+      queryClient.invalidateQueries({
+        queryKey: context?.prefix ?? ["volunteer-applications"],
+      }),
+  });
+  function review(application: Application, nextStatus: "approved" | "declined") {
+    setError("");
+    void reviewMutation.mutate({ application, nextStatus });
   }
   if (user?.role !== "admin")
     return (
@@ -106,10 +135,8 @@ export default function VolunteerApplicationsPage() {
           {error}
         </div>
       )}
-      {loading ? (
-        <div className="empty-state" role="status">
-          {t("loadingApplications")}
-        </div>
+      {applicationsQuery.isPending ? (
+        <SkeletonCards label={t("loadingApplications")} />
       ) : result.items.length === 0 ? (
         <div className="empty-state">{t("noApplications")}</div>
       ) : (
@@ -139,14 +166,17 @@ export default function VolunteerApplicationsPage() {
                 <div className="form-actions">
                   <button
                     className="btn btn-primary btn-small"
-                    disabled={busy === item.id}
+                    disabled={reviewMutation.isPending}
                     onClick={() => void review(item, "approved")}
                   >
-                    {busy === item.id ? t("saving") : t("approve")}
+                    {reviewMutation.isPending &&
+                    reviewMutation.variables?.application.id === item.id
+                      ? t("saving")
+                      : t("approve")}
                   </button>
                   <button
                     className="btn btn-outline btn-small"
-                    disabled={busy === item.id}
+                    disabled={reviewMutation.isPending}
                     onClick={() => void review(item, "declined")}
                   >
                     {t("decline")}
@@ -160,7 +190,7 @@ export default function VolunteerApplicationsPage() {
       <nav className="form-actions dashboard-pagination" aria-label={t("applicationPages")}>
         <button
           className="btn btn-outline"
-          disabled={page <= 1 || loading}
+          disabled={page <= 1 || applicationsQuery.isPending}
           onClick={() => setPage((value) => Math.max(1, value - 1))}
         >
           {t("previous")}
@@ -168,7 +198,7 @@ export default function VolunteerApplicationsPage() {
         <span className="meta">{t("pageOf", { page, total: pages })}</span>
         <button
           className="btn btn-outline"
-          disabled={page >= pages || loading}
+          disabled={page >= pages || applicationsQuery.isPending}
           onClick={() => setPage((value) => value + 1)}
         >
           {t("next")}

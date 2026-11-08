@@ -232,7 +232,7 @@ func (a *API) CreateHomeSlide(c *gin.Context) {
 		return
 	}
 	httpx.Success(c, http.StatusCreated, "site.home_slide_created", gin.H{"id": id})
-	a.revalidate("home-slides")
+	a.revalidate("home-slides", "media")
 }
 
 func (a *API) UpdateHomeSlide(c *gin.Context) {
@@ -285,12 +285,12 @@ func (a *API) UpdateHomeSlide(c *gin.Context) {
 		return
 	}
 	httpx.Success(c, http.StatusOK, "site.home_slide_updated")
-	a.revalidate("home-slides")
+	a.revalidate("home-slides", "media")
 }
 
 func (a *API) DeleteHomeSlide(c *gin.Context) {
 	if deleteSiteRow(c, a.db, `DELETE FROM home_slides WHERE id=$1`, "site.home_slide_not_found", "site.home_slide_deleted") {
-		a.revalidate("home-slides")
+		a.revalidate("home-slides", "media")
 	}
 }
 
@@ -429,7 +429,7 @@ func (a *API) UpdateSiteSettings(c *gin.Context) {
 		return
 	}
 	httpx.Success(c, http.StatusOK, "site.settings_updated")
-	a.revalidate("site-settings")
+	a.revalidate("site-settings", "media")
 }
 
 func (a *API) GetSiteBlocks(c *gin.Context) {
@@ -663,7 +663,7 @@ func (a *API) CreateAboutImage(c *gin.Context) {
 		return
 	}
 	httpx.Success(c, http.StatusCreated, "site.about_image_created", gin.H{"id": id})
-	a.revalidate("about-images")
+	a.revalidate("about-images", "media")
 }
 
 func (a *API) UpdateAboutImage(c *gin.Context) {
@@ -714,12 +714,12 @@ func (a *API) UpdateAboutImage(c *gin.Context) {
 		return
 	}
 	httpx.Success(c, http.StatusOK, "site.about_image_updated")
-	a.revalidate("about-images")
+	a.revalidate("about-images", "media")
 }
 
 func (a *API) DeleteAboutImage(c *gin.Context) {
 	if deleteSiteRow(c, a.db, `DELETE FROM about_images WHERE id=$1`, "site.about_image_not_found", "site.about_image_deleted") {
-		a.revalidate("about-images")
+		a.revalidate("about-images", "media")
 	}
 }
 

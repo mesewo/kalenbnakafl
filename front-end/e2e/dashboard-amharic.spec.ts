@@ -48,9 +48,22 @@ test("Amharic admin creates, publishes, edits, and deletes translated posts and 
   await dialog.getByRole("button", { name: dashboard.createPost }).click();
   let postRow = page.getByRole("row").filter({ hasText: postTitle });
   await expect(postRow).toBeVisible();
+  const publishResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "PATCH" &&
+      new URL(response.url()).pathname.endsWith("/publish"),
+  );
   await postRow.getByRole("button", { name: dashboard.publish }).click();
+  const publishedResponse = await publishResponse;
+  expect(publishedResponse.status()).toBe(200);
+  const publicFreshnessDeadline = Date.now() + 5000;
   await expect(postRow).toContainText(dashboard.statusPublishedLabel);
-  await waitForPublicContent(page, "/am/blog", page.getByRole("heading", { name: postTitle }));
+  await waitForPublicContent(
+    page,
+    "/am/blog",
+    page.getByRole("heading", { name: postTitle }),
+    publicFreshnessDeadline - Date.now(),
+  );
 
   await page.goto("/am/dashboard/posts");
   postRow = page.getByRole("row").filter({ hasText: postTitle });

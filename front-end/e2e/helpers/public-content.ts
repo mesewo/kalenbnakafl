@@ -7,7 +7,7 @@ export async function waitForPublicContent(
   timeout = 75_000,
 ) {
   const deadline = Date.now() + timeout;
-  await page.goto(path);
+  await page.goto(path, { timeout: Math.max(1, deadline - Date.now()) });
   await expect
     .poll(
       async () => {
@@ -19,7 +19,7 @@ export async function waitForPublicContent(
         }
         return (await content.count()) > 0;
       },
-      { timeout: Math.max(0, deadline - Date.now()), intervals: [1000, 2000, 4000] },
+      { timeout: Math.max(1, deadline - Date.now()), intervals: [1000, 2000, 4000] },
     )
     .toBe(true);
 }

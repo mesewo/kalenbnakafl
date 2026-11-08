@@ -1,10 +1,11 @@
 ### Current state / next step
 
-- Phase 4 visual redesign and bilingual public/admin flows are implemented; previously recorded screenshots and dashboard styling fixes remain in place.
-- Latest CI trace confirmed post-detail requests still returned `ERROR DYNAMIC_SERVER_USAGE` after adding request-time rendering boundaries.
-- Blog and event detail pages now pass their known route locale explicitly to next-intl server translation calls, avoiding header-based locale inference; cached API fetches are unchanged.
-- Frontend lint, type-check, unit tests, production build, and standalone mock-API requests for ungenerated post/event slugs pass locally.
-- **Next step:** rerun the Compose Playwright suite in CI; Docker is unavailable locally, so the real bilingual content and media flow remains to be confirmed there.
+- Dashboard list mutations now use TanStack Query with optimistic updates, rollback, invalidation, focus refetch, and localized feedback across the remaining inbox, volunteer, application, and media lists.
+- Compose CI now supplies a temporary revalidation secret/URL; post, event, and site writes invalidate media metadata when their references affect public visibility.
+- Bilingual Playwright coverage exercises inbox status updates, volunteer application approval, contribution recording, invalid user-password feedback, and five-second published-post freshness; all 17 E2E tests are discovered.
+- Frontend lint, TypeScript, 657-message i18n validation, unit tests, production build, and focused formatting pass; full formatting still reports 34 unrelated baseline files.
+- Go build, vet, tests, and sqlc diff pass; `gofmt -l .` lists pre-existing files, and PostgreSQL-backed cases were not configured locally.
+- **Next step:** run the Compose-backed Playwright suite in CI; local Docker Engine is unavailable, so live E2E execution could not be completed here.
 
 **Rhythm:** each phase = 1–3 focused sessions (≈2–4 h each) with Gemini. Finish a phase's _Exit criteria_ before starting the next. Total ≈ 3–4 weeks part-time.
 **Minimum credible version** if time is short: Phases 0 → 1 → 2 (CRUD only) → 4 (public pages + fix styling) → 5 (CI + core tests) → 6 → 8. Phases 3 and 7 are what push it from "good" to "senior".

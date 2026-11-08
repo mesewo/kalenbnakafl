@@ -1410,6 +1410,32 @@ html[lang="am"] .dashboard-shell h3 {
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.4s ease-in-out infinite;
 }
+.dashboard-skeleton-card {
+  display: grid;
+  align-content: start;
+  gap: 0.9rem;
+  min-height: 10rem;
+}
+.dashboard-skeleton-card span {
+  display: block;
+  height: 1rem;
+  border-radius: 0.5rem;
+  background: linear-gradient(
+    90deg,
+    var(--surface-raised) 25%,
+    var(--surface) 50%,
+    var(--surface-raised) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+.dashboard-skeleton-card span:first-child {
+  width: 48%;
+  height: 1.4rem;
+}
+.dashboard-skeleton-card span:last-child {
+  width: 72%;
+}
 @keyframes skeleton-shimmer {
   to {
     background-position-x: -200%;
@@ -1819,6 +1845,7 @@ html[lang="am"] .dashboard-shell h3 {
   .loading-mark,
   .dashboard-stat-skeleton,
   .dashboard-activity-skeleton,
+  .dashboard-skeleton-card span,
   ::view-transition-old(root),
   ::view-transition-new(root) {
     animation: none !important;

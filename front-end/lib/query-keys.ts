@@ -7,8 +7,14 @@ export const queryKeys = {
   settings: ["site-settings"] as const,
   blocks: ["site-blocks"] as const,
   aboutImages: ["about-images"] as const,
-  contactMessages: ["contact-messages"] as const,
+  contactMessages: (page?: number, status?: string) =>
+    page === undefined && status === undefined
+      ? (["contact-messages"] as const)
+      : (["contact-messages", { page, status }] as const),
   volunteers: ["volunteers"] as const,
-  volunteerApplications: ["volunteer-applications"] as const,
+  volunteerApplications: (page?: number, status?: string) =>
+    page === undefined && status === undefined
+      ? (["volunteer-applications"] as const)
+      : (["volunteer-applications", { page, status }] as const),
   dashboardOverview: (role: string) => ["dashboard-overview", role] as const,
 };

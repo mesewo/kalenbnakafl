@@ -32,6 +32,10 @@ test("admin can create, edit, and delete a user in both dashboard locales", asyn
     await expect(form.getByRole("heading", { name: messages.dashboard.createUser })).toBeVisible();
     await form.getByLabel(messages.dashboard.name).fill(userName);
     await form.getByLabel(messages.dashboard.email).fill(userEmail);
+    await form.getByLabel(messages.auth.password).fill("x".repeat(73));
+    await form.getByRole("button", { name: messages.dashboard.createUser }).click();
+    await expect(form.getByRole("alert")).toContainText(messages.dashboard.managedPasswordHint);
+    await expect(page.getByRole("row").filter({ hasText: userEmail })).toHaveCount(0);
     await form.getByLabel(messages.auth.password).fill("Bright-River-Community-2040!");
     const createResponse = page.waitForResponse(
       (response) =>

@@ -1,10 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { useLocale } from "next-intl";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch, formatDate, type PageResponse } from "@/lib/api";
+import { useToast } from "@/components/DashboardProviders";
+import { queryKeys } from "@/lib/query-keys";
 import PageHeader from "@/components/ui/PageHeader";
 import DataTable from "@/components/ui/DataTable";
 import StatusBadge from "@/components/ui/StatusBadge";
@@ -32,52 +35,79 @@ export default function MessagesPage() {
   };
   const { user, isLoading: authLoading } = useAuth();
   const isStaff = user?.role === "admin" || user?.role === "editor";
-  const [messages, setMessages] = useState<PageResponse<ContactMessage>>({
-    items: [],
-    page: 1,
-    limit: 10,
-    total: 0,
-  });
+  const queryClient = useQueryClient();
+  const showToast = useToast();
   const [status, setStatus] = useState<StatusFilter>("");
   const [page, setPage] = useState(1);
   const [expanded, setExpanded] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [updating, setUpdating] = useState<number | null>(null);
   const [error, setError] = useState("");
 
-  const load = useCallback(async () => {
-    if (!isStaff) return;
-    setLoading(true);
-    setError("");
-    const query = new URLSearchParams({ page: String(page), limit: "10" });
-    if (status) query.set("status", status);
-    try {
-      setMessages(await apiFetch<PageResponse<ContactMessage>>(`/staff/contact-messages?${query}`));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("loadMessagesFailed"));
-    } finally {
-      setLoading(false);
-    }
-  }, [isStaff, page, status, t]);
+  const messagesQuery = useQuery({
+    queryKey: queryKeys.contactMessages(page, status),
+    enabled: isStaff,
+    queryFn: async () => {
+      const query = new URLSearchParams({ page: String(page), limit: "10" });
+      if (status) query.set("status", status);
+      return apiFetch<PageResponse<ContactMessage>>(`/staff/contact-messages?${query}`);
+    },
+  });
+  const messages = messagesQuery.data ?? { items: [], page, limit: 10, total: 0 };
 
-  useEffect(() => {
-    if (isStaff) void load();
-  }, [isStaff, load]);
-
-  async function updateMessage(message: ContactMessage, nextStatus: "read" | "replied") {
-    setUpdating(message.id);
-    setError("");
-    try {
-      await apiFetch(`/staff/contact-messages/${message.id}`, {
+  const updateMutation = useMutation({
+    mutationFn: ({
+      message,
+      nextStatus,
+    }: {
+      message: ContactMessage;
+      nextStatus: "read" | "replied";
+    }) =>
+      apiFetch(`/staff/contact-messages/${message.id}`, {
         method: "PATCH",
         body: JSON.stringify({ status: nextStatus }),
-      });
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("updateMessageFailed"));
-    } finally {
-      setUpdating(null);
-    }
+      }),
+    onMutate: async ({ message, nextStatus }) => {
+      const prefix = queryKeys.contactMessages();
+      await queryClient.cancelQueries({ queryKey: prefix });
+      const previous = queryClient.getQueryData<PageResponse<ContactMessage>>(
+        queryKeys.contactMessages(page, status),
+      );
+      queryClient.setQueryData<PageResponse<ContactMessage>>(
+        queryKeys.contactMessages(page, status),
+        (current) => {
+          if (!current) return current;
+          const removeFromFilter = Boolean(status && status !== nextStatus);
+          return {
+            ...current,
+            items: removeFromFilter
+              ? current.items.filter((item) => item.id !== message.id)
+              : current.items.map((item) =>
+                  item.id === message.id ? { ...item, status: nextStatus } : item,
+                ),
+            total: current.total - Number(removeFromFilter),
+          };
+        },
+      );
+      return { previous, prefix };
+    },
+    onError: (cause, _variables, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKeys.contactMessages(page, status), context.previous);
+      }
+      const message = cause instanceof Error ? cause.message : t("updateMessageFailed");
+      setError(message);
+      showToast(message, "error");
+    },
+    onSuccess: () => {
+      setError("");
+      showToast(t("messageStatusUpdated"));
+    },
+    onSettled: (_data, _error, _variables, context) =>
+      queryClient.invalidateQueries({ queryKey: context?.prefix ?? queryKeys.contactMessages() }),
+  });
+
+  function updateMessage(message: ContactMessage, nextStatus: "read" | "replied") {
+    setError("");
+    void updateMutation.mutate({ message, nextStatus });
   }
 
   if (authLoading) return <div className="empty-state">{t("checkingAccess")}</div>;
@@ -110,9 +140,16 @@ export default function MessagesPage() {
       <DataTable
         rows={messages.items}
         rowKey={(message) => message.id}
-        loading={loading}
+        loading={messagesQuery.isPending}
         loadingLabel={t("loadingMessages")}
-        error={error || undefined}
+        error={
+          error ||
+          (messagesQuery.isError
+            ? messagesQuery.error instanceof Error
+              ? messagesQuery.error.message
+              : t("loadMessagesFailed")
+            : undefined)
+        }
         emptyState={t("noMessages")}
         columns={[
           {
@@ -176,16 +213,16 @@ export default function MessagesPage() {
                 <button
                   type="button"
                   className="btn btn-outline btn-small"
-                  disabled={updating === message.id || message.status === "read"}
-                  onClick={() => void updateMessage(message, "read")}
+                  disabled={updateMutation.isPending || message.status === "read"}
+                  onClick={() => updateMessage(message, "read")}
                 >
                   {t("markRead")}
                 </button>
                 <button
                   type="button"
                   className="btn btn-primary btn-small"
-                  disabled={updating === message.id || message.status === "replied"}
-                  onClick={() => void updateMessage(message, "replied")}
+                  disabled={updateMutation.isPending || message.status === "replied"}
+                  onClick={() => updateMessage(message, "replied")}
                 >
                   {t("markReplied")}
                 </button>
@@ -195,7 +232,7 @@ export default function MessagesPage() {
         ]}
       />
 
-      {!loading && messages.total > 0 && (
+      {!messagesQuery.isPending && messages.total > 0 && (
         <div className="form-actions dashboard-pagination" aria-label={t("messagePages")}>
           <button
             type="button"
