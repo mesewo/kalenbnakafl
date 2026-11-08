@@ -1,11 +1,10 @@
 ### Current state / next step
 
-- Dashboard list mutations now use TanStack Query with optimistic updates, rollback, invalidation, focus refetch, and localized feedback across the remaining inbox, volunteer, application, and media lists.
-- Compose CI now supplies a temporary revalidation secret/URL; post, event, and site writes invalidate media metadata when their references affect public visibility.
-- Bilingual Playwright coverage exercises inbox status updates, volunteer application approval, contribution recording, invalid user-password feedback, and five-second published-post freshness; all 17 E2E tests are discovered.
-- Frontend lint, TypeScript, 657-message i18n validation, unit tests, production build, and focused formatting pass; full formatting still reports 34 unrelated baseline files.
-- Go build, vet, tests, and sqlc diff pass; `gofmt -l .` lists pre-existing files, and PostgreSQL-backed cases were not configured locally.
-- **Next step:** run the Compose-backed Playwright suite in CI; local Docker Engine is unavailable, so live E2E execution could not be completed here.
+- Updated `golang.org/x/net` from `v0.60.0` to Trivy's fixed `v0.62.0`; Go also advanced the required `x/crypto` module to `v0.58.0`.
+- `go mod verify`, sqlc diff, build, vet, and all Go tests pass; govulncheck could not fetch `vuln.go.dev` because network access timed out.
+- Frontend lint, TypeScript, i18n, unit tests, build, and focused formatting passed; browser E2E still needs a Compose-enabled runner.
+- The prior Trivy run reported one HIGH (`CVE-2026-78661`) in the API image and zero Alpine OS findings; the fixed-version image scan remains to be confirmed.
+- **Next step:** rerun the GitHub security workflow to confirm Trivy clears the API image after the dependency update.
 
 **Rhythm:** each phase = 1–3 focused sessions (≈2–4 h each) with Gemini. Finish a phase's _Exit criteria_ before starting the next. Total ≈ 3–4 weeks part-time.
 **Minimum credible version** if time is short: Phases 0 → 1 → 2 (CRUD only) → 4 (public pages + fix styling) → 5 (CI + core tests) → 6 → 8. Phases 3 and 7 are what push it from "good" to "senior".
