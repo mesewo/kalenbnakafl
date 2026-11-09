@@ -21,10 +21,7 @@ export default function PublicMediaFigure({
   const srcSet = widths.map((width) => `${media.file_path}?w=${width} ${width}w`).join(", ");
   const alt = media.decorative ? "" : media.alt_text;
   return (
-    <figure
-      className={className ? `public-media-figure ${className}` : "public-media-figure"}
-      style={{ aspectRatio: `${media.width || 16} / ${media.height || 9}` }}
-    >
+    <figure className={className ? `public-media-figure ${className}` : "public-media-figure"}>
       {failed ? (
         <div
           className="public-media-fallback"

@@ -1,5 +1,5 @@
 "use client";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useLocale } from "next-intl";
 import { useTranslations } from "next-intl";
@@ -10,6 +10,9 @@ import { useToast } from "@/components/DashboardProviders";
 import { queryKeys } from "@/lib/query-keys";
 import PageHeader from "@/components/ui/PageHeader";
 import SkeletonCards from "@/components/ui/SkeletonCards";
+import StatusBadge from "@/components/ui/StatusBadge";
+import EmptyState from "@/components/ui/EmptyState";
+import { useOptimisticMutation } from "@/lib/use-optimistic-mutation";
 
 type Application = {
   id: number;
@@ -33,7 +36,6 @@ export default function VolunteerApplicationsPage() {
     declined: t("statusDeclinedLabel"),
   };
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const showToast = useToast();
   const [status, setStatus] = useState("pending");
   const [page, setPage] = useState(1);
@@ -49,7 +51,12 @@ export default function VolunteerApplicationsPage() {
     },
   });
   const result = applicationsQuery.data ?? { items: [], page, limit: 10, total: 0 };
-  const reviewMutation = useMutation({
+  const reviewMutation = useOptimisticMutation<
+    PageResponse<Application>,
+    { application: Application; nextStatus: "approved" | "declined" }
+  >({
+    queryKey: queryKeys.volunteerApplications(page, status),
+    invalidateQueryKey: queryKeys.volunteerApplications(),
     mutationFn: ({
       application,
       nextStatus,
@@ -61,44 +68,27 @@ export default function VolunteerApplicationsPage() {
         method: "PATCH",
         body: JSON.stringify({ status: nextStatus }),
       }),
-    onMutate: async ({ application, nextStatus }) => {
-      const prefix = ["volunteer-applications"] as const;
-      const queryKey = queryKeys.volunteerApplications(page, status);
-      await queryClient.cancelQueries({ queryKey: prefix });
-      const previous = queryClient.getQueryData<PageResponse<Application>>(queryKey);
-      queryClient.setQueryData<PageResponse<Application>>(queryKey, (current) => {
-        if (!current) return current;
-        const removeFromFilter = Boolean(status && status !== nextStatus);
-        return {
-          ...current,
-          items: removeFromFilter
-            ? current.items.filter((item) => item.id !== application.id)
-            : current.items.map((item) =>
-                item.id === application.id ? { ...item, status: nextStatus } : item,
-              ),
-          total: current.total - Number(removeFromFilter),
-        };
-      });
-      return { previous, prefix };
+    optimisticUpdate: (current, { application, nextStatus }) => {
+      const removeFromFilter = Boolean(status && status !== nextStatus);
+      return {
+        ...current,
+        items: removeFromFilter
+          ? current.items.filter((item) => item.id !== application.id)
+          : current.items.map((item) =>
+              item.id === application.id ? { ...item, status: nextStatus } : item,
+            ),
+        total: current.total - Number(removeFromFilter),
+      };
     },
-    onError: (cause, _variables, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(queryKeys.volunteerApplications(page, status), context.previous);
-      }
+    onError: (cause) => {
       const message = cause instanceof Error ? cause.message : t("reviewApplicationFailed");
       setError(message);
       showToast(message, "error");
     },
-    onSuccess: (_data, variables) => {
+    onSuccess: ({ nextStatus }) => {
       setError("");
-      showToast(
-        variables.nextStatus === "approved" ? t("applicationApproved") : t("applicationDeclined"),
-      );
+      showToast(nextStatus === "approved" ? t("applicationApproved") : t("applicationDeclined"));
     },
-    onSettled: (_data, _error, _variables, context) =>
-      queryClient.invalidateQueries({
-        queryKey: context?.prefix ?? ["volunteer-applications"],
-      }),
   });
   function review(application: Application, nextStatus: "approved" | "declined") {
     setError("");
@@ -138,12 +128,12 @@ export default function VolunteerApplicationsPage() {
       {applicationsQuery.isPending ? (
         <SkeletonCards label={t("loadingApplications")} />
       ) : result.items.length === 0 ? (
-        <div className="empty-state">{t("noApplications")}</div>
+        <EmptyState>{t("noApplications")}</EmptyState>
       ) : (
         <div className="grid-2">
           {result.items.map((item) => (
             <article className="card" key={item.id}>
-              <span className="badge">{statusLabels[item.status]}</span>
+              <StatusBadge>{statusLabels[item.status]}</StatusBadge>
               <h2>{item.name}</h2>
               <p>{item.email}</p>
               <h3>{t("skills")}</h3>

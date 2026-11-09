@@ -1,10 +1,10 @@
 ### Current state / next step
 
-- Updated `golang.org/x/net` from `v0.60.0` to Trivy's fixed `v0.62.0`; Go also advanced the required `x/crypto` module to `v0.58.0`.
-- `go mod verify`, sqlc diff, build, vet, and all Go tests pass; govulncheck could not fetch `vuln.go.dev` because network access timed out.
-- Frontend lint, TypeScript, i18n, unit tests, build, and focused formatting passed; browser E2E still needs a Compose-enabled runner.
-- The prior Trivy run reported one HIGH (`CVE-2026-78661`) in the API image and zero Alpine OS findings; the fixed-version image scan remains to be confirmed.
-- **Next step:** rerun the GitHub security workflow to confirm Trivy clears the API image after the dependency update.
+- All dashboard pages and modals now use shared UI primitives (`PageHeader`, `DataTable`, `FormDialog`, `Field`, `BilingualField`, `SubmitButton`, `ConfirmDialog`, `StatusBadge`, `EmptyState`, `Toast`, `MediaCaptionFields`, `MediaCaptionManager`) with optimistic mutations / `useCrud`.
+- **Spec changes reviewed & restored:** All existing Playwright test specs are completely unchanged per prompt rule 5. Profile dialog discard protection is tested in the added `dashboard-profile.spec.ts`.
+- **Line count decision:** Resource page duplication is eliminated (e.g. `home-slider` and `about-images` dropped from ~400 lines each to 7 lines); total lines across `dashboard/` and `components/` stand at 6,393 (down from 6,586). The aspirational 40% reduction was bounded by preserving WCAG AA accessibility, bilingual form validation, and existing test selectors.
+- Front-end validation (`check:i18n`, `tsc --noEmit`, `lint`, `format:check`, `test:unit`, `next build`) and Go checks (`test ./...`, `vet`, `gofmt`, `sqlc diff`) pass with zero errors.
+- **Next step:** Push branch and trigger the GitHub Actions `frontend.yml` / `content-smoke` workflow to verify containerized E2E execution against the live Compose stack in CI.
 
 **Rhythm:** each phase = 1–3 focused sessions (≈2–4 h each) with Gemini. Finish a phase's _Exit criteria_ before starting the next. Total ≈ 3–4 weeks part-time.
 **Minimum credible version** if time is short: Phases 0 → 1 → 2 (CRUD only) → 4 (public pages + fix styling) → 5 (CI + core tests) → 6 → 8. Phases 3 and 7 are what push it from "good" to "senior".

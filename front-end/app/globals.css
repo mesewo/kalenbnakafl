@@ -1223,14 +1223,38 @@ button {
 .event-attendees {
   margin-top: 0.75rem;
 }
-.profile-form-shell {
-  max-width: 720px;
-  margin: 0;
-}
 .profile-divider {
   margin: 1.5rem 0;
   border: 0;
   border-top: 1px solid var(--line);
+}
+.auth-card-title {
+  font-size: clamp(2.4rem, 7vw, 4rem);
+}
+.auth-back-link {
+  margin-top: 1.5rem;
+}
+.auth-secondary {
+  margin-top: 1.25rem;
+}
+.auth-secondary-link {
+  text-decoration: underline;
+}
+.auth-form-error,
+.contact-form-status {
+  margin-bottom: 1rem;
+}
+.auth-form-submit {
+  width: 100%;
+}
+.contact-form-heading {
+  margin-bottom: 1.5rem;
+}
+.post-body-content {
+  white-space: pre-wrap;
+}
+.volunteer-values-grid {
+  grid-template-columns: 1fr;
 }
 .table-wrap {
   max-width: 100%;
@@ -1906,8 +1930,7 @@ html[lang="am"] .dashboard-shell h3 {
   }
 }
 
-.scroll-reveal,
-.dashboard-main {
+.scroll-reveal {
   backface-visibility: hidden;
 }
 
@@ -2222,7 +2245,7 @@ html[lang="am"] .brand-copy {
 .public-media-figure img {
   display: block;
   width: 100%;
-  height: 100%;
+  height: auto;
 }
 .public-media-fallback {
   width: 100%;

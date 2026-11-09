@@ -1,6 +1,7 @@
 "use client";
 
-import { useMutation, useQueryClient, type QueryKey } from "@tanstack/react-query";
+import type { QueryKey } from "@tanstack/react-query";
+import { useOptimisticMutation } from "@/lib/use-optimistic-mutation";
 
 type CrudOptions<TItem extends { id: number }, TInput> = {
   queryKey: QueryKey;
@@ -19,39 +20,19 @@ export function useCrud<TItem extends { id: number }, TInput>({
   optimisticCreate,
   optimisticUpdate,
 }: CrudOptions<TItem, TInput>) {
-  const queryClient = useQueryClient();
-  const save = useMutation({
+  const save = useOptimisticMutation<TItem[], { id: number | null; input: TInput }>({
+    queryKey,
     mutationFn: ({ id, input }: { id: number | null; input: TInput }) =>
       id === null ? create(input) : update(id, input),
-    onMutate: async ({ id, input }) => {
-      await queryClient.cancelQueries({ queryKey });
-      const previous = queryClient.getQueryData<TItem[]>(queryKey);
-      queryClient.setQueryData<TItem[]>(queryKey, (current = []) =>
-        id === null
-          ? [optimisticCreate(input), ...current]
-          : current.map((item) => (item.id === id ? optimisticUpdate(item, input) : item)),
-      );
-      return { previous };
-    },
-    onError: (_error, _variables, context) => {
-      if (context?.previous) queryClient.setQueryData(queryKey, context.previous);
-    },
-    onSettled: () => queryClient.invalidateQueries({ queryKey }),
+    optimisticUpdate: (current, { id, input }) =>
+      id === null
+        ? [optimisticCreate(input), ...current]
+        : current.map((item) => (item.id === id ? optimisticUpdate(item, input) : item)),
   });
-  const destroy = useMutation({
+  const destroy = useOptimisticMutation<TItem[], number>({
+    queryKey,
     mutationFn: (id: number) => remove(id),
-    onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey });
-      const previous = queryClient.getQueryData<TItem[]>(queryKey);
-      queryClient.setQueryData<TItem[]>(queryKey, (current = []) =>
-        current.filter((item) => item.id !== id),
-      );
-      return { previous };
-    },
-    onError: (_error, _id, context) => {
-      if (context?.previous) queryClient.setQueryData(queryKey, context.previous);
-    },
-    onSettled: () => queryClient.invalidateQueries({ queryKey }),
+    optimisticUpdate: (current, id) => current.filter((item) => item.id !== id),
   });
   return { save, destroy };
 }

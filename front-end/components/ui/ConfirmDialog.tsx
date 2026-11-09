@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
+import { usePortalTarget } from "@/components/ui/Portal";
 
 export default function ConfirmDialog({
   open,
@@ -21,19 +23,20 @@ export default function ConfirmDialog({
 }) {
   const confirmRef = useRef<HTMLButtonElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
+  const portalTarget = usePortalTarget();
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || !portalTarget) return;
     const previousFocus = document.activeElement;
-    cancelRef.current?.focus();
+    cancelRef.current?.focus({ preventScroll: true });
     return () => {
-      if (previousFocus instanceof HTMLElement) previousFocus.focus();
+      if (previousFocus instanceof HTMLElement) previousFocus.focus({ preventScroll: true });
     };
-  }, [open]);
+  }, [open, portalTarget]);
 
-  if (!open) return null;
+  if (!open || !portalTarget) return null;
 
-  return (
+  return createPortal(
     <div
       className="modal-backdrop"
       onKeyDown={(event) => {
@@ -69,6 +72,7 @@ export default function ConfirmDialog({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    portalTarget,
   );
 }

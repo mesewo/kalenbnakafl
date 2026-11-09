@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { usePortalTarget } from "@/components/ui/Portal";
 
 export default function FormDialog({
   open,
@@ -31,23 +33,24 @@ export default function FormDialog({
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const portalTarget = usePortalTarget();
   const requestClose = useCallback(() => {
     if (dirty) setConfirmDiscard(true);
     else onClose();
   }, [dirty, onClose]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || !portalTarget) return;
     const previousFocus = document.activeElement;
-    closeRef.current?.focus();
+    closeRef.current?.focus({ preventScroll: true });
     return () => {
-      if (previousFocus instanceof HTMLElement) previousFocus.focus();
+      if (previousFocus instanceof HTMLElement) previousFocus.focus({ preventScroll: true });
     };
-  }, [open]);
+  }, [open, portalTarget]);
 
-  if (!open) return null;
+  if (!open || !portalTarget) return null;
 
-  return (
+  return createPortal(
     <>
       <div className="modal-backdrop" role="presentation">
         <div
@@ -109,6 +112,7 @@ export default function FormDialog({
           onClose();
         }}
       />
-    </>
+    </>,
+    portalTarget,
   );
 }

@@ -1,5 +1,5 @@
 "use client";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
@@ -11,6 +11,7 @@ import FormDialog from "@/components/ui/FormDialog";
 import SubmitButton from "@/components/ui/SubmitButton";
 import StatusBadge from "@/components/ui/StatusBadge";
 import SkeletonCards from "@/components/ui/SkeletonCards";
+import { useOptimisticMutation } from "@/lib/use-optimistic-mutation";
 type Volunteer = User & {
   total_hours?: number;
   contributions?: { id: number; hours: number; notes: string; contribution_date: string }[];
@@ -18,7 +19,6 @@ type Volunteer = User & {
 export default function VolunteersPage() {
   const t = useTranslations("dashboard");
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const showToast = useToast();
   const [selected, setSelected] = useState<Volunteer | null>(null);
   const [form, setForm] = useState({
@@ -34,7 +34,11 @@ export default function VolunteersPage() {
     queryFn: () => apiFetch<Volunteer[]>("/admin/volunteers", {}),
   });
   const volunteers = volunteersQuery.data ?? [];
-  const contributionMutation = useMutation({
+  const contributionMutation = useOptimisticMutation<
+    Volunteer[],
+    { volunteer: Volunteer; hours: number; notes: string; date: string }
+  >({
+    queryKey: queryKeys.volunteers,
     mutationFn: ({
       volunteer,
       hours,
@@ -54,20 +58,11 @@ export default function VolunteersPage() {
           contribution_date: date,
         }),
       }),
-    onMutate: async ({ volunteer, hours }) => {
-      await queryClient.cancelQueries({ queryKey: queryKeys.volunteers });
-      const previous = queryClient.getQueryData<Volunteer[]>(queryKeys.volunteers);
-      queryClient.setQueryData<Volunteer[]>(queryKeys.volunteers, (current = []) =>
-        current.map((item) =>
-          item.id === volunteer.id
-            ? { ...item, total_hours: (item.total_hours ?? 0) + hours }
-            : item,
-        ),
-      );
-      return { previous };
-    },
-    onError: (cause, _variables, context) => {
-      if (context?.previous) queryClient.setQueryData(queryKeys.volunteers, context.previous);
+    optimisticUpdate: (current, { volunteer, hours }) =>
+      current.map((item) =>
+        item.id === volunteer.id ? { ...item, total_hours: (item.total_hours ?? 0) + hours } : item,
+      ),
+    onError: (cause) => {
       const message = cause instanceof Error ? cause.message : t("recordContributionFailed");
       setError(message);
       showToast(message, "error");
@@ -79,7 +74,6 @@ export default function VolunteersPage() {
       setFormDirty(false);
       setSelected(null);
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.volunteers }),
   });
   function addContribution(e: React.FormEvent) {
     e.preventDefault();

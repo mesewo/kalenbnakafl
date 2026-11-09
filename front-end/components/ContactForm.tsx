@@ -38,23 +38,22 @@ export default function ContactForm({
   }
   return (
     <form onSubmit={handleSubmit} className="form-card" noValidate>
-      <div className="section-head" style={{ marginBottom: "1.5rem" }}>
+      <div className="section-head contact-form-heading">
         <div>
           <span className="eyebrow site-block-text">{eyebrow}</span>
           <h2 className="site-block-text">{title}</h2>
         </div>
       </div>
       {isWaking && (
-        <div className="status" role="status" aria-live="polite" style={{ marginBottom: "1rem" }}>
+        <div className="status contact-form-status" role="status" aria-live="polite">
           {common("serverWaking")}
         </div>
       )}
       {status && (
         <div
-          className={`status status-${status.type}`}
+          className={`status status-${status.type} contact-form-status`}
           role={status.type === "error" ? "alert" : "status"}
           aria-live="polite"
-          style={{ marginBottom: "1rem" }}
         >
           {status.message}
         </div>

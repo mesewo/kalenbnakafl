@@ -5,6 +5,8 @@ import { useTranslations } from "next-intl";
 import { apiFetch, type Post } from "@/lib/api";
 import MediaPicker from "@/components/MediaPicker";
 import FormDialog from "@/components/ui/FormDialog";
+import ContentLanguageTabs from "@/components/ui/ContentLanguageTabs";
+import SubmitButton from "@/components/ui/SubmitButton";
 import type { components } from "@/types/api.d.ts";
 
 type Locale = "en" | "am";
@@ -25,7 +27,7 @@ export default function PostModal({
 }: {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: () => void | Promise<void>;
   userRole: string | undefined;
   post?: Post | null;
 }) {
@@ -134,7 +136,7 @@ export default function PostModal({
         }
       }
       setDirty(false);
-      onSuccess();
+      await onSuccess();
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : t("savePostFailed"));
@@ -182,24 +184,13 @@ export default function PostModal({
             </div>
           )}
           <form onSubmit={submit}>
-            <div role="tablist" aria-label={t("postLanguage")}>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={locale === "en"}
-                onClick={() => setLocale("en")}
-              >
-                {t("english")}
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={locale === "am"}
-                onClick={() => setLocale("am")}
-              >
-                {t("amharic")}
-              </button>
-            </div>
+            <ContentLanguageTabs
+              locale={locale}
+              label={t("postLanguage")}
+              englishLabel={t("english")}
+              amharicLabel={t("amharic")}
+              onChange={setLocale}
+            />
             <div className="field">
               <label htmlFor="post-title">
                 {t("title")} {"("}
@@ -304,9 +295,9 @@ export default function PostModal({
             </div>
             <p className="meta">{t("clearPostTranslationHelp")}</p>
             <div className="form-actions">
-              <button className="btn btn-primary" disabled={loading}>
-                {loading ? t("saving") : post ? t("saveChanges") : t("createPost")}
-              </button>
+              <SubmitButton pending={loading} pendingLabel={t("saving")}>
+                {post ? t("saveChanges") : t("createPost")}
+              </SubmitButton>
               <button className="btn btn-outline" type="button" onClick={requestClose}>
                 {t("cancel")}
               </button>

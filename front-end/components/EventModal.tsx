@@ -6,6 +6,8 @@ import { apiFetch, type EventItem } from "@/lib/api";
 import { formatDate } from "@/lib/api";
 import MediaPicker from "@/components/MediaPicker";
 import FormDialog from "@/components/ui/FormDialog";
+import ContentLanguageTabs from "@/components/ui/ContentLanguageTabs";
+import SubmitButton from "@/components/ui/SubmitButton";
 import type { components } from "@/types/api.d.ts";
 
 type Locale = "en" | "am";
@@ -26,7 +28,7 @@ export default function EventModal({
 }: {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: () => void | Promise<void>;
   userRole: string | undefined;
   event?: EventItem | null;
 }) {
@@ -142,7 +144,7 @@ export default function EventModal({
         }
       }
       setDirty(false);
-      onSuccess();
+      await onSuccess();
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : tDashboard("saveEventFailed"));
@@ -172,24 +174,13 @@ export default function EventModal({
             </div>
           )}
           <form onSubmit={submit}>
-            <div role="tablist" aria-label={tDashboard("eventLanguage")}>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={locale === "en"}
-                onClick={() => setLocale("en")}
-              >
-                {tDashboard("english")}
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={locale === "am"}
-                onClick={() => setLocale("am")}
-              >
-                {tDashboard("amharic")}
-              </button>
-            </div>
+            <ContentLanguageTabs
+              locale={locale}
+              label={tDashboard("eventLanguage")}
+              englishLabel={tDashboard("english")}
+              amharicLabel={tDashboard("amharic")}
+              onChange={setLocale}
+            />
             <div className="field">
               <label htmlFor="event-title">
                 {tDashboard("title")} {"("}
@@ -303,13 +294,9 @@ export default function EventModal({
             </div>
             <p className="meta">{tDashboard("clearTranslationHelp")}</p>
             <div className="form-actions">
-              <button className="btn btn-primary" disabled={loading}>
-                {loading
-                  ? tDashboard("saving")
-                  : event
-                    ? tDashboard("saveChanges")
-                    : tDashboard("createEvent")}
-              </button>
+              <SubmitButton pending={loading} pendingLabel={tDashboard("saving")}>
+                {event ? tDashboard("saveChanges") : tDashboard("createEvent")}
+              </SubmitButton>
               <button className="btn btn-outline" type="button" onClick={requestClose}>
                 {tDashboard("cancel")}
               </button>

@@ -16,14 +16,24 @@ export default function Field({
   className?: string;
 }) {
   const generatedID = useId();
-  const fieldID = id ?? generatedID;
-  const describedBy = [hint && `${fieldID}-hint`, error && `${fieldID}-error`]
+  const validControl = isValidElement<{
+    id?: string;
+    "aria-describedby"?: string;
+    "aria-invalid"?: boolean | "true" | "false";
+  }>(children);
+  const fieldID = id ?? (validControl ? children.props.id : undefined) ?? generatedID;
+  const describedBy = [
+    validControl ? children.props["aria-describedby"] : undefined,
+    hint && `${fieldID}-hint`,
+    error && `${fieldID}-error`,
+  ]
     .filter(Boolean)
     .join(" ");
-  const control = isValidElement<{ id?: string; "aria-describedby"?: string }>(children)
+  const control = validControl
     ? cloneElement(children, {
-        id: children.props.id ?? fieldID,
+        id: fieldID,
         ...(describedBy ? { "aria-describedby": describedBy } : {}),
+        ...(error ? { "aria-invalid": true } : {}),
       })
     : children;
 

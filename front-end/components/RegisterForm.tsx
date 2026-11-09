@@ -73,17 +73,17 @@ export default function RegisterPage() {
           <small>{t("passwordRule")}</small>
         </div>
         {error && (
-          <div className="status status-error" role="alert" style={{ marginBottom: "1rem" }}>
+          <div className="status status-error auth-form-error" role="alert">
             {error}
           </div>
         )}
-        <button className="btn btn-primary" style={{ width: "100%" }} disabled={loading}>
+        <button className="btn btn-primary auth-form-submit" disabled={loading}>
           {loading ? t("creating") : t("register")}
         </button>
       </form>
-      <p className="meta" style={{ marginTop: "1.25rem" }}>
+      <p className="meta auth-secondary">
         {t("already")}{" "}
-        <Link href="/auth/login" style={{ textDecoration: "underline" }}>
+        <Link className="auth-secondary-link" href="/auth/login">
           {t("login")}
         </Link>
       </p>

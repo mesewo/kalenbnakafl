@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useLocale } from "next-intl";
 import { useTranslations } from "next-intl";
@@ -11,6 +11,7 @@ import { queryKeys } from "@/lib/query-keys";
 import PageHeader from "@/components/ui/PageHeader";
 import DataTable from "@/components/ui/DataTable";
 import StatusBadge from "@/components/ui/StatusBadge";
+import { useOptimisticMutation } from "@/lib/use-optimistic-mutation";
 
 type ContactStatus = "new" | "read" | "replied";
 type ContactMessage = {
@@ -35,7 +36,6 @@ export default function MessagesPage() {
   };
   const { user, isLoading: authLoading } = useAuth();
   const isStaff = user?.role === "admin" || user?.role === "editor";
-  const queryClient = useQueryClient();
   const showToast = useToast();
   const [status, setStatus] = useState<StatusFilter>("");
   const [page, setPage] = useState(1);
@@ -53,7 +53,12 @@ export default function MessagesPage() {
   });
   const messages = messagesQuery.data ?? { items: [], page, limit: 10, total: 0 };
 
-  const updateMutation = useMutation({
+  const updateMutation = useOptimisticMutation<
+    PageResponse<ContactMessage>,
+    { message: ContactMessage; nextStatus: "read" | "replied" }
+  >({
+    queryKey: queryKeys.contactMessages(page, status),
+    invalidateQueryKey: queryKeys.contactMessages(),
     mutationFn: ({
       message,
       nextStatus,
@@ -65,34 +70,19 @@ export default function MessagesPage() {
         method: "PATCH",
         body: JSON.stringify({ status: nextStatus }),
       }),
-    onMutate: async ({ message, nextStatus }) => {
-      const prefix = queryKeys.contactMessages();
-      await queryClient.cancelQueries({ queryKey: prefix });
-      const previous = queryClient.getQueryData<PageResponse<ContactMessage>>(
-        queryKeys.contactMessages(page, status),
-      );
-      queryClient.setQueryData<PageResponse<ContactMessage>>(
-        queryKeys.contactMessages(page, status),
-        (current) => {
-          if (!current) return current;
-          const removeFromFilter = Boolean(status && status !== nextStatus);
-          return {
-            ...current,
-            items: removeFromFilter
-              ? current.items.filter((item) => item.id !== message.id)
-              : current.items.map((item) =>
-                  item.id === message.id ? { ...item, status: nextStatus } : item,
-                ),
-            total: current.total - Number(removeFromFilter),
-          };
-        },
-      );
-      return { previous, prefix };
+    optimisticUpdate: (current, { message, nextStatus }) => {
+      const removeFromFilter = Boolean(status && status !== nextStatus);
+      return {
+        ...current,
+        items: removeFromFilter
+          ? current.items.filter((item) => item.id !== message.id)
+          : current.items.map((item) =>
+              item.id === message.id ? { ...item, status: nextStatus } : item,
+            ),
+        total: current.total - Number(removeFromFilter),
+      };
     },
-    onError: (cause, _variables, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(queryKeys.contactMessages(page, status), context.previous);
-      }
+    onError: (cause) => {
       const message = cause instanceof Error ? cause.message : t("updateMessageFailed");
       setError(message);
       showToast(message, "error");
@@ -101,8 +91,6 @@ export default function MessagesPage() {
       setError("");
       showToast(t("messageStatusUpdated"));
     },
-    onSettled: (_data, _error, _variables, context) =>
-      queryClient.invalidateQueries({ queryKey: context?.prefix ?? queryKeys.contactMessages() }),
   });
 
   function updateMessage(message: ContactMessage, nextStatus: "read" | "replied") {

@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
@@ -12,6 +12,7 @@ type Attendee = { name: string; email: string; created_at: string };
 import EventModal from "@/components/EventModal";
 import PageHeader from "@/components/ui/PageHeader";
 import DataTable from "@/components/ui/DataTable";
+import { useOptimisticMutation } from "@/lib/use-optimistic-mutation";
 
 type EventsQueryData = { events: EventItem[]; mediaByID: Record<number, MediaItem> };
 
@@ -52,20 +53,14 @@ export default function EventsAdminPage() {
   });
   const events = eventsQuery.data?.events ?? [];
   const mediaByID = eventsQuery.data?.mediaByID ?? {};
-  const deleteMutation = useMutation({
+  const deleteMutation = useOptimisticMutation<EventsQueryData, EventItem>({
+    queryKey: queryKeys.events,
     mutationFn: (event: EventItem) => apiFetch(`/staff/events/${event.id}`, { method: "DELETE" }),
-    onMutate: async (event) => {
-      await queryClient.cancelQueries({ queryKey: queryKeys.events });
-      const previous = queryClient.getQueryData<EventsQueryData>(queryKeys.events);
-      queryClient.setQueryData<EventsQueryData>(queryKeys.events, (current) =>
-        current
-          ? { ...current, events: current.events.filter((item) => item.id !== event.id) }
-          : current,
-      );
-      return { previous };
-    },
-    onError: (cause, _event, context) => {
-      if (context?.previous) queryClient.setQueryData(queryKeys.events, context.previous);
+    optimisticUpdate: (current, event) => ({
+      ...current,
+      events: current.events.filter((item) => item.id !== event.id),
+    }),
+    onError: (cause) => {
       const message = cause instanceof Error ? cause.message : t("deleteEventFailed");
       setError(message);
       showToast(message, "error");
@@ -74,7 +69,6 @@ export default function EventsAdminPage() {
       setError("");
       showToast(t("eventDeleted"));
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.events }),
   });
 
   async function loadAttendees(eventID: number, requestedPage = 1) {
@@ -271,8 +265,8 @@ export default function EventsAdminPage() {
         isOpen={modal.open}
         event={modal.event}
         onClose={() => setModal({ open: false, event: null })}
-        onSuccess={() => {
-          void queryClient.invalidateQueries({ queryKey: queryKeys.events });
+        onSuccess={async () => {
+          await queryClient.invalidateQueries({ queryKey: queryKeys.events });
           showToast(t("contentSaved"));
         }}
         userRole={user?.role}

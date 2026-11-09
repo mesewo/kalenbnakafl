@@ -2,9 +2,12 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useLocale, useTranslations } from "next-intl";
-import { apiFetch, type MediaItem, type PageResponse } from "@/lib/api";
+import { type MediaItem } from "@/lib/api";
 import MediaUploadForm from "@/components/MediaUploadForm";
+import { fetchStaffImages } from "@/lib/staff-media";
+import { usePortalTarget } from "@/components/ui/Portal";
 
 const pageSize = 48;
 
@@ -32,29 +35,13 @@ export default function MediaPicker({
   const [error, setError] = useState("");
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const portalTarget = usePortalTarget();
 
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      const firstPage = await apiFetch<PageResponse<MediaItem>>(
-        "/staff/media?kind=image&page=1&limit=50",
-        {},
-      );
-      const pageCount = Math.max(1, Math.ceil(firstPage.total / 50));
-      const remainingPages: PageResponse<MediaItem>[] = [];
-      for (let firstPageNumber = 2; firstPageNumber <= pageCount; firstPageNumber += 10) {
-        const batch = await Promise.all(
-          Array.from({ length: Math.min(10, pageCount - firstPageNumber + 1) }, (_, index) =>
-            apiFetch<PageResponse<MediaItem>>(
-              `/staff/media?kind=image&page=${firstPageNumber + index}&limit=50`,
-              {},
-            ),
-          ),
-        );
-        remainingPages.push(...batch);
-      }
-      setItems([...firstPage.items, ...remainingPages.flatMap((result) => result.items)]);
+      setItems(await fetchStaffImages());
       setPage(1);
     } catch {
       setError(t("loadMediaFailed"));
@@ -64,18 +51,18 @@ export default function MediaPicker({
   }, [t]);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !portalTarget) return;
     setSelectedID(selectedMediaID ?? null);
     setMode("library");
     setSearch("");
     void load();
-  }, [isOpen, load, selectedMediaID]);
+  }, [isOpen, load, portalTarget, selectedMediaID]);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !portalTarget) return;
     const previousFocus =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    closeRef.current?.focus();
+    closeRef.current?.focus({ preventScroll: true });
     function trapFocus(event: KeyboardEvent) {
       if (event.key === "Escape") {
         event.stopPropagation();
@@ -101,9 +88,9 @@ export default function MediaPicker({
     document.addEventListener("keydown", trapFocus);
     return () => {
       document.removeEventListener("keydown", trapFocus);
-      previousFocus?.focus();
+      previousFocus?.focus({ preventScroll: true });
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, portalTarget]);
 
   const visibleItems = useMemo(() => {
     const term = search.trim().toLocaleLowerCase();
@@ -114,7 +101,7 @@ export default function MediaPicker({
   }, [items, search]);
   const selected = items.find((item) => item.id === selectedID);
 
-  if (!isOpen) return null;
+  if (!isOpen || !portalTarget) return null;
 
   async function uploaded(mediaID: number) {
     setMode("library");
@@ -125,7 +112,7 @@ export default function MediaPicker({
   const pageItems = visibleItems.slice((page - 1) * pageSize, page * pageSize);
   const pageCount = Math.max(1, Math.ceil(visibleItems.length / pageSize));
 
-  return (
+  return createPortal(
     <div
       className="modal-backdrop media-picker-backdrop"
       role="presentation"
@@ -270,6 +257,7 @@ export default function MediaPicker({
           </>
         )}
       </div>
-    </div>
+    </div>,
+    portalTarget,
   );
 }

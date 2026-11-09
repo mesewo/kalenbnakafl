@@ -8,8 +8,6 @@ import { formatDate, type EventItem } from "@/lib/api";
 import { localizedMetadata } from "@/lib/metadata";
 import { fetchPublic, PublicApiError } from "@/lib/server-api";
 
-export const revalidate = 60;
-
 type Props = { params: Promise<{ locale: "en" | "am"; id: string }> };
 
 async function getEvent(id: string, locale: "en" | "am"): Promise<EventItem | null> {

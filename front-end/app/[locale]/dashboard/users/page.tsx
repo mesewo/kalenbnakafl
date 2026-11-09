@@ -220,14 +220,11 @@ export default function UsersPage() {
                     id="user-password"
                     type="password"
                     minLength={12}
-                    maxLength={72}
                     required={!editing}
                     value={form.password}
                     onChange={(event) => {
-                      if (new TextEncoder().encode(event.target.value).length <= 72) {
-                        setForm({ ...form, password: event.target.value });
-                        setError("");
-                      }
+                      setForm({ ...form, password: event.target.value });
+                      setError("");
                     }}
                     aria-describedby="managed-password-hint"
                   />

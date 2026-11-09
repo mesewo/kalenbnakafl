@@ -1,0 +1,9 @@
+services:
+  api:
+    environment:
+      TRUSTED_PROXIES: 172.22.0.0/24
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.22.0.0/24

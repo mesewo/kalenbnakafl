@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 
 export type BilingualLocale = "en" | "am";
 
@@ -22,11 +22,12 @@ export default function BilingualField({
   children: (locale: BilingualLocale) => ReactNode;
 }) {
   const [selected, setSelected] = useState<BilingualLocale>("en");
+  const idPrefix = useId();
 
   function focusLocale(locale: BilingualLocale) {
     setSelected(locale);
     document
-      .getElementById(`bilingual-field-${locale}`)
+      .getElementById(`${idPrefix}-field-${locale}`)
       ?.querySelector<HTMLElement>("input, textarea, select, button")
       ?.focus();
   }
@@ -57,7 +58,11 @@ export default function BilingualField({
       </div>
       <div className="bilingual-field-grid">
         {(["en", "am"] as const).map((locale) => (
-          <section className="bilingual-field-locale" id={`bilingual-field-${locale}`} key={locale}>
+          <section
+            className="bilingual-field-locale"
+            id={`${idPrefix}-field-${locale}`}
+            key={locale}
+          >
             <h3>
               {locale === "en" ? englishLabel : amharicLabel}
               {locale === "en" && missingEnglish && (

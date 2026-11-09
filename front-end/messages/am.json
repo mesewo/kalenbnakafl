@@ -403,7 +403,7 @@
     "email": "ኢሜይል",
     "newPassword": "አዲስ የይለፍ ቃል",
     "confirmPassword": "አዲሱን የይለፍ ቃል ያረጋግጡ",
-    "passwordHint": "መቀየር ካልፈለጉ ባዶውን ይተዉት።",
+    "passwordHint": "የአሁኑን የይለፍ ቃል ለማቆየት ባዶውን ይተዉት። አዲሱ የይለፍ ቃል ቢያንስ 12 ቁምፊዎችና ከ72 የUTF-8 ባይቶች ያልበለጠ መሆን አለበት።",
     "passwordMismatch": "አዲሱ የይለፍ ቃልና ማረጋገጫው አይዛመዱም።",
     "profileUpdated": "መገለጫዎ ተዘምኗል።",
     "profileUpdateFailed": "መገለጫዎን ማዘመን አልተቻለም።",

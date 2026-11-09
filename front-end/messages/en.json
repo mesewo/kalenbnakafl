@@ -403,7 +403,7 @@
     "email": "Email",
     "newPassword": "New password",
     "confirmPassword": "Confirm new password",
-    "passwordHint": "Leave blank if you do not want to change it.",
+    "passwordHint": "Leave blank to keep your current password. New passwords must be at least 12 characters and no more than 72 UTF-8 bytes.",
     "passwordMismatch": "New password and confirmation do not match.",
     "profileUpdated": "Your profile has been updated.",
     "profileUpdateFailed": "Could not update your profile.",

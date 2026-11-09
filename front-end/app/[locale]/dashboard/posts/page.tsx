@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
@@ -11,6 +11,8 @@ import { queryKeys } from "@/lib/query-keys";
 import PostModal from "@/components/PostModal";
 import PageHeader from "@/components/ui/PageHeader";
 import DataTable from "@/components/ui/DataTable";
+import StatusBadge from "@/components/ui/StatusBadge";
+import { useOptimisticMutation } from "@/lib/use-optimistic-mutation";
 
 type PostsQueryData = { posts: Post[]; mediaByID: Record<number, MediaItem> };
 
@@ -42,20 +44,14 @@ export default function PostsPage() {
   });
   const posts = postsQuery.data?.posts ?? [];
   const mediaByID = postsQuery.data?.mediaByID ?? {};
-  const deleteMutation = useMutation({
+  const deleteMutation = useOptimisticMutation<PostsQueryData, Post>({
+    queryKey: queryKeys.posts,
     mutationFn: (post: Post) => apiFetch(`/staff/posts/${post.id}`, { method: "DELETE" }),
-    onMutate: async (post) => {
-      await queryClient.cancelQueries({ queryKey: queryKeys.posts });
-      const previous = queryClient.getQueryData<PostsQueryData>(queryKeys.posts);
-      queryClient.setQueryData<PostsQueryData>(queryKeys.posts, (current) =>
-        current
-          ? { ...current, posts: current.posts.filter((item) => item.id !== post.id) }
-          : current,
-      );
-      return { previous };
-    },
-    onError: (cause, _post, context) => {
-      if (context?.previous) queryClient.setQueryData(queryKeys.posts, context.previous);
+    optimisticUpdate: (current, post) => ({
+      ...current,
+      posts: current.posts.filter((item) => item.id !== post.id),
+    }),
+    onError: (cause) => {
       const message = cause instanceof Error ? cause.message : t("deletePostFailed");
       setError(message);
       showToast(message, "error");
@@ -64,31 +60,21 @@ export default function PostsPage() {
       setError("");
       showToast(t("postDeleted"));
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.posts }),
   });
-  const publishMutation = useMutation({
+  const publishMutation = useOptimisticMutation<PostsQueryData, Post>({
+    queryKey: queryKeys.posts,
     mutationFn: (post: Post) =>
       apiFetch(`/staff/posts/${post.id}/publish`, {
         method: "PATCH",
         body: JSON.stringify({ published: !post.published }),
       }),
-    onMutate: async (post) => {
-      await queryClient.cancelQueries({ queryKey: queryKeys.posts });
-      const previous = queryClient.getQueryData<PostsQueryData>(queryKeys.posts);
-      queryClient.setQueryData<PostsQueryData>(queryKeys.posts, (current) =>
-        current
-          ? {
-              ...current,
-              posts: current.posts.map((item) =>
-                item.id === post.id ? { ...item, published: !post.published } : item,
-              ),
-            }
-          : current,
-      );
-      return { previous };
-    },
-    onError: (cause, _post, context) => {
-      if (context?.previous) queryClient.setQueryData(queryKeys.posts, context.previous);
+    optimisticUpdate: (current, post) => ({
+      ...current,
+      posts: current.posts.map((item) =>
+        item.id === post.id ? { ...item, published: !post.published } : item,
+      ),
+    }),
+    onError: (cause) => {
       const message = cause instanceof Error ? cause.message : t("updatePostFailed");
       setError(message);
       showToast(message, "error");
@@ -97,7 +83,6 @@ export default function PostsPage() {
       setError("");
       showToast(t("postStatusUpdated"));
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.posts }),
   });
 
   async function remove(post: Post) {
@@ -192,9 +177,9 @@ export default function PostsPage() {
             label: t("status"),
             header: t("status"),
             cell: (post) => (
-              <span className="badge">
+              <StatusBadge>
                 {post.published ? t("statusPublishedLabel") : t("statusDraftLabel")}
-              </span>
+              </StatusBadge>
             ),
             sortValue: (post) => Number(post.published),
           },
@@ -232,8 +217,8 @@ export default function PostsPage() {
         isOpen={modal.open}
         post={modal.post}
         onClose={() => setModal({ open: false, post: null })}
-        onSuccess={() => {
-          void queryClient.invalidateQueries({ queryKey: queryKeys.posts });
+        onSuccess={async () => {
+          await queryClient.invalidateQueries({ queryKey: queryKeys.posts });
           showToast(t("contentSaved"));
         }}
         userRole={user?.role}
