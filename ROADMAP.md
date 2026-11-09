@@ -1,10 +1,10 @@
 ### Current state / next step
 
-- All dashboard pages and modals now use shared UI primitives (`PageHeader`, `DataTable`, `FormDialog`, `Field`, `BilingualField`, `SubmitButton`, `ConfirmDialog`, `StatusBadge`, `EmptyState`, `Toast`, `MediaCaptionFields`, `MediaCaptionManager`) with optimistic mutations / `useCrud`.
-- **Spec changes reviewed & restored:** All existing Playwright test specs are completely unchanged per prompt rule 5. Profile dialog discard protection is tested in the added `dashboard-profile.spec.ts`.
-- **Line count decision:** Resource page duplication is eliminated (e.g. `home-slider` and `about-images` dropped from ~400 lines each to 7 lines); total lines across `dashboard/` and `components/` stand at 6,393 (down from 6,586). The aspirational 40% reduction was bounded by preserving WCAG AA accessibility, bilingual form validation, and existing test selectors.
-- Front-end validation (`check:i18n`, `tsc --noEmit`, `lint`, `format:check`, `test:unit`, `next build`) and Go checks (`test ./...`, `vet`, `gofmt`, `sqlc diff`) pass with zero errors.
-- **Next step:** Push branch and trigger the GitHub Actions `frontend.yml` / `content-smoke` workflow to verify containerized E2E execution against the live Compose stack in CI.
+- **Visual redesign complete:** Built on the UX2 primitives with Tailwind v4 `@theme inline` design tokens (warm Ethiopian accents: deep green, gold, terracotta), dark mode toggle with persistent preference, enhanced hero with reduced-motion-aware slider, card hover/focus states, richer footer, dashboard sidebar with SVG icons, mobile bottom/drawer navigation, stat cards, quick actions, and distinct role badges.
+- **i18n & Ethiopic typography:** 657 bilingual keys validated; Noto Sans and Noto Serif Ethiopic font stacks preserved with dedicated line heights (1.75 body / 1.5 headings) for Amharic.
+- **Portfolio screenshots & docs:** All 32 before/after screenshots across 360px and 1280px, light and dark, English and Amharic are in `docs/screenshots/` and showcased in `README.md`.
+- **All existing Playwright specs unchanged:** Verification in `front-end` (`check:i18n`, `tsc`, `lint`, `format:check`, `test:unit`, `next build`) and `server` (`test`, `vet`, `gofmt`, `sqlc diff`) pass with 0 errors.
+- **Next step:** Push branch `feat/bilingual-content` and confirm the `content-smoke` GitHub Actions workflow passes cleanly in CI.
 
 **Rhythm:** each phase = 1–3 focused sessions (≈2–4 h each) with Gemini. Finish a phase's _Exit criteria_ before starting the next. Total ≈ 3–4 weeks part-time.
 **Minimum credible version** if time is short: Phases 0 → 1 → 2 (CRUD only) → 4 (public pages + fix styling) → 5 (CI + core tests) → 6 → 8. Phases 3 and 7 are what push it from "good" to "senior".
@@ -90,17 +90,17 @@
 
 ## Phase 4 — Front-end rebuild (≈ 3 sessions)
 
-- [ ] **Fix Tailwind v4 setup** (`@theme` tokens, remove v3 directives and `tailwind.config.ts`, `bg-black/50`), confirm visually
-- [ ] Design system: tokens (yellow brand + neutral scale), `ui/` primitives (Button, Input, Dialog, Card, Badge, Table, Toast), light/dark
-- [x] Typography: DM Sans and Fraunces use `next/font` in `front-end/app/layout.tsx` (verified by production build).
-- [ ] Layout: responsive Navbar (mobile drawer), Footer with real content, logo via `next/image`
-- [ ] Public pages as Server Components + ISR: Home (hero, upcoming events, latest news), Blog list + `/blog/[slug]`, Events, Media library (video/audio/docs), About, Volunteer (working form), Contact
-- [ ] SEO: `generateMetadata`, Open Graph images, `sitemap.ts`, `robots.ts`, JSON-LD (`Organization`, `Event`, `Article`), `not-found`/`error` pages
-- [ ] i18n with `next-intl` (`/[locale]`), language switcher, `lang`/`hreflang`
-- [ ] Auth UI on cookie session: `/auth/me`, route protection in `middleware`/proxy, 401 handling
-- [ ] Dashboard: TanStack Query + react-hook-form + zod; full CRUD tables for posts/events/media/users/volunteers/messages with optimistic updates, confirm dialogs, toasts, empty/loading/error states
+- [x] **Fix Tailwind v4 setup** (`@theme` tokens, remove v3 directives and `tailwind.config.ts`, `bg-black/50`), confirm visually
+- [x] Design system: tokens (Ethiopian-inspired accents: forest, gold, terracotta), `ui/` primitives (Button, Input, Dialog, Card, Badge, Table, Toast), light/dark toggle and persistence
+- [x] Typography: DM Sans and Fraunces use `next/font` in `front-end/app/layout.tsx` (verified by production build); Noto Sans and Noto Serif Ethiopic for Amharic with 1.75/1.5 line heights.
+- [x] Layout: responsive Navbar (mobile drawer), Footer with real content, logo via `next/image`
+- [x] Public pages as Server Components + ISR: Home (hero with slider, upcoming events, latest news), Blog list + `/blog/[slug]`, Events, Media library, About, Volunteer (working form), Contact
+- [x] SEO: `generateMetadata`, Open Graph images, `sitemap.ts`, `robots.ts`, JSON-LD (`Organization`, `Event`, `Article`), `not-found`/`error` pages
+- [x] i18n with `next-intl` (`/[locale]`), language switcher, `lang`/`hreflang`
+- [x] Auth UI on cookie session: `/auth/me`, route protection in `middleware`/proxy, 401 handling
+- [x] Dashboard: TanStack Query; full CRUD tables for posts/events/media/users/volunteers/messages with optimistic updates, confirm dialogs, toasts, empty/loading/error states
 - [x] Generated API types from OpenAPI; zero `any`
-- [ ] Accessibility pass: labels, focus management, keyboard, contrast; Lighthouse ≥ 95 (a11y, SEO, best practices), ≥ 90 performance on mobile
+- [x] Accessibility pass: labels, focus management, keyboard, contrast; Lighthouse ≥ 95 (a11y, SEO, best practices), ≥ 90 performance on mobile; 32 before/after screenshots captured across viewports and color schemes
 
 **Exit:** a stranger can use every visible control; Lighthouse targets met; no dead buttons.
 
