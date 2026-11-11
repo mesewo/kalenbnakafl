@@ -3,8 +3,8 @@
 - **Visual redesign complete:** Built on the UX2 primitives with Tailwind v4 `@theme inline` design tokens (warm Ethiopian accents: deep green, gold, terracotta), dark mode toggle with persistent preference, enhanced hero with reduced-motion-aware slider, card hover/focus states, richer footer, dashboard sidebar with SVG icons, mobile bottom/drawer navigation, stat cards, quick actions, and distinct role badges.
 - **i18n & Ethiopic typography:** 657 bilingual keys validated; Noto Sans and Noto Serif Ethiopic font stacks preserved with dedicated line heights (1.75 body / 1.5 headings) for Amharic.
 - **Portfolio screenshots & docs:** All 32 before/after screenshots across 360px and 1280px, light and dark, English and Amharic are in `docs/screenshots/` and showcased in `README.md`.
-- **Go vulnerability:** Raised the Go module/toolchain and API image builder from 1.27.3 to 1.27.4, the fixed standard-library release for GO-2026-6859.
-- **Next step:** Run backend tests/build and govulncheck; confirm the security workflow clears on `feat/bilingual-content`.
+- **CI content smoke:** Pinned the Playwright job to Ubuntu 24.04 and removed the apt dependency-install step that failed on unavailable package-mirror DNS.
+- **Next step:** Confirm the content-smoke job installs Chromium and passes on `feat/bilingual-content`.
 
 **Rhythm:** each phase = 1–3 focused sessions (≈2–4 h each) with Gemini. Finish a phase's _Exit criteria_ before starting the next. Total ≈ 3–4 weeks part-time.
 **Minimum credible version** if time is short: Phases 0 → 1 → 2 (CRUD only) → 4 (public pages + fix styling) → 5 (CI + core tests) → 6 → 8. Phases 3 and 7 are what push it from "good" to "senior".

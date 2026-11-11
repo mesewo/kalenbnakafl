@@ -79,7 +79,7 @@ jobs:
         run: npm audit --omit=dev --audit-level=high
 
   content-smoke:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       CI: true
       PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
@@ -109,7 +109,7 @@ jobs:
             echo "FRONTEND_REVALIDATE_URL=http://frontend:3000/_revalidate"
           } >> "$GITHUB_ENV"
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install chromium
       - name: Build and start Compose stack
         run: docker compose -f ../docker-compose.yaml up --build -d
       - name: Wait for API and frontend
