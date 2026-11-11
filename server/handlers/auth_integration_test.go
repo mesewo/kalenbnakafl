@@ -28,7 +28,7 @@ import (
 const integrationJWTSecret = "integration-test-secret-with-at-least-32-bytes"
 
 func integrationConfig() config.Config {
-	return config.Config{Port: "8080", AppEnv: "development", DatabaseURL: "unused", JWTSecret: []byte(integrationJWTSecret), UploadDir: "/tmp", MediaMaxMB: 50, DBConnectRetries: 1, CORSOrigins: []string{"http://localhost:3000"}}
+	return config.Config{Port: "8080", AppEnv: "development", DatabaseURL: "unused", JWTSecret: []byte(integrationJWTSecret), UploadDir: "/tmp", MediaMaxMB: 50, DBConnectRetries: 1, LoginRateLimit: 10, CORSOrigins: []string{"http://localhost:3000"}}
 }
 
 func authTestApp(t *testing.T) (*sql.DB, *dbgen.Queries, *gin.Engine) {

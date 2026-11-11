@@ -20,6 +20,7 @@ The process loads and validates environment settings once into `internal/config.
 | `S3_PATH_STYLE` | `true` | Use path-style bucket addressing for MinIO and compatible endpoints |
 | `MEDIA_MAX_MB` | `50`; positive integer | Maximum uploaded media size |
 | `DB_CONNECT_RETRIES` | `8`; positive integer | Database connection retry count |
+| `LOGIN_RATE_LIMIT` | `10`; positive integer | Login requests per minute per client IP and normalized email |
 | `DB_MAX_OPEN_CONNS`, `DB_MAX_IDLE_CONNS` | `5`, `2` | Conservative PostgreSQL pool limits |
 | `TRUST_FORWARDED_HEADERS` | `false` | Enable the authenticated client-IP handoff from the platform proxy |
 | `FORWARDED_HEADERS_SECRET` | required when forwarding trust is enabled | Shared server-only secret between Next.js proxy and API |
@@ -37,7 +38,7 @@ The API configures `log/slog` with a text handler in development and JSON in pro
 
 All API errors use `{"error":{"code":"...","message":"...","details":{}}}`. Stable codes are `invalid_json`, `validation_failed`, `unauthorized`, `forbidden`, `not_found`, `conflict`, `rate_limited`, `payload_too_large`, and `internal`. Unexpected failures are logged with the request ID and return a generic message. The default request body limit is 1 MiB; media upload routes allow the configured file limit plus 1 MiB for multipart framing. The frontend API client extracts the nested message, safely handles non-JSON proxy errors, applies a 15-second request timeout (120 seconds for uploads), and signals session expiry on protected-route 401 responses.
 
-Access JWTs use a typed claim structure and accept only HS256. Parsing requires issuer, issue time, expiry, positive user ID, and a recognized role; malformed claims return unauthorized. Session cookies are `HttpOnly; SameSite=Lax` in every environment and `Secure` except in development. For POST, PUT, PATCH, and DELETE requests carrying an access or refresh cookie, the API requires an allowed `Origin`, or an allowed `Referer` when `Origin` is absent. Login, registration, and contact are exempt because they do not read or rely on an existing session. Login attempts use a fixed-window key of trusted client IP plus lowercased email; register and contact use client IP. Rejections include `Retry-After`. The in-memory limiter sweeps expired entries at most every 30 seconds and caps its map at 10,000 keys.
+Access JWTs use a typed claim structure and accept only HS256. Parsing requires issuer, issue time, expiry, positive user ID, and a recognized role; malformed claims return unauthorized. Session cookies are `HttpOnly; SameSite=Lax` in every environment and `Secure` except in development. For POST, PUT, PATCH, and DELETE requests carrying an access or refresh cookie, the API requires an allowed `Origin`, or an allowed `Referer` when `Origin` is absent. Login, registration, and contact are exempt because they do not read or rely on an existing session. Login attempts use a fixed-window key of trusted client IP plus lowercased email; the default limit is 10 requests per minute and can be adjusted with `LOGIN_RATE_LIMIT`. Register and contact use client IP. Rejections include `Retry-After`. The in-memory limiter sweeps expired entries at most every 30 seconds and caps its map at 10,000 keys.
 
 ## Security hardening
 

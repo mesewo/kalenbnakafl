@@ -18,7 +18,7 @@ func SetupRoutes(r *gin.Engine, q *dbgen.Queries, db *sql.DB, cfg config.Config,
 	api.Use(middleware.RequireSessionOrigin(cfg.CORSOrigins))
 	publicLimit := middleware.LimitRequests(30, time.Minute)
 	authLimit := middleware.LimitRequests(10, time.Minute)
-	loginLimit := middleware.LimitLoginRequests(middleware.NewMemoryLimiter(10000), 10, time.Minute)
+	loginLimit := middleware.LimitLoginRequests(middleware.NewMemoryLimiter(10000), cfg.LoginRateLimit, time.Minute)
 	api.POST("/register", authLimit, apiHandlers.Register)
 	api.POST("/login", loginLimit, apiHandlers.Login)
 	api.POST("/refresh", authLimit, apiHandlers.Refresh)

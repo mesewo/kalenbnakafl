@@ -24,6 +24,7 @@ type Config struct {
 	FrontendRevalidateURL  string
 	RevalidateSecret       string
 	DBConnectRetries       int
+	LoginRateLimit         int
 	MigrateOnStart         bool
 	AdminEmail             string
 	AdminPassword          string
@@ -61,6 +62,7 @@ func LoadFrom(getenv func(string) string) (Config, error) {
 		FrontendRevalidateURL:  strings.TrimSpace(getenv("FRONTEND_REVALIDATE_URL")),
 		RevalidateSecret:       getenv("REVALIDATE_SECRET"),
 		DBConnectRetries:       8,
+		LoginRateLimit:         10,
 		AdminEmail:             strings.TrimSpace(getenv("ADMIN_EMAIL")),
 		AdminPassword:          getenv("ADMIN_PASSWORD"),
 		TrustedProxies:         splitList(getenv("TRUSTED_PROXIES")),
@@ -98,6 +100,14 @@ func LoadFrom(getenv func(string) string) (Config, error) {
 			problems = append(problems, "DB_CONNECT_RETRIES must be a positive integer")
 		} else {
 			cfg.DBConnectRetries = retries
+		}
+	}
+	if value := strings.TrimSpace(getenv("LOGIN_RATE_LIMIT")); value != "" {
+		limit, err := strconv.Atoi(value)
+		if err != nil || limit < 1 {
+			problems = append(problems, "LOGIN_RATE_LIMIT must be a positive integer")
+		} else {
+			cfg.LoginRateLimit = limit
 		}
 	}
 	if value := strings.TrimSpace(getenv("DB_MAX_OPEN_CONNS")); value != "" {
