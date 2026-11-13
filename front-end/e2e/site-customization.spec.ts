@@ -1,6 +1,6 @@
 import { deflateSync } from "node:zlib";
 import { randomUUID } from "node:crypto";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
 
 const adminEmail = process.env.ADMIN_EMAIL;
 const adminPassword = process.env.ADMIN_PASSWORD;
@@ -117,6 +117,8 @@ test("admin manages slider, About photos, and branding in both locales", async (
   await page.getByLabel("Password").fill(adminPassword!);
   await page.getByRole("button", { name: "Log in" }).click();
   await expect(page).toHaveURL(/\/en\/dashboard/);
+  const appOrigin = new URL(page.url()).origin;
+  const apiRequest: APIRequestContext = page.request;
 
   const originalSettings = await page.evaluate(async () => {
     const response = await fetch("/api/admin/site-settings");
@@ -260,7 +262,7 @@ test("admin manages slider, About photos, and branding in both locales", async (
       ["ለማኅበራዊ ማጋራት ምስል", titles.share],
     ] as const) {
       const slot = page.locator(".branding-slot").filter({ hasText: slotTitle });
-      await slot.getByRole("button", { name: "ምስል ይምረጡ" }).click();
+      await slot.getByRole("button", { name: /ምስል ይምረጡ|ምስሉን ይቀይሩ/ }).click();
       picker = page.getByRole("dialog", { name: "ፎቶ ይምረጡ" });
       await picker.getByRole("button", { name: new RegExp(imageTitle) }).click();
       await picker.getByRole("button", { name: "ይህን ፎቶ ይጠቀሙ" }).click();
@@ -286,6 +288,9 @@ test("admin manages slider, About photos, and branding in both locales", async (
     await expect(carousel.getByRole("button", { name: "Previous image" })).toBeVisible();
     const pauseSlides = carousel.getByRole("button", { name: "Pause slideshow" });
     await expect(pauseSlides).toBeVisible();
+    await pauseSlides.evaluate((button) =>
+      button.scrollIntoView({ behavior: "instant", block: "center" }),
+    );
     await pauseSlides.click();
     await carousel.locator(".home-slider").focus();
     await page.keyboard.press("ArrowRight");
@@ -367,82 +372,92 @@ test("admin manages slider, About photos, and branding in both locales", async (
         .toBe(true);
     }
   } finally {
-    await page.evaluate(
-      async ({ slideCaptions, aboutCaptions, original, heroTitle }) => {
-        const slideResponse = await fetch("/api/admin/home-slides");
-        if (slideResponse.ok) {
-          const slides = (await slideResponse.json()) as {
-            items: Array<{
-              id: number;
-              translations?: { en?: { caption: string }; am?: { caption: string } };
-            }>;
-          };
-          for (const slide of slides.items) {
-            if (
-              slideCaptions.includes(slide.translations?.en?.caption ?? "") ||
-              slideCaptions.includes(slide.translations?.am?.caption ?? "")
-            ) {
-              const deleted = await fetch(`/api/admin/home-slides/${slide.id}`, {
-                method: "DELETE",
-              });
-              if (!deleted.ok) throw new Error("Could not clean up the test home slide");
-            }
-          }
+    const requestHeaders = { origin: appOrigin };
+    const cleanupErrors: string[] = [];
+    const cleanup = async (label: string, action: () => Promise<void>) => {
+      try {
+        await action();
+      } catch (error) {
+        cleanupErrors.push(`${label}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    };
+    const slideCaptions = [
+      englishSlideCaption,
+      amharicSlideCaption,
+      secondEnglishSlideCaption,
+      secondAmharicSlideCaption,
+    ];
+    await cleanup("home slides", async () => {
+      const slideResponse = await apiRequest.get(`${appOrigin}/api/admin/home-slides`);
+      if (!slideResponse.ok()) throw new Error("Could not load home slides");
+      const slides = (await slideResponse.json()) as {
+        items: Array<{
+          id: number;
+          translations?: { en?: { caption: string }; am?: { caption: string } };
+        }>;
+      };
+      for (const slide of slides.items) {
+        if (
+          slideCaptions.includes(slide.translations?.en?.caption ?? "") ||
+          slideCaptions.includes(slide.translations?.am?.caption ?? "")
+        ) {
+          const deleted = await apiRequest.delete(
+            `${appOrigin}/api/admin/home-slides/${slide.id}`,
+            { headers: requestHeaders },
+          );
+          if (!deleted.ok()) throw new Error("Could not delete the test home slide");
         }
-        const aboutResponse = await fetch("/api/admin/about-images");
-        if (aboutResponse.ok) {
-          const images = (await aboutResponse.json()) as {
-            items: Array<{
-              id: number;
-              translations?: { en?: { caption: string }; am?: { caption: string } };
-            }>;
-          };
-          for (const image of images.items) {
-            if (
-              aboutCaptions.includes(image.translations?.en?.caption ?? "") ||
-              aboutCaptions.includes(image.translations?.am?.caption ?? "")
-            ) {
-              const deleted = await fetch(`/api/admin/about-images/${image.id}`, {
-                method: "DELETE",
-              });
-              if (!deleted.ok) throw new Error("Could not clean up the test About image");
-            }
-          }
+      }
+    });
+    const aboutCaptions = [englishAboutCaption, amharicAboutCaption];
+    await cleanup("About images", async () => {
+      const aboutResponse = await apiRequest.get(`${appOrigin}/api/admin/about-images`);
+      if (!aboutResponse.ok()) throw new Error("Could not load About images");
+      const images = (await aboutResponse.json()) as {
+        items: Array<{
+          id: number;
+          translations?: { en?: { caption: string }; am?: { caption: string } };
+        }>;
+      };
+      for (const image of images.items) {
+        if (
+          aboutCaptions.includes(image.translations?.en?.caption ?? "") ||
+          aboutCaptions.includes(image.translations?.am?.caption ?? "")
+        ) {
+          const deleted = await apiRequest.delete(
+            `${appOrigin}/api/admin/about-images/${image.id}`,
+            { headers: requestHeaders },
+          );
+          if (!deleted.ok()) throw new Error("Could not delete the test About image");
         }
-        const restored = await fetch("/api/admin/site-settings", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            logo_media_id: original.logo_media_id,
-            favicon_media_id: original.favicon_media_id,
-            social_image_media_id: original.social_image_media_id,
-            translations: original.translations,
-          }),
-        });
-        if (!restored.ok) throw new Error("Could not restore the original site settings");
-        const restoredPageContent = await fetch("/api/admin/site-blocks/home/hero_title", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            translations: {
-              en: { text: heroTitle.en },
-              am: { text: heroTitle.am },
-            },
-          }),
-        });
-        if (!restoredPageContent.ok) throw new Error("Could not restore the original page text");
-      },
-      {
-        slideCaptions: [
-          englishSlideCaption,
-          amharicSlideCaption,
-          secondEnglishSlideCaption,
-          secondAmharicSlideCaption,
-        ],
-        aboutCaptions: [englishAboutCaption, amharicAboutCaption],
-        original: originalSettings,
-        heroTitle: originalHeroTranslations,
-      },
-    );
+      }
+    });
+    await cleanup("site settings", async () => {
+      const restored = await apiRequest.put(`${appOrigin}/api/admin/site-settings`, {
+        headers: { ...requestHeaders, "content-type": "application/json" },
+        data: {
+          logo_media_id: originalSettings.logo_media_id,
+          favicon_media_id: originalSettings.favicon_media_id,
+          social_image_media_id: originalSettings.social_image_media_id,
+          translations: originalSettings.translations,
+        },
+      });
+      if (!restored.ok()) throw new Error("Could not restore the original site settings");
+    });
+    await cleanup("home page text", async () => {
+      const restored = await apiRequest.put(`${appOrigin}/api/admin/site-blocks/home/hero_title`, {
+        headers: { ...requestHeaders, "content-type": "application/json" },
+        data: {
+          translations: {
+            en: { text: originalHeroTranslations.en },
+            am: { text: originalHeroTranslations.am },
+          },
+        },
+      });
+      if (!restored.ok()) throw new Error("Could not restore the original page text");
+    });
+    if (cleanupErrors.length > 0) {
+      throw new Error(`Test cleanup failed: ${cleanupErrors.join("; ")}`);
+    }
   }
 });

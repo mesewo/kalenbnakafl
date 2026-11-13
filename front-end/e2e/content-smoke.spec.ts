@@ -75,14 +75,43 @@ test("admin content and public bilingual flows", async ({ page }, testInfo) => {
     await expect
       .poll(
         () =>
-          page.evaluate(() => ({
-            fits: document.documentElement.scrollWidth <= document.documentElement.clientWidth,
-            scrollWidth: document.documentElement.scrollWidth,
-            clientWidth: document.documentElement.clientWidth,
-          })),
+          page.evaluate(() => {
+            const root = document.documentElement;
+            const clientWidth = root.clientWidth;
+            const overflowingElements = Array.from(document.body.querySelectorAll("*"))
+              .map((element) => {
+                const rect = element.getBoundingClientRect();
+                return {
+                  tag: element.tagName.toLowerCase(),
+                  className: typeof element.className === "string" ? element.className : "",
+                  text: element.textContent?.trim().slice(0, 80) ?? "",
+                  left: Math.round(rect.left),
+                  right: Math.round(rect.right),
+                  width: Math.round(rect.width),
+                };
+              })
+              .filter(
+                (element) =>
+                  element.width > 0 && (element.left < -1 || element.right > clientWidth + 1),
+              )
+              .sort(
+                (left, right) =>
+                  Math.max(right.right - clientWidth, -right.left) -
+                  Math.max(left.right - clientWidth, -left.left),
+              )
+              .slice(0, 5);
+            const fits = root.scrollWidth <= clientWidth;
+            return fits
+              ? "fits"
+              : JSON.stringify({
+                  scrollWidth: root.scrollWidth,
+                  clientWidth,
+                  overflowingElements,
+                });
+          }),
         { message: `Amharic contact page should fit at ${width}px` },
       )
-      .toMatchObject({ fits: true });
+      .toBe("fits");
   }
 
   await page.goto("/en/dashboard/posts");
