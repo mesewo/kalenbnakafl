@@ -73,12 +73,16 @@ test("admin content and public bilingual flows", async ({ page }, testInfo) => {
   for (const width of [360, 1280]) {
     await page.setViewportSize({ width, height: 900 });
     await expect
-      .poll(() =>
-        page.evaluate(
-          () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
-        ),
+      .poll(
+        () =>
+          page.evaluate(() => ({
+            fits: document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+            scrollWidth: document.documentElement.scrollWidth,
+            clientWidth: document.documentElement.clientWidth,
+          })),
+        { message: `Amharic contact page should fit at ${width}px` },
       )
-      .toBe(true);
+      .toMatchObject({ fits: true });
   }
 
   await page.goto("/en/dashboard/posts");
