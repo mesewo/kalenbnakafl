@@ -58,7 +58,9 @@ test("admin content and public bilingual flows", async ({ page }, testInfo) => {
   const amPostCard = page.locator("article.card").filter({ hasText: amPostTitle });
   await amPostCard.getByRole("link", { name: "ሙሉ ታሪኩን ያንብቡ →" }).click();
   await expect(page).toHaveURL(/\/am\/blog\//);
-  await expect(page.getByText(`የአማርኛ ይዘት ${suffix}`)).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator(".post-body-content")).toHaveText(`የአማርኛ ይዘት ${suffix}`, {
+    timeout: 30_000,
+  });
   await expect(page.locator("html")).toHaveAttribute("lang", "am");
 
   await page.goto("/en/contact");
@@ -78,7 +80,7 @@ test("admin content and public bilingual flows", async ({ page }, testInfo) => {
           page.evaluate(() => {
             const root = document.documentElement;
             const clientWidth = root.clientWidth;
-            const overflowingElements = Array.from(document.body.querySelectorAll("*"))
+            const overflowingElements = [root, ...root.querySelectorAll("*")]
               .map((element) => {
                 const rect = element.getBoundingClientRect();
                 return {
@@ -88,16 +90,29 @@ test("admin content and public bilingual flows", async ({ page }, testInfo) => {
                   left: Math.round(rect.left),
                   right: Math.round(rect.right),
                   width: Math.round(rect.width),
+                  clientWidth: element.clientWidth,
+                  scrollWidth: element.scrollWidth,
                 };
               })
               .filter(
                 (element) =>
-                  element.width > 0 && (element.left < -1 || element.right > clientWidth + 1),
+                  element.width > 0 &&
+                  (element.left < -1 ||
+                    element.right > clientWidth + 1 ||
+                    element.scrollWidth > element.clientWidth + 1),
               )
               .sort(
                 (left, right) =>
-                  Math.max(right.right - clientWidth, -right.left) -
-                  Math.max(left.right - clientWidth, -left.left),
+                  Math.max(
+                    right.right - clientWidth,
+                    -right.left,
+                    right.scrollWidth - right.clientWidth,
+                  ) -
+                  Math.max(
+                    left.right - clientWidth,
+                    -left.left,
+                    left.scrollWidth - left.clientWidth,
+                  ),
               )
               .slice(0, 5);
             const fits = root.scrollWidth <= clientWidth;

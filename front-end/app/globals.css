@@ -1994,6 +1994,7 @@ html[lang="am"] .display {
   font-family: var(--font-noto-serif), serif;
   letter-spacing: normal;
   line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 html[lang="am"] .btn,
 html[lang="am"] .nav-links a,
