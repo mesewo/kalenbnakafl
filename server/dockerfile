@@ -5,7 +5,7 @@ RUN go mod download
 COPY server/ ./
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o app ./cmd/main.go
 
-FROM alpine:3.23
+FROM alpine:3.24
 RUN apk upgrade --no-cache \
     && apk add --no-cache ca-certificates \
     && addgroup -S -g 10001 app \
