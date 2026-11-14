@@ -28,7 +28,7 @@ export async function fetchPublic<T>(path: string, locale: "en" | "am"): Promise
       const response = await fetch(url, {
         headers: { "Accept-Language": locale },
         signal: AbortSignal.timeout(PUBLIC_FETCH_TIMEOUT_MS),
-        next: { revalidate: 60 },
+        next: { revalidate: 60, tags: cacheTags(path) },
       });
       if (!response.ok) throw new PublicApiError(response.status);
       return (await response.json()) as T;
@@ -36,6 +36,34 @@ export async function fetchPublic<T>(path: string, locale: "en" | "am"): Promise
     process.env.NEXT_PHASE === PHASE_PRODUCTION_BUILD,
     isUnavailable,
   );
+}
+
+function cacheTags(path: string): string[] {
+  const pathname = path.split("?")[0].replace(/^\/+/, "");
+  const segments = pathname.split("/");
+  switch (segments[0]) {
+    case "posts":
+      return ["posts", ...(segments[1] ? [`post:${segments[1]}`] : [])];
+    case "events":
+      return ["events", ...(segments[1] ? [`event:${segments[1]}`] : [])];
+    case "media":
+      return ["media", ...(segments[1] ? [`media:${segments[1]}`] : [])];
+    case "site":
+      switch (segments[1]) {
+        case "home-slides":
+          return ["home-slides"];
+        case "settings":
+          return ["site-settings"];
+        case "blocks": {
+          const page = new URLSearchParams(path.split("?")[1] ?? "").get("page");
+          return ["site-blocks", ...(page ? [`site-blocks:${page}`] : [])];
+        }
+        case "about-images":
+          return ["about-images"];
+      }
+      break;
+  }
+  return [];
 }
 
 function normalizeApiBase(value: string): string {

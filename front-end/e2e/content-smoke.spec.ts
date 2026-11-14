@@ -36,9 +36,21 @@ test("admin content and public bilingual flows", async ({ page }, testInfo) => {
 
   let postRow = page.getByRole("row").filter({ hasText: postTitle });
   await expect(postRow).toBeVisible();
+  const publishResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "PATCH" &&
+      new URL(response.url()).pathname.endsWith("/publish"),
+  );
   await postRow.getByRole("button", { name: "Publish" }).click();
-  await expect(postRow).toContainText("Published");
-  await waitForPublicContent(page, "/en/blog", page.getByRole("heading", { name: postTitle }));
+  const publishedResponse = await publishResponse;
+  expect(publishedResponse.status()).toBe(200);
+  const publicFreshnessDeadline = Date.now() + 5000;
+  await waitForPublicContent(
+    page,
+    "/en/blog",
+    page.getByRole("heading", { name: postTitle }),
+    publicFreshnessDeadline - Date.now(),
+  );
   const enPostCard = page.locator("article.card").filter({ hasText: postTitle });
   await enPostCard.getByRole("link", { name: "Read the full note →" }).click();
   await expect(page.getByText(`English body ${suffix}`)).toBeVisible();
@@ -46,7 +58,9 @@ test("admin content and public bilingual flows", async ({ page }, testInfo) => {
   const amPostCard = page.locator("article.card").filter({ hasText: amPostTitle });
   await amPostCard.getByRole("link", { name: "ሙሉ ታሪኩን ያንብቡ →" }).click();
   await expect(page).toHaveURL(/\/am\/blog\//);
-  await expect(page.getByText(`የአማርኛ ይዘት ${suffix}`)).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator(".post-body-content")).toHaveText(`የአማርኛ ይዘት ${suffix}`, {
+    timeout: 30_000,
+  });
   await expect(page.locator("html")).toHaveAttribute("lang", "am");
 
   await page.goto("/en/contact");
@@ -61,24 +75,77 @@ test("admin content and public bilingual flows", async ({ page }, testInfo) => {
   for (const width of [360, 1280]) {
     await page.setViewportSize({ width, height: 900 });
     await expect
-      .poll(() =>
-        page.evaluate(
-          () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
-        ),
+      .poll(
+        () =>
+          page.evaluate(() => {
+            const root = document.documentElement;
+            const clientWidth = root.clientWidth;
+            const overflowingElements = [root, ...root.querySelectorAll("*")]
+              .map((element) => {
+                const rect = element.getBoundingClientRect();
+                return {
+                  tag: element.tagName.toLowerCase(),
+                  className: typeof element.className === "string" ? element.className : "",
+                  text: element.textContent?.trim().slice(0, 80) ?? "",
+                  left: Math.round(rect.left),
+                  right: Math.round(rect.right),
+                  width: Math.round(rect.width),
+                  clientWidth: element.clientWidth,
+                  scrollWidth: element.scrollWidth,
+                };
+              })
+              .filter(
+                (element) =>
+                  element.width > 0 &&
+                  (element.left < -1 ||
+                    element.right > clientWidth + 1 ||
+                    element.scrollWidth > element.clientWidth + 1),
+              )
+              .sort(
+                (left, right) =>
+                  Math.max(
+                    right.right - clientWidth,
+                    -right.left,
+                    right.scrollWidth - right.clientWidth,
+                  ) -
+                  Math.max(
+                    left.right - clientWidth,
+                    -left.left,
+                    left.scrollWidth - left.clientWidth,
+                  ),
+              )
+              .slice(0, 5);
+            const fits = root.scrollWidth <= clientWidth;
+            return fits
+              ? "fits"
+              : JSON.stringify({
+                  scrollWidth: root.scrollWidth,
+                  clientWidth,
+                  overflowingElements,
+                });
+          }),
+        { message: `Amharic contact page should fit at ${width}px` },
       )
-      .toBe(true);
+      .toBe("fits");
   }
 
   await page.goto("/en/dashboard/posts");
   postRow = page.getByRole("row").filter({ hasText: postTitle });
+  await expect(postRow).toContainText("Published");
   await postRow.getByRole("button", { name: "Edit" }).click();
   dialog = page.getByRole("dialog", { name: "Edit post" });
   await dialog.getByLabel("Title (English)").fill(editedPostTitle);
   await dialog.getByRole("button", { name: "Save changes" }).click();
   postRow = page.getByRole("row").filter({ hasText: editedPostTitle });
   await expect(postRow).toBeVisible();
-  page.once("dialog", (alert) => alert.accept());
   await postRow.getByRole("button", { name: "Delete" }).click();
+  const postDeleteResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "DELETE" &&
+      /\/staff\/posts\/\d+$/.test(new URL(response.url()).pathname),
+  );
+  await page.getByRole("alertdialog").getByRole("button", { name: "Delete", exact: true }).click();
+  expect((await postDeleteResponse).status()).toBe(200);
   await expect(page.getByRole("row").filter({ hasText: editedPostTitle })).toHaveCount(0);
 
   await page.goto("/en/dashboard/events");
@@ -129,8 +196,14 @@ test("admin content and public bilingual flows", async ({ page }, testInfo) => {
   await dialog.getByRole("button", { name: "Save changes" }).click();
   eventRow = page.getByRole("row").filter({ hasText: editedEventTitle });
   await expect(eventRow).toBeVisible();
-  page.once("dialog", (alert) => alert.accept());
   await eventRow.getByRole("button", { name: "Delete" }).click();
+  const eventDeleteResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "DELETE" &&
+      /\/staff\/events\/\d+$/.test(new URL(response.url()).pathname),
+  );
+  await page.getByRole("alertdialog").getByRole("button", { name: "Delete", exact: true }).click();
+  expect((await eventDeleteResponse).status()).toBe(200);
   await expect(page.getByRole("row").filter({ hasText: editedEventTitle })).toHaveCount(0);
 });
 

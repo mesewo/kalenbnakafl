@@ -21,7 +21,10 @@ type Config struct {
 	CORSOrigins            []string
 	UploadDir              string
 	MediaMaxMB             int64
+	FrontendRevalidateURL  string
+	RevalidateSecret       string
 	DBConnectRetries       int
+	LoginRateLimit         int
 	MigrateOnStart         bool
 	AdminEmail             string
 	AdminPassword          string
@@ -56,7 +59,10 @@ func LoadFrom(getenv func(string) string) (Config, error) {
 		CORSOrigins:            splitList(getenv("CORS_ORIGINS")),
 		UploadDir:              valueOr(getenv("UPLOAD_DIR"), "/data/uploads"),
 		MediaMaxMB:             defaultMediaMaxMB,
+		FrontendRevalidateURL:  strings.TrimSpace(getenv("FRONTEND_REVALIDATE_URL")),
+		RevalidateSecret:       getenv("REVALIDATE_SECRET"),
 		DBConnectRetries:       8,
+		LoginRateLimit:         10,
 		AdminEmail:             strings.TrimSpace(getenv("ADMIN_EMAIL")),
 		AdminPassword:          getenv("ADMIN_PASSWORD"),
 		TrustedProxies:         splitList(getenv("TRUSTED_PROXIES")),
@@ -94,6 +100,14 @@ func LoadFrom(getenv func(string) string) (Config, error) {
 			problems = append(problems, "DB_CONNECT_RETRIES must be a positive integer")
 		} else {
 			cfg.DBConnectRetries = retries
+		}
+	}
+	if value := strings.TrimSpace(getenv("LOGIN_RATE_LIMIT")); value != "" {
+		limit, err := strconv.Atoi(value)
+		if err != nil || limit < 1 {
+			problems = append(problems, "LOGIN_RATE_LIMIT must be a positive integer")
+		} else {
+			cfg.LoginRateLimit = limit
 		}
 	}
 	if value := strings.TrimSpace(getenv("DB_MAX_OPEN_CONNS")); value != "" {
@@ -158,6 +172,16 @@ func (c Config) validationProblems() []string {
 	}
 	if strings.TrimSpace(c.UploadDir) == "" {
 		problems = append(problems, "UPLOAD_DIR must not be empty")
+	}
+	if (c.FrontendRevalidateURL == "") != (c.RevalidateSecret == "") {
+		problems = append(problems, "FRONTEND_REVALIDATE_URL and REVALIDATE_SECRET must be set together")
+	}
+	if c.FrontendRevalidateURL != "" {
+		endpoint, err := url.ParseRequestURI(c.FrontendRevalidateURL)
+		if err != nil || (endpoint.Scheme != "http" && endpoint.Scheme != "https") || endpoint.Host == "" ||
+			endpoint.User != nil || endpoint.RawQuery != "" || endpoint.Fragment != "" {
+			problems = append(problems, "FRONTEND_REVALIDATE_URL must be an HTTP(S) URL without credentials, query, or fragment")
+		}
 	}
 	if c.StorageDriver != "local" && c.StorageDriver != "s3" {
 		problems = append(problems, "STORAGE_DRIVER must be local or s3")

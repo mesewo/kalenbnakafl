@@ -14,7 +14,7 @@ export async function PostBody({ content, locale, coverMediaID }: Props) {
   const body: React.ReactNode[] = [];
   for (let index = 0; index < parts.length; index += 1) {
     if (index % 2 === 0) {
-      body.push(<span key={`text-${index}`}>{parts[index]}</span>);
+      body.push(parts[index]);
       continue;
     }
     const media = images.get(Number(parts[index]));
@@ -29,9 +29,7 @@ export async function PostBody({ content, locale, coverMediaID }: Props) {
       ) : (
         <div className="media-placeholder public-media-cover" aria-hidden="true" />
       )}
-      <div className="lede" style={{ whiteSpace: "pre-wrap" }}>
-        {body}
-      </div>
+      <div className="lede post-body-content">{body}</div>
     </>
   );
 }

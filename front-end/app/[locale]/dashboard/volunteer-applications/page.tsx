@@ -1,10 +1,18 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { useLocale } from "next-intl";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch, type PageResponse } from "@/lib/api";
 import { formatDate } from "@/lib/api";
+import { useToast } from "@/components/DashboardProviders";
+import { queryKeys } from "@/lib/query-keys";
+import PageHeader from "@/components/ui/PageHeader";
+import SkeletonCards from "@/components/ui/SkeletonCards";
+import StatusBadge from "@/components/ui/StatusBadge";
+import EmptyState from "@/components/ui/EmptyState";
+import { useOptimisticMutation } from "@/lib/use-optimistic-mutation";
 
 type Application = {
   id: number;
@@ -28,51 +36,63 @@ export default function VolunteerApplicationsPage() {
     declined: t("statusDeclinedLabel"),
   };
   const { user } = useAuth();
-  const [result, setResult] = useState<PageResponse<Application>>({
-    items: [],
-    page: 1,
-    limit: 10,
-    total: 0,
-  });
+  const showToast = useToast();
   const [status, setStatus] = useState("pending");
   const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState<number | null>(null);
   const [error, setError] = useState("");
-  const load = useCallback(async () => {
-    if (user?.role !== "admin") return;
-    setLoading(true);
-    setError("");
-    try {
+  const applicationsQuery = useQuery({
+    queryKey: queryKeys.volunteerApplications(page, status),
+    enabled: user?.role === "admin",
+    queryFn: async () => {
       const filter = status ? `&status=${encodeURIComponent(status)}` : "";
-      setResult(
-        await apiFetch<PageResponse<Application>>(
-          `/admin/volunteer-applications?page=${page}&limit=10${filter}`,
-        ),
+      return apiFetch<PageResponse<Application>>(
+        `/admin/volunteer-applications?page=${page}&limit=10${filter}`,
       );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("loadApplicationsFailed"));
-    } finally {
-      setLoading(false);
-    }
-  }, [user, status, page, t]);
-  useEffect(() => {
-    void load();
-  }, [load]);
-  async function review(application: Application, nextStatus: "approved" | "declined") {
-    setBusy(application.id);
-    setError("");
-    try {
-      await apiFetch(`/admin/volunteer-applications/${application.id}`, {
+    },
+  });
+  const result = applicationsQuery.data ?? { items: [], page, limit: 10, total: 0 };
+  const reviewMutation = useOptimisticMutation<
+    PageResponse<Application>,
+    { application: Application; nextStatus: "approved" | "declined" }
+  >({
+    queryKey: queryKeys.volunteerApplications(page, status),
+    invalidateQueryKey: queryKeys.volunteerApplications(),
+    mutationFn: ({
+      application,
+      nextStatus,
+    }: {
+      application: Application;
+      nextStatus: "approved" | "declined";
+    }) =>
+      apiFetch(`/admin/volunteer-applications/${application.id}`, {
         method: "PATCH",
         body: JSON.stringify({ status: nextStatus }),
-      });
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("reviewApplicationFailed"));
-    } finally {
-      setBusy(null);
-    }
+      }),
+    optimisticUpdate: (current, { application, nextStatus }) => {
+      const removeFromFilter = Boolean(status && status !== nextStatus);
+      return {
+        ...current,
+        items: removeFromFilter
+          ? current.items.filter((item) => item.id !== application.id)
+          : current.items.map((item) =>
+              item.id === application.id ? { ...item, status: nextStatus } : item,
+            ),
+        total: current.total - Number(removeFromFilter),
+      };
+    },
+    onError: (cause) => {
+      const message = cause instanceof Error ? cause.message : t("reviewApplicationFailed");
+      setError(message);
+      showToast(message, "error");
+    },
+    onSuccess: ({ nextStatus }) => {
+      setError("");
+      showToast(nextStatus === "approved" ? t("applicationApproved") : t("applicationDeclined"));
+    },
+  });
+  function review(application: Application, nextStatus: "approved" | "declined") {
+    setError("");
+    void reviewMutation.mutate({ application, nextStatus });
   }
   if (user?.role !== "admin")
     return (
@@ -83,12 +103,7 @@ export default function VolunteerApplicationsPage() {
   const pages = Math.max(1, Math.ceil(result.total / result.limit));
   return (
     <div>
-      <div className="dashboard-title">
-        <div>
-          <span className="eyebrow">{t("volunteersEyebrow")}</span>
-          <h1>{t("applicationsTitle")}</h1>
-        </div>
-      </div>
+      <PageHeader eyebrow={t("volunteersEyebrow")} title={t("applicationsTitle")} />
       <div className="field">
         <label htmlFor="application-status">{t("filterApplications")}</label>
         <select
@@ -110,17 +125,15 @@ export default function VolunteerApplicationsPage() {
           {error}
         </div>
       )}
-      {loading ? (
-        <div className="empty-state" role="status">
-          {t("loadingApplications")}
-        </div>
+      {applicationsQuery.isPending ? (
+        <SkeletonCards label={t("loadingApplications")} />
       ) : result.items.length === 0 ? (
-        <div className="empty-state">{t("noApplications")}</div>
+        <EmptyState>{t("noApplications")}</EmptyState>
       ) : (
         <div className="grid-2">
           {result.items.map((item) => (
             <article className="card" key={item.id}>
-              <span className="badge">{statusLabels[item.status]}</span>
+              <StatusBadge>{statusLabels[item.status]}</StatusBadge>
               <h2>{item.name}</h2>
               <p>{item.email}</p>
               <h3>{t("skills")}</h3>
@@ -143,14 +156,17 @@ export default function VolunteerApplicationsPage() {
                 <div className="form-actions">
                   <button
                     className="btn btn-primary btn-small"
-                    disabled={busy === item.id}
+                    disabled={reviewMutation.isPending}
                     onClick={() => void review(item, "approved")}
                   >
-                    {busy === item.id ? t("saving") : t("approve")}
+                    {reviewMutation.isPending &&
+                    reviewMutation.variables?.application.id === item.id
+                      ? t("saving")
+                      : t("approve")}
                   </button>
                   <button
                     className="btn btn-outline btn-small"
-                    disabled={busy === item.id}
+                    disabled={reviewMutation.isPending}
                     onClick={() => void review(item, "declined")}
                   >
                     {t("decline")}
@@ -161,14 +177,10 @@ export default function VolunteerApplicationsPage() {
           ))}
         </div>
       )}
-      <nav
-        className="form-actions"
-        aria-label={t("applicationPages")}
-        style={{ justifyContent: "space-between", marginTop: "1.5rem" }}
-      >
+      <nav className="form-actions dashboard-pagination" aria-label={t("applicationPages")}>
         <button
           className="btn btn-outline"
-          disabled={page <= 1 || loading}
+          disabled={page <= 1 || applicationsQuery.isPending}
           onClick={() => setPage((value) => Math.max(1, value - 1))}
         >
           {t("previous")}
@@ -176,7 +188,7 @@ export default function VolunteerApplicationsPage() {
         <span className="meta">{t("pageOf", { page, total: pages })}</span>
         <button
           className="btn btn-outline"
-          disabled={page >= pages || loading}
+          disabled={page >= pages || applicationsQuery.isPending}
           onClick={() => setPage((value) => value + 1)}
         >
           {t("next")}

@@ -1,62 +1,99 @@
 "use client";
 import Image from "next/image";
-import { useCallback, useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { useConfirm, useToast } from "@/components/DashboardProviders";
 import { apiFetch, formatDate, type MediaItem, type PageResponse, type Post } from "@/lib/api";
+import { queryKeys } from "@/lib/query-keys";
 import PostModal from "@/components/PostModal";
+import PageHeader from "@/components/ui/PageHeader";
+import DataTable from "@/components/ui/DataTable";
+import StatusBadge from "@/components/ui/StatusBadge";
+import { useOptimisticMutation } from "@/lib/use-optimistic-mutation";
+
+type PostsQueryData = { posts: Post[]; mediaByID: Record<number, MediaItem> };
+
 export default function PostsPage() {
   const locale = useLocale();
   const t = useTranslations("dashboard");
+  const confirm = useConfirm();
+  const showToast = useToast();
+  const queryClient = useQueryClient();
   const { user } = useAuth();
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [mediaByID, setMediaByID] = useState<Record<number, MediaItem>>({});
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [modal, setModal] = useState<{ open: boolean; post: Post | null }>({
     open: false,
     post: null,
   });
-  const prefix = "/staff";
-  const load = useCallback(async () => {
-    if (!user) return;
-    setLoading(true);
-    try {
+  const postsQuery = useQuery({
+    queryKey: queryKeys.posts,
+    enabled: Boolean(user),
+    queryFn: async (): Promise<PostsQueryData> => {
       const [postPage, mediaPage] = await Promise.all([
-        apiFetch<PageResponse<Post>>(`${prefix}/posts?limit=50`, {}),
+        apiFetch<PageResponse<Post>>("/staff/posts?limit=50", {}),
         apiFetch<PageResponse<MediaItem>>("/staff/media?kind=image&limit=100", {}),
       ]);
-      setPosts(postPage.items || []);
-      setMediaByID(Object.fromEntries(mediaPage.items.map((item) => [item.id, item])));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("loadPostsFailed"));
-    } finally {
-      setLoading(false);
-    }
-  }, [t, user]);
-  useEffect(() => {
-    void load();
-  }, [load]);
-  async function remove(post: Post) {
-    if (!window.confirm(t("confirmDeletePost", { title: post.title }))) return;
-    try {
-      await apiFetch(`${prefix}/posts/${post.id}`, { method: "DELETE" });
-      load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("deletePostFailed"));
-    }
-  }
-  async function toggle(post: Post) {
-    try {
-      await apiFetch(`${prefix}/posts/${post.id}/publish`, {
+      return {
+        posts: postPage.items ?? [],
+        mediaByID: Object.fromEntries(mediaPage.items.map((item) => [item.id, item])),
+      };
+    },
+  });
+  const posts = postsQuery.data?.posts ?? [];
+  const mediaByID = postsQuery.data?.mediaByID ?? {};
+  const deleteMutation = useOptimisticMutation<PostsQueryData, Post>({
+    queryKey: queryKeys.posts,
+    mutationFn: (post: Post) => apiFetch(`/staff/posts/${post.id}`, { method: "DELETE" }),
+    optimisticUpdate: (current, post) => ({
+      ...current,
+      posts: current.posts.filter((item) => item.id !== post.id),
+    }),
+    onError: (cause) => {
+      const message = cause instanceof Error ? cause.message : t("deletePostFailed");
+      setError(message);
+      showToast(message, "error");
+    },
+    onSuccess: () => {
+      setError("");
+      showToast(t("postDeleted"));
+    },
+  });
+  const publishMutation = useOptimisticMutation<PostsQueryData, Post>({
+    queryKey: queryKeys.posts,
+    mutationFn: (post: Post) =>
+      apiFetch(`/staff/posts/${post.id}/publish`, {
         method: "PATCH",
         body: JSON.stringify({ published: !post.published }),
-      });
-      load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("updatePostFailed"));
-    }
+      }),
+    optimisticUpdate: (current, post) => ({
+      ...current,
+      posts: current.posts.map((item) =>
+        item.id === post.id ? { ...item, published: !post.published } : item,
+      ),
+    }),
+    onError: (cause) => {
+      const message = cause instanceof Error ? cause.message : t("updatePostFailed");
+      setError(message);
+      showToast(message, "error");
+    },
+    onSuccess: () => {
+      setError("");
+      showToast(t("postStatusUpdated"));
+    },
+  });
+
+  async function remove(post: Post) {
+    if (!(await confirm(t("confirmDeletePost", { title: post.title }), t("delete")))) return;
+    setError("");
+    await deleteMutation.mutateAsync(post).catch(() => undefined);
+  }
+
+  async function toggle(post: Post) {
+    setError("");
+    await publishMutation.mutateAsync(post).catch(() => undefined);
   }
   function renderCover(mediaID?: number) {
     if (!mediaID)
@@ -77,94 +114,113 @@ export default function PostsPage() {
   }
   return (
     <div>
-      <div className="dashboard-title">
-        <div>
-          <span className="eyebrow">{t("postsEyebrow")}</span>
-          <h1>{t("posts")}</h1>
-        </div>
-        <button className="btn btn-primary" onClick={() => setModal({ open: true, post: null })}>
-          {t("newPost")}
-        </button>
-      </div>
-      {error && (
-        <div className="status status-error" role="alert" style={{ marginBottom: "1rem" }}>
-          {error}
-        </div>
-      )}
-      {loading ? (
-        <div className="empty-state">{t("loadingPosts")}</div>
-      ) : posts.length === 0 ? (
-        <div className="empty-state">{t("noPosts")}</div>
-      ) : (
-        <div className="table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>{t("title")}</th>
-                <th>{t("status")}</th>
-                <th>{t("updated")}</th>
-                <th>{t("actions")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {posts.map((post) => (
-                <tr key={post.id}>
-                  <td>
-                    {renderCover(post.cover_media_id)}
-                    <strong>{post.title}</strong>
-                    {(!post.translations?.am?.title || !post.translations?.am?.content) && (
-                      <span className="badge status-pending">{t("missingAmharic")}</span>
-                    )}
-                    {(!post.translations?.en?.title || !post.translations?.en?.content) && (
-                      <span className="badge status-pending">{t("missingEnglish")}</span>
-                    )}
-                    <div>
-                      <Link
-                        href={`/blog/${post.slug}`}
-                        locale={locale === "en" ? "am" : "en"}
-                        className="meta"
-                      >
-                        {t("previewOtherLanguage")}
-                      </Link>
-                    </div>
-                    <div className="meta">
-                      {post.content.slice(0, 100)}
-                      {post.content.length > 100 ? "…" : ""}
-                    </div>
-                  </td>
-                  <td>
-                    <span className="badge">
-                      {post.published ? t("statusPublishedLabel") : t("statusDraftLabel")}
-                    </span>
-                  </td>
-                  <td>{formatDate(post.updated_at || post.created_at, false, locale)}</td>
-                  <td>
-                    <div className="form-actions">
-                      <button
-                        className="btn btn-outline btn-small"
-                        onClick={() => setModal({ open: true, post })}
-                      >
-                        {t("edit")}
-                      </button>
-                      <button className="btn btn-outline btn-small" onClick={() => toggle(post)}>
-                        {post.published ? t("unpublish") : t("publish")}
-                      </button>
-                      <button className="btn btn-danger btn-small" onClick={() => remove(post)}>
-                        {t("delete")}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <PageHeader
+        eyebrow={t("postsEyebrow")}
+        title={t("posts")}
+        action={
+          <button className="btn btn-primary" onClick={() => setModal({ open: true, post: null })}>
+            {t("newPost")}
+          </button>
+        }
+      />
+      <DataTable
+        rows={posts}
+        rowKey={(post) => post.id}
+        loading={postsQuery.isPending}
+        loadingLabel={t("loadingPosts")}
+        error={
+          error ||
+          (postsQuery.isError
+            ? postsQuery.error instanceof Error
+              ? postsQuery.error.message
+              : t("loadPostsFailed")
+            : undefined)
+        }
+        emptyState={t("noPosts")}
+        searchable
+        searchPlaceholder={t("searchPosts")}
+        columns={[
+          {
+            id: "title",
+            label: t("title"),
+            header: t("title"),
+            cell: (post) => (
+              <>
+                {renderCover(post.cover_media_id)}
+                <strong>{post.title}</strong>
+                {(!post.translations?.am?.title || !post.translations?.am?.content) && (
+                  <span className="badge status-pending">{t("missingAmharic")}</span>
+                )}
+                {(!post.translations?.en?.title || !post.translations?.en?.content) && (
+                  <span className="badge status-pending">{t("missingEnglish")}</span>
+                )}
+                <div>
+                  <Link
+                    href={`/blog/${post.slug}`}
+                    locale={locale === "en" ? "am" : "en"}
+                    className="meta"
+                  >
+                    {t("previewOtherLanguage")}
+                  </Link>
+                </div>
+                <div className="meta">
+                  {post.content.slice(0, 100)}
+                  {post.content.length > 100 ? "…" : ""}
+                </div>
+              </>
+            ),
+            searchText: (post) => `${post.title} ${post.content}`,
+            sortValue: (post) => post.title,
+          },
+          {
+            id: "status",
+            label: t("status"),
+            header: t("status"),
+            cell: (post) => (
+              <StatusBadge>
+                {post.published ? t("statusPublishedLabel") : t("statusDraftLabel")}
+              </StatusBadge>
+            ),
+            sortValue: (post) => Number(post.published),
+          },
+          {
+            id: "updated",
+            label: t("updated"),
+            header: t("updated"),
+            cell: (post) => formatDate(post.updated_at || post.created_at, false, locale),
+            sortValue: (post) => post.updated_at || post.created_at || "",
+          },
+          {
+            id: "actions",
+            label: t("actions"),
+            header: t("actions"),
+            cell: (post) => (
+              <div className="form-actions">
+                <button
+                  className="btn btn-outline btn-small"
+                  onClick={() => setModal({ open: true, post })}
+                >
+                  {t("edit")}
+                </button>
+                <button className="btn btn-outline btn-small" onClick={() => toggle(post)}>
+                  {post.published ? t("unpublish") : t("publish")}
+                </button>
+                <button className="btn btn-danger btn-small" onClick={() => remove(post)}>
+                  {t("delete")}
+                </button>
+              </div>
+            ),
+          },
+        ]}
+      />
       <PostModal
         isOpen={modal.open}
         post={modal.post}
         onClose={() => setModal({ open: false, post: null })}
-        onSuccess={load}
+        onSuccess={async () => {
+          await queryClient.invalidateQueries({ queryKey: queryKeys.posts });
+          showToast(t("contentSaved"));
+        }}
         userRole={user?.role}
       />
     </div>

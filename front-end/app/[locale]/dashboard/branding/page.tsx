@@ -1,17 +1,14 @@
 "use client";
 
-import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
-import MediaPicker from "@/components/MediaPicker";
-import {
-  apiFetch,
-  type MediaItem,
-  type PageResponse,
-  type SiteSettings,
-  type SiteSettingsInput,
-} from "@/lib/api";
+import { apiFetch, type MediaItem, type SiteSettings, type SiteSettingsInput } from "@/lib/api";
+import { fetchStaffImages } from "@/lib/staff-media";
+import PageHeader from "@/components/ui/PageHeader";
+import BilingualField from "@/components/ui/BilingualField";
+import Field from "@/components/ui/Field";
+import MediaAssetField from "@/components/ui/MediaAssetField";
 
 type BrandingSlot = "logo" | "favicon" | "social";
 type BrandingDraft = {
@@ -77,7 +74,6 @@ export default function BrandingAdminPage() {
   const { user } = useAuth();
   const [settings, setSettings] = useState<BrandingDraft | null>(null);
   const [mediaByID, setMediaByID] = useState<Record<number, MediaItem>>({});
-  const [pickerFor, setPickerFor] = useState<BrandingSlot | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -89,25 +85,7 @@ export default function BrandingAdminPage() {
     setError("");
     try {
       const settingsRequest = apiFetch<SiteSettings>("/admin/site-settings", {});
-      const firstPageRequest = apiFetch<PageResponse<MediaItem>>(
-        "/staff/media?kind=image&page=1&limit=50",
-        {},
-      );
-      const [current, firstPage] = await Promise.all([settingsRequest, firstPageRequest]);
-      const pageCount = Math.max(1, Math.ceil(firstPage.total / 50));
-      const otherPages: PageResponse<MediaItem>[] = [];
-      for (let firstPageNumber = 2; firstPageNumber <= pageCount; firstPageNumber += 10) {
-        const batch = await Promise.all(
-          Array.from({ length: Math.min(10, pageCount - firstPageNumber + 1) }, (_, index) =>
-            apiFetch<PageResponse<MediaItem>>(
-              `/staff/media?kind=image&page=${firstPageNumber + index}&limit=50`,
-              {},
-            ),
-          ),
-        );
-        otherPages.push(...batch);
-      }
-      const allMedia = [...firstPage.items, ...otherPages.flatMap((page) => page.items)];
+      const [current, allMedia] = await Promise.all([settingsRequest, fetchStaffImages()]);
       setSettings(toDraft(current));
       setMediaByID(Object.fromEntries(allMedia.map((media) => [media.id, media])));
     } catch (loadError) {
@@ -135,7 +113,6 @@ export default function BrandingAdminPage() {
     if (!settings) return;
     setSettings({ ...settings, [slotMediaKey[slot]]: mediaID });
     if (media) setMediaByID((current) => ({ ...current, [media.id]: media }));
-    setPickerFor(null);
   }
 
   function removeMedia(slot: BrandingSlot) {
@@ -184,13 +161,11 @@ export default function BrandingAdminPage() {
 
   return (
     <section>
-      <div className="dashboard-title">
-        <div>
-          <span className="eyebrow">{t("siteContentEyebrow")}</span>
-          <h1>{t("brandingTitle")}</h1>
-          <p>{t("brandingHelp")}</p>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow={t("siteContentEyebrow")}
+        title={t("brandingTitle")}
+        description={t("brandingHelp")}
+      />
       {error && (
         <p className="status status-error" role="alert">
           {error}
@@ -216,16 +191,7 @@ export default function BrandingAdminPage() {
                 <article className="card branding-slot" key={slot}>
                   <h2>{slotData[slot].title}</h2>
                   <p>{slotData[slot].hint}</p>
-                  {mediaID && media ? (
-                    <Image
-                      className={`branding-preview branding-preview-${slot}`}
-                      src={`/api/staff/media/${mediaID}/file?w=${slot === "social" ? 960 : 480}`}
-                      alt={media.decorative ? "" : media.alt_text}
-                      width={media.width || 480}
-                      height={media.height || 270}
-                      unoptimized
-                    />
-                  ) : (
+                  {mediaID ? null : (
                     <p className="branding-fallback">{t("brandingStaticFallback")}</p>
                   )}
                   {issue && (
@@ -233,36 +199,44 @@ export default function BrandingAdminPage() {
                       {issue}
                     </p>
                   )}
-                  <div className="form-actions">
-                    <button
-                      type="button"
-                      className="btn btn-outline"
-                      onClick={() => setPickerFor(slot)}
-                    >
-                      {mediaID ? t("changeBrandImage") : t("chooseBrandImage")}
-                    </button>
-                    {mediaID && (
-                      <button
-                        type="button"
-                        className="btn btn-outline"
-                        onClick={() => removeMedia(slot)}
-                      >
-                        {t("removeBrandImage")}
-                      </button>
-                    )}
-                  </div>
+                  <MediaAssetField
+                    mediaID={mediaID}
+                    media={media}
+                    hint={slotData[slot].hint}
+                    chooseLabel={mediaID ? t("changeBrandImage") : t("chooseBrandImage")}
+                    removeLabel={t("removeBrandImage")}
+                    onChange={(nextID, selectedMedia) => chooseMedia(slot, nextID, selectedMedia)}
+                    onRemove={() => removeMedia(slot)}
+                    layoutClassName="branding-asset"
+                    actionsClassName="form-actions"
+                    previewClassName={`branding-preview branding-preview-${slot}`}
+                    imageWidth={480}
+                    imageHeight={270}
+                    fileWidth={slot === "social" ? 960 : 480}
+                  />
                 </article>
               );
             })}
           </div>
           <div className="card branding-translations">
             <h2>{t("brandingTextTitle")}</h2>
-            <div className="grid-2">
-              {(["en", "am"] as const).map((locale) => (
-                <fieldset className="branding-language" key={locale}>
-                  <legend>{t(locale === "en" ? "english" : "amharic")}</legend>
-                  <label className="field">
-                    <span>{t("siteName")}</span>
+            <BilingualField
+              englishLabel={t("english")}
+              amharicLabel={t("amharic")}
+              missingEnglish={
+                !settings.translations.en.site_name.trim() ||
+                !settings.translations.en.tagline.trim()
+              }
+              missingAmharic={
+                !settings.translations.am.site_name.trim() ||
+                !settings.translations.am.tagline.trim()
+              }
+              missingEnglishLabel={t("missingEnglish")}
+              missingAmharicLabel={t("missingAmharic")}
+            >
+              {(locale) => (
+                <div className="branding-language">
+                  <Field label={t("siteName")}>
                     <input
                       required
                       maxLength={180}
@@ -280,9 +254,8 @@ export default function BrandingAdminPage() {
                         })
                       }
                     />
-                  </label>
-                  <label className="field">
-                    <span>{t("siteTagline")}</span>
+                  </Field>
+                  <Field label={t("siteTagline")}>
                     <textarea
                       required
                       rows={3}
@@ -301,10 +274,10 @@ export default function BrandingAdminPage() {
                         })
                       }
                     />
-                  </label>
-                </fieldset>
-              ))}
-            </div>
+                  </Field>
+                </div>
+              )}
+            </BilingualField>
           </div>
           <div className="form-actions">
             <button
@@ -324,15 +297,6 @@ export default function BrandingAdminPage() {
           </div>
         </>
       )}
-      <MediaPicker
-        isOpen={pickerFor !== null}
-        selectedMediaID={pickerFor ? settings?.[slotMediaKey[pickerFor]] : null}
-        slotHint={pickerFor ? slotData[pickerFor].hint : ""}
-        onClose={() => setPickerFor(null)}
-        onSelect={(mediaID, item) => {
-          if (pickerFor) chooseMedia(pickerFor, mediaID, item);
-        }}
-      />
     </section>
   );
 }

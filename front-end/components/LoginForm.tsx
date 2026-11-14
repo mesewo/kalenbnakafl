@@ -70,17 +70,17 @@ export default function LoginPage() {
             />
           </div>
           {error && (
-            <div className="status status-error" role="alert" style={{ marginBottom: "1rem" }}>
+            <div className="status status-error auth-form-error" role="alert">
               {error}
             </div>
           )}
-          <button className="btn btn-primary" style={{ width: "100%" }} disabled={submitting}>
+          <button className="btn btn-primary auth-form-submit" disabled={submitting}>
             {submitting ? t("logging") : t("login")}
           </button>
         </form>
-        <p className="meta" style={{ marginTop: "1.25rem" }}>
+        <p className="meta auth-secondary">
           {t("new")}{" "}
-          <Link href="/auth/register" style={{ textDecoration: "underline" }}>
+          <Link className="auth-secondary-link" href="/auth/register">
             {t("create")}
           </Link>
         </p>

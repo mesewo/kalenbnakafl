@@ -4,22 +4,10 @@ import { notFound } from "next/navigation";
 import { Link } from "@/i18n/navigation";
 import { PostBody } from "@/components/PostBody";
 import { fetchPublic, PublicApiError } from "@/lib/server-api";
-import { formatDate, type PageResponse, type Post } from "@/lib/api";
+import { formatDate, type Post } from "@/lib/api";
 import { localizedMetadata } from "@/lib/metadata";
-import { withEmptyArrayOnFailure } from "@/lib/server-api-core.mjs";
 
-export const revalidate = 60;
-export const dynamicParams = true;
 type Props = { params: Promise<{ locale: "en" | "am"; slug: string }> };
-
-export async function generateStaticParams({ params }: { params: { locale: string } }) {
-  const locale = params.locale;
-  if (locale !== "en" && locale !== "am") return [];
-  return withEmptyArrayOnFailure(async () => {
-    const result = await fetchPublic<PageResponse<Post>>("/posts?limit=50", locale);
-    return result?.items.map((post) => ({ slug: post.slug })) ?? [];
-  });
-}
 
 async function getPost(slug: string, locale: "en" | "am"): Promise<Post | null> {
   try {
@@ -46,8 +34,8 @@ export default async function BlogPostPage({ params }: Props) {
   setRequestLocale(locale);
   const post = await getPost(slug, locale);
   if (!post) notFound();
-  const t = await getTranslations("blog");
-  const common = await getTranslations("common");
+  const t = await getTranslations({ locale, namespace: "blog" });
+  const common = await getTranslations({ locale, namespace: "common" });
   return (
     <main id="main-content">
       <section className="page-hero">

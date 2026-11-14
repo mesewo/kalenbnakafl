@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
+import { useConfirm } from "@/components/DashboardProviders";
 import { apiFetch } from "@/lib/api";
 import { siteBlockCatalog, type SiteBlockDefinition } from "@/lib/site-block-catalog";
+import PageHeader from "@/components/ui/PageHeader";
 
 type Locale = "en" | "am";
 type TranslationDraft = Record<Locale, string>;
@@ -25,6 +27,7 @@ const phonePattern = /^\+?[0-9][0-9 .()\-]{5,24}$/;
 export default function PageContentAdminPage() {
   const t = useTranslations("dashboard");
   const locale = useLocale() as Locale;
+  const confirm = useConfirm();
   const { user } = useAuth();
   const [blocks, setBlocks] = useState<AdminSiteBlock[]>([]);
   const [drafts, setDrafts] = useState<Record<string, TranslationDraft>>({});
@@ -133,7 +136,7 @@ export default function PageContentAdminPage() {
   }
 
   async function reset(block: SiteBlockDefinition) {
-    if (!window.confirm(t("confirmContentReset"))) return;
+    if (!(await confirm(t("confirmContentReset"), t("contentReset")))) return;
     const empty = { en: "", am: "" };
     await save(block, empty);
   }
@@ -154,12 +157,7 @@ export default function PageContentAdminPage() {
 
   return (
     <div className="site-block-editor">
-      <header className="dashboard-title">
-        <div>
-          <h1>{t("pageContentTitle")}</h1>
-          <p>{t("pageContentIntro")}</p>
-        </div>
-      </header>
+      <PageHeader title={t("pageContentTitle")} description={t("pageContentIntro")} />
       {dirty && (
         <p className="status" role="status" aria-live="polite">
           {t("contentUnsaved")}

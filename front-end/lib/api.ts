@@ -193,6 +193,9 @@ export async function apiFetch<T = unknown>(
             : {};
         throw new ApiError(message, code, response.status, details);
       }
+      if (typeof window !== "undefined" && isPublicContentWrite(endpoint, options.method)) {
+        window.dispatchEvent(new Event("site-content-saved"));
+      }
       return payload as T;
     }
     throw new ApiError(finalMessage, "service_unavailable", 0);
@@ -202,6 +205,14 @@ export async function apiFetch<T = unknown>(
   } finally {
     if (retrying) notifyApiWakeup(false);
   }
+}
+
+function isPublicContentWrite(endpoint: string, method?: string): boolean {
+  if (!method || method.toUpperCase() === "GET") return false;
+  const path = endpoint.split("?")[0];
+  return /^\/(?:staff\/(?:posts|events|media)|admin\/(?:home-slides|site-settings|site-blocks|about-images))(?:\/|$)/.test(
+    path,
+  );
 }
 
 export async function apiUpload<T = unknown>(
@@ -237,6 +248,9 @@ export async function apiUpload<T = unknown>(
         }
       }
       if (request.status >= 200 && request.status < 300) {
+        if (typeof window !== "undefined" && isPublicContentWrite(endpoint, "POST")) {
+          window.dispatchEvent(new Event("site-content-saved"));
+        }
         resolve(payload as T);
         return;
       }

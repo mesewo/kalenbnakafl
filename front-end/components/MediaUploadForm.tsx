@@ -3,6 +3,9 @@
 import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { ApiError, apiUpload } from "@/lib/api";
+import BilingualField from "@/components/ui/BilingualField";
+import Field from "@/components/ui/Field";
+import SubmitButton from "@/components/ui/SubmitButton";
 
 type Locale = "en" | "am";
 
@@ -114,44 +117,45 @@ export default function MediaUploadForm({
         />
         {file && <p className="meta">{file.name}</p>}
       </div>
-      <div className="grid-2">
-        {(["en", "am"] as const).map((locale) => (
-          <div className="field" key={locale}>
-            <label htmlFor={`media-title-${locale}`}>
-              {t("mediaImageName")} {"("}
-              {languageName(locale)}
-              {")"}
-            </label>
-            <input
+      <BilingualField
+        englishLabel={t("english")}
+        amharicLabel={t("amharic")}
+        missingEnglish={!decorative && !altTexts.en.trim()}
+        missingAmharic={!decorative && !altTexts.am.trim()}
+        missingEnglishLabel={t("missingEnglish")}
+        missingAmharicLabel={t("missingAmharic")}
+      >
+        {(locale) => (
+          <>
+            <Field
               id={`media-title-${locale}`}
-              value={titles[locale]}
-              maxLength={180}
-              onChange={(event) =>
-                setTitles((current) => ({ ...current, [locale]: event.target.value }))
-              }
-            />
-          </div>
-        ))}
-        {(["en", "am"] as const).map((locale) => (
-          <div className="field" key={locale}>
-            <label htmlFor={`media-alt-${locale}`}>
-              {t("mediaAltText")} {"("}
-              {languageName(locale)}
-              {")"}
-            </label>
-            <input
+              label={`${t("mediaImageName")} (${languageName(locale)})`}
+            >
+              <input
+                value={titles[locale]}
+                maxLength={180}
+                onChange={(event) =>
+                  setTitles((current) => ({ ...current, [locale]: event.target.value }))
+                }
+              />
+            </Field>
+            <Field
               id={`media-alt-${locale}`}
-              value={altTexts[locale]}
-              maxLength={500}
-              disabled={decorative}
-              required={!decorative}
-              onChange={(event) =>
-                setAltTexts((current) => ({ ...current, [locale]: event.target.value }))
-              }
-            />
-          </div>
-        ))}
-      </div>
+              label={`${t("mediaAltText")} (${languageName(locale)})`}
+            >
+              <input
+                value={altTexts[locale]}
+                maxLength={500}
+                disabled={decorative}
+                required={!decorative}
+                onChange={(event) =>
+                  setAltTexts((current) => ({ ...current, [locale]: event.target.value }))
+                }
+              />
+            </Field>
+          </>
+        )}
+      </BilingualField>
       <div className="field media-decorative">
         <label htmlFor="media-decorative">
           <input
@@ -170,20 +174,17 @@ export default function MediaUploadForm({
         </p>
       )}
       {uploading && (
-        <div
+        <progress
           className="media-progress"
           role="progressbar"
           aria-label={t("mediaUploadProgress")}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={progress}
-        >
-          <span style={{ width: `${progress}%` }} />
-        </div>
+          value={progress}
+          max={100}
+        />
       )}
-      <button className="btn btn-primary" type="submit" disabled={uploading}>
-        {uploading ? t("uploading") : t("uploadMedia")}
-      </button>
+      <SubmitButton pending={uploading} pendingLabel={t("uploading")}>
+        {t("uploadMedia")}
+      </SubmitButton>
     </form>
   );
 }

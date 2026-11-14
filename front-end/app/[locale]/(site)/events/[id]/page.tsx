@@ -8,8 +8,6 @@ import { formatDate, type EventItem } from "@/lib/api";
 import { localizedMetadata } from "@/lib/metadata";
 import { fetchPublic, PublicApiError } from "@/lib/server-api";
 
-export const revalidate = 60;
-
 type Props = { params: Promise<{ locale: "en" | "am"; id: string }> };
 
 async function getEvent(id: string, locale: "en" | "am"): Promise<EventItem | null> {
@@ -39,8 +37,8 @@ export default async function EventDetailPage({ params }: Props) {
   setRequestLocale(locale);
   const event = await getEvent(id, locale);
   if (!event) notFound();
-  const t = await getTranslations("events");
-  const common = await getTranslations("common");
+  const t = await getTranslations({ locale, namespace: "events" });
+  const common = await getTranslations({ locale, namespace: "common" });
 
   return (
     <main id="main-content">

@@ -1,19 +1,28 @@
 "use client";
 import Image from "next/image";
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { useConfirm, useToast } from "@/components/DashboardProviders";
 import { apiFetch, formatDate, type EventItem, type MediaItem, type PageResponse } from "@/lib/api";
+import { queryKeys } from "@/lib/query-keys";
 type Attendee = { name: string; email: string; created_at: string };
 import EventModal from "@/components/EventModal";
+import PageHeader from "@/components/ui/PageHeader";
+import DataTable from "@/components/ui/DataTable";
+import { useOptimisticMutation } from "@/lib/use-optimistic-mutation";
+
+type EventsQueryData = { events: EventItem[]; mediaByID: Record<number, MediaItem> };
+
 export default function EventsAdminPage() {
   const locale = useLocale();
   const t = useTranslations("dashboard");
+  const confirm = useConfirm();
+  const showToast = useToast();
+  const queryClient = useQueryClient();
   const { user } = useAuth();
-  const [events, setEvents] = useState<EventItem[]>([]);
-  const [mediaByID, setMediaByID] = useState<Record<number, MediaItem>>({});
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [attendeeEvent, setAttendeeEvent] = useState<number | null>(null);
   const [attendees, setAttendees] = useState<PageResponse<Attendee>>({
@@ -28,26 +37,39 @@ export default function EventsAdminPage() {
     open: false,
     event: null,
   });
-  const prefix = "/staff";
-  const load = useCallback(async () => {
-    if (!user) return;
-    setLoading(true);
-    try {
+  const eventsQuery = useQuery({
+    queryKey: queryKeys.events,
+    enabled: Boolean(user),
+    queryFn: async (): Promise<EventsQueryData> => {
       const [eventPage, mediaPage] = await Promise.all([
-        apiFetch<PageResponse<EventItem>>(`${prefix}/events?limit=50`, {}),
+        apiFetch<PageResponse<EventItem>>("/staff/events?limit=50", {}),
         apiFetch<PageResponse<MediaItem>>("/staff/media?kind=image&limit=100", {}),
       ]);
-      setEvents(eventPage.items || []);
-      setMediaByID(Object.fromEntries(mediaPage.items.map((item) => [item.id, item])));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("loadEventsFailed"));
-    } finally {
-      setLoading(false);
-    }
-  }, [t, user]);
-  useEffect(() => {
-    void load();
-  }, [load]);
+      return {
+        events: eventPage.items ?? [],
+        mediaByID: Object.fromEntries(mediaPage.items.map((item) => [item.id, item])),
+      };
+    },
+  });
+  const events = eventsQuery.data?.events ?? [];
+  const mediaByID = eventsQuery.data?.mediaByID ?? {};
+  const deleteMutation = useOptimisticMutation<EventsQueryData, EventItem>({
+    queryKey: queryKeys.events,
+    mutationFn: (event: EventItem) => apiFetch(`/staff/events/${event.id}`, { method: "DELETE" }),
+    optimisticUpdate: (current, event) => ({
+      ...current,
+      events: current.events.filter((item) => item.id !== event.id),
+    }),
+    onError: (cause) => {
+      const message = cause instanceof Error ? cause.message : t("deleteEventFailed");
+      setError(message);
+      showToast(message, "error");
+    },
+    onSuccess: () => {
+      setError("");
+      showToast(t("eventDeleted"));
+    },
+  });
 
   async function loadAttendees(eventID: number, requestedPage = 1) {
     setAttendeeLoading(true);
@@ -91,158 +113,162 @@ export default function EventsAdminPage() {
     );
   }
   async function remove(event: EventItem) {
-    if (!window.confirm(t("confirmDeleteEvent", { title: event.title }))) return;
-    try {
-      await apiFetch(`${prefix}/events/${event.id}`, { method: "DELETE" });
-      load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("deleteEventFailed"));
-    }
+    if (!(await confirm(t("confirmDeleteEvent", { title: event.title }), t("delete")))) return;
+    setError("");
+    await deleteMutation.mutateAsync(event).catch(() => undefined);
   }
   return (
     <div>
-      <div className="dashboard-title">
-        <div>
-          <span className="eyebrow">{t("eventsEyebrow")}</span>
-          <h1>{t("events")}</h1>
-        </div>
-        <button className="btn btn-primary" onClick={() => setModal({ open: true, event: null })}>
-          {t("newEvent")}
-        </button>
-      </div>
-      {error && (
-        <div className="status status-error" role="alert" style={{ marginBottom: "1rem" }}>
-          {error}
-        </div>
-      )}
-      {loading ? (
-        <div className="empty-state">{t("loadingEvents")}</div>
-      ) : events.length === 0 ? (
-        <div className="empty-state">{t("noEvents")}</div>
-      ) : (
-        <div className="table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>{t("event")}</th>
-                <th>{t("date")}</th>
-                <th>{t("actions")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {events.map((event) => (
-                <Fragment key={event.id}>
-                  <tr>
-                    <td>
-                      {renderCover(event.cover_media_id)}
-                      <strong>{event.title}</strong>
-                      {(!event.translations?.am?.title || !event.translations?.am?.description) && (
-                        <span className="badge status-pending">{t("missingAmharic")}</span>
-                      )}
-                      {(!event.translations?.en?.title || !event.translations?.en?.description) && (
-                        <span className="badge status-pending">{t("missingEnglish")}</span>
-                      )}
-                      <div>
-                        <Link
-                          href="/events"
-                          locale={locale === "en" ? "am" : "en"}
-                          className="meta"
-                        >
-                          {t("previewOtherLanguage")}
-                        </Link>
-                      </div>
-                      <div className="meta">
-                        {event.description.slice(0, 120)}
-                        {event.description.length > 120 ? "..." : ""}
-                      </div>
-                    </td>
-                    <td>{formatDate(event.event_date, true, locale)}</td>
-                    <td>
-                      <div className="form-actions">
-                        <button
-                          className="btn btn-outline btn-small"
-                          onClick={() => setModal({ open: true, event })}
-                        >
-                          {t("edit")}
-                        </button>
-                        <button className="btn btn-danger btn-small" onClick={() => remove(event)}>
-                          {t("delete")}
-                        </button>
-                        {user?.role === "admin" && (
-                          <button
-                            className="btn btn-outline btn-small"
-                            onClick={() => toggleAttendees(event.id)}
-                          >
-                            {t("attendees")}
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                  {attendeeEvent === event.id && user?.role === "admin" && (
-                    <tr>
-                      <td colSpan={3}>
-                        <h3>{t("attendeesFor", { title: event.title })}</h3>
-                        {attendeeError && (
-                          <div className="status status-error" role="alert">
-                            {attendeeError}
-                          </div>
-                        )}
-                        {attendeeLoading ? (
-                          <div className="empty-state" role="status">
-                            {t("loadingAttendees")}
-                          </div>
-                        ) : attendees.items.length === 0 ? (
-                          <div className="empty-state">{t("noAttendees")}</div>
-                        ) : (
-                          <ul>
-                            {attendees.items.map((attendee) => (
-                              <li key={attendee.email}>
-                                {attendee.name}
-                                {" — "}
-                                {attendee.email}
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                        <nav className="form-actions" aria-label={t("attendeePages")}>
-                          <button
-                            className="btn btn-outline btn-small"
-                            disabled={attendees.page <= 1 || attendeeLoading}
-                            onClick={() => void loadAttendees(event.id, attendees.page - 1)}
-                          >
-                            {t("previous")}
-                          </button>
-                          <span className="meta">
-                            {t("pageOf", {
-                              page: attendees.page,
-                              total: Math.max(1, Math.ceil(attendees.total / attendees.limit)),
-                            })}
-                          </span>
-                          <button
-                            className="btn btn-outline btn-small"
-                            disabled={
-                              attendees.page * attendees.limit >= attendees.total || attendeeLoading
-                            }
-                            onClick={() => void loadAttendees(event.id, attendees.page + 1)}
-                          >
-                            {t("next")}
-                          </button>
-                        </nav>
-                      </td>
-                    </tr>
+      <PageHeader
+        eyebrow={t("eventsEyebrow")}
+        title={t("events")}
+        action={
+          <button className="btn btn-primary" onClick={() => setModal({ open: true, event: null })}>
+            {t("newEvent")}
+          </button>
+        }
+      />
+      <DataTable
+        rows={events}
+        rowKey={(event) => event.id}
+        loading={eventsQuery.isPending}
+        loadingLabel={t("loadingEvents")}
+        error={
+          error ||
+          (eventsQuery.isError
+            ? eventsQuery.error instanceof Error
+              ? eventsQuery.error.message
+              : t("loadEventsFailed")
+            : undefined)
+        }
+        emptyState={t("noEvents")}
+        searchable
+        searchPlaceholder={t("searchEvents")}
+        columns={[
+          {
+            id: "event",
+            label: t("event"),
+            header: t("event"),
+            cell: (event) => (
+              <>
+                {renderCover(event.cover_media_id)}
+                <strong>{event.title}</strong>
+                {(!event.translations?.am?.title || !event.translations?.am?.description) && (
+                  <span className="badge status-pending">{t("missingAmharic")}</span>
+                )}
+                {(!event.translations?.en?.title || !event.translations?.en?.description) && (
+                  <span className="badge status-pending">{t("missingEnglish")}</span>
+                )}
+                <div>
+                  <Link href="/events" locale={locale === "en" ? "am" : "en"} className="meta">
+                    {t("previewOtherLanguage")}
+                  </Link>
+                </div>
+                <div className="meta">
+                  {event.description.slice(0, 120)}
+                  {event.description.length > 120 ? "..." : ""}
+                </div>
+              </>
+            ),
+            searchText: (event) => `${event.title} ${event.description}`,
+            sortValue: (event) => event.title,
+          },
+          {
+            id: "date",
+            label: t("date"),
+            header: t("date"),
+            cell: (event) => formatDate(event.event_date, true, locale),
+            sortValue: (event) => event.event_date,
+          },
+          {
+            id: "actions",
+            label: t("actions"),
+            header: t("actions"),
+            cell: (event) => (
+              <>
+                <div className="form-actions">
+                  <button
+                    className="btn btn-outline btn-small"
+                    onClick={() => setModal({ open: true, event })}
+                  >
+                    {t("edit")}
+                  </button>
+                  <button className="btn btn-danger btn-small" onClick={() => remove(event)}>
+                    {t("delete")}
+                  </button>
+                  {user?.role === "admin" && (
+                    <button
+                      className="btn btn-outline btn-small"
+                      onClick={() => toggleAttendees(event.id)}
+                    >
+                      {t("attendees")}
+                    </button>
                   )}
-                </Fragment>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+                </div>
+                {attendeeEvent === event.id && user?.role === "admin" && (
+                  <section className="card event-attendees">
+                    <h3>{t("attendeesFor", { title: event.title })}</h3>
+                    {attendeeError && (
+                      <div className="status status-error" role="alert">
+                        {attendeeError}
+                      </div>
+                    )}
+                    {attendeeLoading ? (
+                      <div className="empty-state" role="status">
+                        {t("loadingAttendees")}
+                      </div>
+                    ) : attendees.items.length === 0 ? (
+                      <div className="empty-state">{t("noAttendees")}</div>
+                    ) : (
+                      <ul>
+                        {attendees.items.map((attendee) => (
+                          <li key={attendee.email}>
+                            {attendee.name}
+                            <br />
+                            {attendee.email}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    <nav className="form-actions" aria-label={t("attendeePages")}>
+                      <button
+                        className="btn btn-outline btn-small"
+                        disabled={attendees.page <= 1 || attendeeLoading}
+                        onClick={() => void loadAttendees(event.id, attendees.page - 1)}
+                      >
+                        {t("previous")}
+                      </button>
+                      <span className="meta">
+                        {t("pageOf", {
+                          page: attendees.page,
+                          total: Math.max(1, Math.ceil(attendees.total / attendees.limit)),
+                        })}
+                      </span>
+                      <button
+                        className="btn btn-outline btn-small"
+                        disabled={
+                          attendees.page * attendees.limit >= attendees.total || attendeeLoading
+                        }
+                        onClick={() => void loadAttendees(event.id, attendees.page + 1)}
+                      >
+                        {t("next")}
+                      </button>
+                    </nav>
+                  </section>
+                )}
+              </>
+            ),
+          },
+        ]}
+      />
       <EventModal
         isOpen={modal.open}
         event={modal.event}
         onClose={() => setModal({ open: false, event: null })}
-        onSuccess={load}
+        onSuccess={async () => {
+          await queryClient.invalidateQueries({ queryKey: queryKeys.events });
+          showToast(t("contentSaved"));
+        }}
         userRole={user?.role}
       />
     </div>

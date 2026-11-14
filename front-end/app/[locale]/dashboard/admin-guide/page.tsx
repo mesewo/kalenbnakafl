@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
+import PageHeader from "@/components/ui/PageHeader";
 
 export default function AdminGuidePage() {
   const t = useTranslations("dashboard");
@@ -24,12 +25,7 @@ export default function AdminGuidePage() {
   ] as const;
   return (
     <article>
-      <header className="dashboard-title">
-        <div>
-          <h1>{t("adminGuideTitle")}</h1>
-          <p>{t("adminGuideIntro")}</p>
-        </div>
-      </header>
+      <PageHeader title={t("adminGuideTitle")} description={t("adminGuideIntro")} />
       <div className="grid-2">
         {sections.map(([title, text]) => (
           <section className="card" key={title}>

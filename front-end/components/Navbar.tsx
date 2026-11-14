@@ -3,6 +3,7 @@ import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import ThemeToggle from "@/components/ThemeToggle";
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -38,6 +39,7 @@ export default function Navbar({
     router.push("/");
   }
   const langButton = <LanguageSwitcher />;
+  const themeButton = <ThemeToggle />;
   return (
     <>
       <a className="skip-link" href="#main-content">
@@ -72,9 +74,9 @@ export default function Navbar({
               </Link>
             ))}
           </nav>
-          {!isLoading && (
-            <div className="nav-actions">
-              {user ? (
+          <div className="nav-actions">
+            {!isLoading &&
+              (user ? (
                 <>
                   <span className="meta">
                     {nav("hello", { name: user.name?.split(" ")[0] || "" })}
@@ -99,10 +101,10 @@ export default function Navbar({
                     {t("register")}
                   </Link>
                 </>
-              )}
-              {langButton}
-            </div>
-          )}
+              ))}
+            {themeButton}
+            {langButton}
+          </div>
           <button
             className="nav-menu"
             type="button"
@@ -145,6 +147,10 @@ export default function Navbar({
                 </Link>
               </>
             )}
+            <div className="mobile-theme-row">
+              <span>{t("appearance")}</span>
+              {themeButton}
+            </div>
             {langButton}
           </nav>
         )}

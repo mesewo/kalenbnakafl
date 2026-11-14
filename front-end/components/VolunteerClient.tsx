@@ -153,7 +153,7 @@ export default function VolunteerClient() {
               </form>
             )}
           </div>
-          <div className="grid-3" style={{ gridTemplateColumns: "1fr" }}>
+          <div className="grid-3 volunteer-values-grid">
             <article className="card card-accent">
               <h3>{t("show")}</h3>
               <p>{t("showText")}</p>

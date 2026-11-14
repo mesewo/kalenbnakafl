@@ -48,9 +48,22 @@ test("Amharic admin creates, publishes, edits, and deletes translated posts and 
   await dialog.getByRole("button", { name: dashboard.createPost }).click();
   let postRow = page.getByRole("row").filter({ hasText: postTitle });
   await expect(postRow).toBeVisible();
+  const publishResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "PATCH" &&
+      new URL(response.url()).pathname.endsWith("/publish"),
+  );
   await postRow.getByRole("button", { name: dashboard.publish }).click();
+  const publishedResponse = await publishResponse;
+  expect(publishedResponse.status()).toBe(200);
+  const publicFreshnessDeadline = Date.now() + 5000;
   await expect(postRow).toContainText(dashboard.statusPublishedLabel);
-  await waitForPublicContent(page, "/am/blog", page.getByRole("heading", { name: postTitle }));
+  await waitForPublicContent(
+    page,
+    "/am/blog",
+    page.getByRole("heading", { name: postTitle }),
+    publicFreshnessDeadline - Date.now(),
+  );
 
   await page.goto("/am/dashboard/posts");
   postRow = page.getByRole("row").filter({ hasText: postTitle });
@@ -61,8 +74,17 @@ test("Amharic admin creates, publishes, edits, and deletes translated posts and 
   await dialog.getByRole("button", { name: dashboard.saveChanges }).click();
   postRow = page.getByRole("row").filter({ hasText: postTitleEdited });
   await expect(postRow).toBeVisible();
-  page.once("dialog", (confirm) => confirm.accept());
   await postRow.getByRole("button", { name: dashboard.delete }).click();
+  const postDeleteResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "DELETE" &&
+      /\/staff\/posts\/\d+$/.test(new URL(response.url()).pathname),
+  );
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: dashboard.delete, exact: true })
+    .click();
+  expect((await postDeleteResponse).status()).toBe(200);
   await expect(page.getByRole("row").filter({ hasText: postTitleEdited })).toHaveCount(0);
 
   await page.goto("/am/dashboard/events");
@@ -96,8 +118,17 @@ test("Amharic admin creates, publishes, edits, and deletes translated posts and 
   await dialog.getByRole("button", { name: dashboard.saveChanges }).click();
   eventRow = page.getByRole("row").filter({ hasText: eventTitleEdited });
   await expect(eventRow).toBeVisible();
-  page.once("dialog", (confirm) => confirm.accept());
   await eventRow.getByRole("button", { name: dashboard.delete }).click();
+  const eventDeleteResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "DELETE" &&
+      /\/staff\/events\/\d+$/.test(new URL(response.url()).pathname),
+  );
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: dashboard.delete, exact: true })
+    .click();
+  expect((await eventDeleteResponse).status()).toBe(200);
   await expect(page.getByRole("row").filter({ hasText: eventTitleEdited })).toHaveCount(0);
 });
 

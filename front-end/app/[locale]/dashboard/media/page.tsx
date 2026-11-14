@@ -1,13 +1,23 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
+import { useConfirm, useToast } from "@/components/DashboardProviders";
 import MediaUploadForm from "@/components/MediaUploadForm";
-import { ApiError, apiFetch, formatDate, type MediaItem, type PageResponse } from "@/lib/api";
+import { ApiError, apiFetch, formatDate, type MediaItem } from "@/lib/api";
+import PageHeader from "@/components/ui/PageHeader";
+import SkeletonCards from "@/components/ui/SkeletonCards";
+import EmptyState from "@/components/ui/EmptyState";
+import { queryKeys } from "@/lib/query-keys";
+import { useOptimisticMutation } from "@/lib/use-optimistic-mutation";
+import { fetchStaffImages } from "@/lib/staff-media";
 
 type MediaUsage = { usage_type: string; reference_id: number; label: string };
+type MediaLibraryData = { items: MediaItem[]; usages: Record<number, MediaUsage[]> };
+const emptyMedia: MediaItem[] = [];
 
 function isMediaUsage(value: unknown): value is MediaUsage {
   if (typeof value !== "object" || value === null) return false;
@@ -28,44 +38,22 @@ function mediaUsages(value: unknown): MediaUsage[] {
 export default function MediaPage() {
   const displayLocale = useLocale();
   const t = useTranslations("dashboard");
+  const confirm = useConfirm();
+  const showToast = useToast();
   const { user } = useAuth();
-  const [media, setMedia] = useState<MediaItem[]>([]);
-  const [usages, setUsages] = useState<Record<number, MediaUsage[]>>({});
+  const queryClient = useQueryClient();
   const [blockedMediaID, setBlockedMediaID] = useState<number | null>(null);
   const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [deletingID, setDeletingID] = useState<number | null>(null);
-
-  const load = useCallback(async () => {
-    if (!user) return;
-    setLoading(true);
-    setError("");
-    try {
-      const firstPage = await apiFetch<PageResponse<MediaItem>>(
-        "/staff/media?kind=image&page=1&limit=50",
-        {},
-      );
-      const pageCount = Math.max(1, Math.ceil(firstPage.total / 50));
-      const otherPages: PageResponse<MediaItem>[] = [];
-      for (let firstPageNumber = 2; firstPageNumber <= pageCount; firstPageNumber += 10) {
+  const mediaQuery = useQuery({
+    queryKey: queryKeys.media,
+    enabled: Boolean(user),
+    queryFn: async (): Promise<MediaLibraryData> => {
+      const items = await fetchStaffImages();
+      const usages: Record<number, MediaUsage[]> = {};
+      for (let offset = 0; offset < items.length; offset += 10) {
         const batch = await Promise.all(
-          Array.from({ length: Math.min(10, pageCount - firstPageNumber + 1) }, (_, index) =>
-            apiFetch<PageResponse<MediaItem>>(
-              `/staff/media?kind=image&page=${firstPageNumber + index}&limit=50`,
-              {},
-            ),
-          ),
-        );
-        otherPages.push(...batch);
-      }
-      const allMedia = [...firstPage.items, ...otherPages.flatMap((page) => page.items)];
-      setMedia(allMedia);
-      setUsages({});
-      setLoading(false);
-      for (let offset = 0; offset < allMedia.length; offset += 10) {
-        const usageBatch = await Promise.all(
-          allMedia.slice(offset, offset + 10).map(async (item) => {
+          items.slice(offset, offset + 10).map(async (item) => {
             const response = await apiFetch<{ usages: MediaUsage[] }>(
               `/staff/media/${item.id}/usages`,
               {},
@@ -73,18 +61,45 @@ export default function MediaPage() {
             return [item.id, response.usages] as const;
           }),
         );
-        setUsages((current) => ({ ...current, ...Object.fromEntries(usageBatch) }));
+        Object.assign(usages, Object.fromEntries(batch));
       }
-    } catch {
-      setError(t("loadMediaFailed"));
-    } finally {
-      setLoading(false);
-    }
-  }, [t, user]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+      return { items, usages };
+    },
+  });
+  const media = mediaQuery.data?.items ?? emptyMedia;
+  const usages = mediaQuery.data?.usages ?? {};
+  const deleteMutation = useOptimisticMutation<MediaLibraryData, MediaItem>({
+    queryKey: queryKeys.media,
+    mutationFn: (item: MediaItem) => apiFetch(`/staff/media/${item.id}`, { method: "DELETE" }),
+    optimisticUpdate: (current, item) => ({
+      items: current.items.filter((mediaItem) => mediaItem.id !== item.id),
+      usages: Object.fromEntries(
+        Object.entries(current.usages).filter(([id]) => Number(id) !== item.id),
+      ),
+    }),
+    onError: (cause, item) => {
+      if (cause instanceof ApiError && cause.status === 409) {
+        const currentUsages = mediaUsages(cause.details.usages);
+        queryClient.setQueryData<MediaLibraryData>(queryKeys.media, (current) =>
+          current
+            ? { ...current, usages: { ...current.usages, [item.id]: currentUsages } }
+            : current,
+        );
+        setBlockedMediaID(item.id);
+        setError(t("mediaInUse"));
+        showToast(t("mediaInUse"), "error");
+        return;
+      }
+      const message = cause instanceof Error ? cause.message : t("deleteMediaFailed");
+      setError(message);
+      showToast(message, "error");
+    },
+    onSuccess: () => {
+      setError("");
+      setBlockedMediaID(null);
+      showToast(t("mediaDeleted"));
+    },
+  });
 
   const visibleMedia = useMemo(() => {
     const term = search.trim().toLocaleLowerCase();
@@ -96,30 +111,16 @@ export default function MediaPage() {
 
   async function remove(item: MediaItem) {
     if (
-      !window.confirm(
+      !(await confirm(
         t("confirmDeleteMedia", { title: item.title || item.original_name || t("mediaUntitled") }),
-      )
+        t("delete"),
+      ))
     ) {
       return;
     }
     setBlockedMediaID(null);
     setError("");
-    setDeletingID(item.id);
-    try {
-      await apiFetch(`/staff/media/${item.id}`, { method: "DELETE" });
-      await load();
-    } catch (deleteError) {
-      if (deleteError instanceof ApiError && deleteError.status === 409) {
-        const currentUsages = mediaUsages(deleteError.details.usages);
-        setUsages((current) => ({ ...current, [item.id]: currentUsages }));
-        setBlockedMediaID(item.id);
-        setError(t("mediaInUse"));
-      } else {
-        setError(t("deleteMediaFailed"));
-      }
-    } finally {
-      setDeletingID(null);
-    }
+    void deleteMutation.mutate(item);
   }
 
   function usageLabel(usage: MediaUsage) {
@@ -143,19 +144,23 @@ export default function MediaPage() {
 
   return (
     <div>
-      <div className="dashboard-title">
-        <div>
-          <span className="eyebrow">{t("mediaEyebrow")}</span>
-          <h1>{t("mediaTitle")}</h1>
-          <p className="meta">{t("mediaLibraryHelp")}</p>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow={t("mediaEyebrow")}
+        title={t("mediaTitle")}
+        description={t("mediaLibraryHelp")}
+      />
       <section className="form-card media-upload-card" aria-labelledby="media-upload-heading">
         <h2 id="media-upload-heading">{t("mediaAddImages")}</h2>
-        <MediaUploadForm onUploaded={load} />
+        <MediaUploadForm
+          onUploaded={async () => {
+            await queryClient.cancelQueries({ queryKey: queryKeys.media });
+            await queryClient.invalidateQueries({ queryKey: queryKeys.media });
+            showToast(t("mediaUploaded"));
+          }}
+        />
       </section>
       {error && (
-        <div className="status status-error" role="alert" style={{ margin: "1rem 0" }}>
+        <div className="status status-error dashboard-status" role="alert">
           {error}
         </div>
       )}
@@ -171,12 +176,14 @@ export default function MediaPage() {
         </label>
         <p className="meta">{t("mediaImageCount", { count: visibleMedia.length })}</p>
       </div>
-      {loading ? (
-        <div className="empty-state" role="status">
-          {t("loadingMedia")}
+      {mediaQuery.isPending ? (
+        <SkeletonCards label={t("loadingMedia")} className="media-library-grid" />
+      ) : mediaQuery.isError ? (
+        <div className="status status-error" role="alert">
+          {mediaQuery.error instanceof Error ? mediaQuery.error.message : t("loadMediaFailed")}
         </div>
       ) : visibleMedia.length === 0 ? (
-        <div className="empty-state">{search ? t("mediaNoSearchResults") : t("noMedia")}</div>
+        <EmptyState>{search ? t("mediaNoSearchResults") : t("noMedia")}</EmptyState>
       ) : (
         <div className="media-library-grid">
           {visibleMedia.map((item) => (
@@ -235,10 +242,12 @@ export default function MediaPage() {
                   <button
                     className="btn btn-danger btn-small"
                     type="button"
-                    disabled={deletingID === item.id}
+                    disabled={deleteMutation.isPending}
                     onClick={() => void remove(item)}
                   >
-                    {deletingID === item.id ? t("deleting") : t("delete")}
+                    {deleteMutation.isPending && deleteMutation.variables?.id === item.id
+                      ? t("deleting")
+                      : t("delete")}
                   </button>
                 </div>
               </div>
