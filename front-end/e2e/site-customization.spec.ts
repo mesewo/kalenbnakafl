@@ -395,7 +395,8 @@ test("admin manages slider, About photos, and branding in both locales", async (
   await expect(pauseSlides).toBeVisible();
   await pauseSlides.focus();
   await page.keyboard.press("Space");
-  await expect(pauseSlides).toHaveAttribute("aria-pressed", "true");
+  const resumeSlides = carousel.getByRole("button", { name: "Resume slideshow" });
+  await expect(resumeSlides).toHaveAttribute("aria-pressed", "true");
   await carousel.locator(".home-slider").focus();
   await page.keyboard.press("ArrowRight");
   await expect(page.getByText(englishSlideCaption, { exact: true })).toBeVisible();

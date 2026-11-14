@@ -2,8 +2,8 @@
 
 - **Visual redesign and i18n complete:** Tailwind v4 design tokens, responsive layouts, dark mode, and Amharic typography are in place; 32 before/after screenshots are documented.
 - **CI content-smoke fixes:** Amharic headings can wrap long words; overflow diagnostics include element and document scroll widths, and the post assertion targets the article body.
-- **Customization E2E reliability:** Public content waits reuse the reload helper, carousel pause is keyboard-tested, and state restoration runs in `afterEach`.
-- **Next step:** Run the Compose-backed Playwright tests in CI; local Compose validation is blocked because the Docker daemon is unavailable.
+- **Customization E2E reliability:** Public content waits reuse the reload helper; carousel pause is keyboard-tested using the post-toggle accessible name, and state restoration runs in `afterEach`.
+- **Next step:** Rerun the Compose-backed Playwright tests in CI; local Compose validation is blocked because the Docker daemon is unavailable.
 
 **Rhythm:** each phase = 1–3 focused sessions (≈2–4 h each) with Gemini. Finish a phase's _Exit criteria_ before starting the next. Total ≈ 3–4 weeks part-time.
 **Minimum credible version** if time is short: Phases 0 → 1 → 2 (CRUD only) → 4 (public pages + fix styling) → 5 (CI + core tests) → 6 → 8. Phases 3 and 7 are what push it from "good" to "senior".
