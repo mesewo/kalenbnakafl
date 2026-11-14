@@ -431,9 +431,13 @@ test("admin manages slider, About photos, and branding in both locales", async (
     page.getByText(secondAmharicSlideCaption, { exact: true }),
     90_000,
   );
-  await expect(page.getByAltText(amharicAlt)).toBeVisible();
-  await expect(page.getByRole("button", { name: "ራስ-ሰር እንቅስቃሴ ጠፍቷል" })).toBeVisible();
-  await page.getByRole("button", { name: "ቀጣዩ ምስል" }).click();
+  const amharicCarousel = page.getByRole("region", { name: "ተመራጭ ምስሎች" });
+  await expect(amharicCarousel.getByAltText(amharicAlt)).toBeVisible();
+  await expect(amharicCarousel.getByRole("button", { name: "ራስ-ሰር እንቅስቃሴ ጠፍቷል" })).toBeVisible();
+  const nextAmharicSlide = amharicCarousel.getByRole("button", { name: "ቀጣዩ ምስል" });
+  await expect(nextAmharicSlide).toBeEnabled();
+  await nextAmharicSlide.focus();
+  await page.keyboard.press("Space");
   await expect(page.getByText(amharicSlideCaption, { exact: true })).toBeVisible();
   await expect(page.getByText(amharicSiteName).first()).toBeVisible();
   const favicon = page.locator('link[rel="icon"]');
