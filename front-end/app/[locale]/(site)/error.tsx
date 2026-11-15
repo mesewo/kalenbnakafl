@@ -1,5 +1,9 @@
 "use client";
+
 import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
+import Icon from "@/components/ui/Icon";
+
 export default function ErrorPage({
   reset,
 }: {
@@ -8,12 +12,19 @@ export default function ErrorPage({
 }) {
   const t = useTranslations("errors");
   return (
-    <main id="main-content" className="section">
-      <div className="container empty-state">
-        <h1>{t("generic")}</h1>
-        <button className="btn btn-primary" onClick={reset}>
+    <main id="main-content" className="state-screen">
+      <span className="state-mark" aria-hidden="true">
+        <Icon name="guide" />
+      </span>
+      <h1>{t("generic")}</h1>
+      <p>{t("errorDescription")}</p>
+      <div className="form-actions">
+        <button type="button" className="btn btn-primary" onClick={reset}>
           {t("retry")}
         </button>
+        <Link className="btn btn-outline" href="/">
+          {t("home")}
+        </Link>
       </div>
     </main>
   );

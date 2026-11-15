@@ -1,9 +1,10 @@
 ### Current state / next step
 
-- **Visual redesign and i18n complete:** Tailwind v4 design tokens, responsive layouts, dark mode, and Amharic typography are in place; 32 before/after screenshots are documented.
-- **CI content-smoke fixes:** Amharic headings can wrap long words; overflow diagnostics include element and document scroll widths, and the post assertion targets the article body.
-- **Customization E2E reliability:** Public content waits reuse the reload helper; carousel controls are keyboard-tested, image checks are carousel-scoped, and state restoration runs in `afterEach`.
-- **Next step:** Rerun the Compose-backed Playwright tests in CI; local Compose validation is blocked because the Docker daemon is unavailable.
+- **Visual system:** Tailwind v4 tokens, persisted light/dark mode, responsive public/dashboard layouts, Amharic font stacks and line-height, and 32 linked before/after screenshots are present.
+- **Public fallback polish:** Localized public error and not-found screens use the shared state-screen treatment without changing message keys.
+- **Verified:** Frontend lint, TypeScript, formatting, i18n catalog validation, unit tests (7), build, and focused visual Playwright tests (2) pass; Go vet, tests, and sqlc diff pass.
+- **Outstanding:** `gofmt -l .` reports existing formatting differences; Lighthouse and Compose-backed E2E were not verified (Docker unavailable; npm reports `ECOMPROMISED` when resolving Lighthouse).
+- **Next step:** Resolve the local verification-tooling blockers, then measure Lighthouse mobile performance for Home, Blog, and Events and rerun Compose E2E.
 
 **Rhythm:** each phase = 1–3 focused sessions (≈2–4 h each) with Gemini. Finish a phase's _Exit criteria_ before starting the next. Total ≈ 3–4 weeks part-time.
 **Minimum credible version** if time is short: Phases 0 → 1 → 2 (CRUD only) → 4 (public pages + fix styling) → 5 (CI + core tests) → 6 → 8. Phases 3 and 7 are what push it from "good" to "senior".
@@ -91,7 +92,7 @@
 
 - [x] **Fix Tailwind v4 setup** (`@theme` tokens, remove v3 directives and `tailwind.config.ts`, `bg-black/50`), confirm visually
 - [x] Design system: tokens (Ethiopian-inspired accents: forest, gold, terracotta), `ui/` primitives (Button, Input, Dialog, Card, Badge, Table, Toast), light/dark toggle and persistence
-- [x] Typography: DM Sans and Fraunces use `next/font` in `front-end/app/layout.tsx` (verified by production build); Noto Sans and Noto Serif Ethiopic for Amharic with 1.75/1.5 line heights.
+- [x] Typography: CSS font stacks retain DM Sans, Fraunces, Noto Sans Ethiopic, and Noto Serif Ethiopic with platform fallbacks; Amharic body and heading line heights are increased.
 - [x] Layout: responsive Navbar (mobile drawer), Footer with real content, logo via `next/image`
 - [x] Public pages as Server Components + ISR: Home (hero with slider, upcoming events, latest news), Blog list + `/blog/[slug]`, Events, Media library, About, Volunteer (working form), Contact
 - [x] SEO: `generateMetadata`, Open Graph images, `sitemap.ts`, `robots.ts`, JSON-LD (`Organization`, `Event`, `Article`), `not-found`/`error` pages
@@ -99,9 +100,9 @@
 - [x] Auth UI on cookie session: `/auth/me`, route protection in `middleware`/proxy, 401 handling
 - [x] Dashboard: TanStack Query; full CRUD tables for posts/events/media/users/volunteers/messages with optimistic updates, confirm dialogs, toasts, empty/loading/error states
 - [x] Generated API types from OpenAPI; zero `any`
-- [x] Accessibility pass: labels, focus management, keyboard, contrast; Lighthouse ≥ 95 (a11y, SEO, best practices), ≥ 90 performance on mobile; 32 before/after screenshots captured across viewports and color schemes
+- [x] Accessibility pass: labels, focus management, keyboard, contrast, and responsive screenshots are in place. Lighthouse mobile performance ≥ 90 remains to be measured on the built app.
 
-**Exit:** a stranger can use every visible control; Lighthouse targets met; no dead buttons.
+**Exit:** a stranger can use every visible control; verify Lighthouse targets on the built app; no dead buttons.
 
 ## Phase 5 — Testing & CI (≈ 2 sessions)
 
